@@ -1,112 +1,1685 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linux Command Explainer | Understand any command</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .glass-morphism {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Linux Command Explainer · EknathaLabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #080c10;
+    --surface:  #0d1117;
+    --surface2: #161b22;
+    --surface3: #21262d;
+    --border:   rgba(48,54,61,0.8);
+    --accent:   #39d353;
+    --accent2:  #58a6ff;
+    --accent3:  #f78166;
+    --warn:     #d29922;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Outfit', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, rgba(57,211,83,0.05) 0%, transparent 70%);
+    top: -100px; left: 50%; transform: translateX(-50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 40px;
+    background: rgba(8,12,16,0.92);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 0.88rem; font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .logo-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--accent); display: flex; align-items: center;
+    justify-content: center; font-size: 0.75rem; color: #000; font-weight: 700;
+    box-shadow: 0 0 14px rgba(57,211,83,0.4);
+  }
+  .logo-brand { color: var(--accent); }
+  .logo-sep { color: var(--muted); margin: 0 2px; }
+
+  .header-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .header-tag {
+    font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+    border: 1px solid var(--border); padding: 3px 9px; border-radius: 4px;
+  }
+  .header-counter {
+    font-family: var(--mono); font-size: 0.65rem; color: var(--accent);
+    border: 1px solid rgba(57,211,83,0.2);
+    background: rgba(57,211,83,0.05);
+    padding: 3px 9px; border-radius: 4px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 56px 20px 40px;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 0.7rem;
+    color: var(--accent); letter-spacing: 0.2em;
+    text-transform: uppercase; margin-bottom: 16px;
+    display: inline-block;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    font-weight: 800; line-height: 1.08;
+    letter-spacing: -0.03em; margin-bottom: 14px;
+  }
+  .hero h1 .hl {
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(57,211,83,0.3);
+  }
+
+  .hero-sub {
+    font-size: 1rem; color: var(--muted);
+    max-width: 540px; margin: 0 auto 36px;
+    line-height: 1.7;
+  }
+
+  /* Example chips */
+  .examples {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center; margin-bottom: 32px;
+  }
+  .example-chip {
+    font-family: var(--mono); font-size: 0.72rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--accent2); padding: 5px 12px; border-radius: 6px;
+    cursor: pointer; transition: all .2s;
+    white-space: nowrap;
+  }
+  .example-chip:hover {
+    background: rgba(88,166,255,0.1);
+    border-color: rgba(88,166,255,0.4);
+    transform: translateY(-2px);
+  }
+
+  /* ── TERMINAL INPUT ── */
+  .terminal-wrap {
+    max-width: 760px; margin: 0 auto;
+    position: relative; z-index: 1;
+    padding: 0 20px;
+  }
+
+  .terminal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(57,211,83,0.05);
+    transition: box-shadow .3s;
+  }
+  .terminal-box:focus-within {
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(57,211,83,0.2), 0 0 30px rgba(57,211,83,0.06);
+  }
+
+  /* Title bar */
+  .terminal-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .tbar-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .tbar-dot.red    { background: #ff5f57; }
+  .tbar-dot.yellow { background: #ffbd2e; }
+  .tbar-dot.green  { background: #28c840; }
+  .tbar-title {
+    flex: 1; text-align: center;
+    font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
+  }
+
+  /* Input row */
+  .terminal-input-row {
+    display: flex; align-items: center;
+    padding: 16px 20px; gap: 10px;
+  }
+  .terminal-prompt {
+    font-family: var(--mono); font-size: 0.95rem;
+    color: var(--accent); flex-shrink: 0; user-select: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .terminal-prompt .path { color: var(--accent2); }
+  .terminal-prompt .sym  { color: var(--accent); }
+
+  #cmd-input {
+    flex: 1; background: transparent; border: none; outline: none;
+    font-family: var(--mono); font-size: 0.95rem; color: var(--text);
+    caret-color: var(--accent);
+  }
+  #cmd-input::placeholder { color: var(--muted); opacity: .5; }
+
+  .explain-btn {
+    background: var(--accent); color: #000;
+    border: none; border-radius: 7px;
+    padding: 9px 20px; font-family: var(--sans);
+    font-weight: 700; font-size: 0.82rem;
+    cursor: pointer; transition: all .2s; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .explain-btn:hover { background: #4ade80; transform: translateY(-1px); }
+  .explain-btn:active { transform: none; }
+  .explain-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .explain-btn .btn-arrow { transition: transform .2s; }
+  .explain-btn:hover .btn-arrow { transform: translateX(3px); }
+
+  /* ── LOADING ── */
+  #loading {
+    display: none; max-width: 760px; margin: 24px auto;
+    padding: 0 20px; position: relative; z-index: 1;
+  }
+  .loading-inner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px;
+    text-align: center;
+  }
+  .loading-dots {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-bottom: 14px;
+  }
+  .loading-dots span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    animation: dotBounce 1.2s ease-in-out infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: .2s; background: var(--accent2); }
+  .loading-dots span:nth-child(3) { animation-delay: .4s; background: var(--accent3); }
+  @keyframes dotBounce {
+    0%,80%,100% { transform: scale(.8); opacity: .4; }
+    40%         { transform: scale(1.2); opacity: 1; }
+  }
+  .loading-text {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
+  }
+  .loading-cmd {
+    font-family: var(--mono); font-size: 0.82rem; color: var(--accent);
+    margin-top: 6px; opacity: .7;
+  }
+
+  /* ── ERROR ── */
+  #error-box {
+    display: none; max-width: 760px; margin: 16px auto;
+    padding: 0 20px; position: relative; z-index: 1;
+  }
+  .error-inner {
+    background: rgba(247,129,102,0.07);
+    border: 1px solid rgba(247,129,102,0.25);
+    border-radius: 10px; padding: 14px 18px;
+    font-family: var(--mono); font-size: 0.8rem; color: var(--accent3);
+  }
+
+  /* ── RESULTS ── */
+  #results {
+    display: none; max-width: 760px;
+    margin: 24px auto 80px; padding: 0 20px;
+    position: relative; z-index: 1;
+  }
+
+  /* Command header */
+  .cmd-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px;
+    margin-bottom: 16px;
+    display: flex; align-items: flex-start; gap: 16px;
+    animation: fadeUp .35s ease both;
+  }
+  .cmd-header-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: rgba(57,211,83,0.1); border: 1px solid rgba(57,211,83,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+  .cmd-header-body { flex: 1; min-width: 0; }
+  .cmd-header-title {
+    font-family: var(--mono); font-size: 1.05rem; font-weight: 700;
+    color: var(--accent); word-break: break-all;
+    margin-bottom: 5px;
+  }
+  .cmd-header-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.55; }
+  .cmd-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .icon-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 7px; padding: 7px 12px;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(57,211,83,0.05); }
+
+  /* Risk badge */
+  .risk-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 0.65rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 12px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-top: 8px;
+  }
+  .risk-safe     { background: rgba(57,211,83,0.12);  color: var(--accent); border: 1px solid rgba(57,211,83,0.25); }
+  .risk-low      { background: rgba(88,166,255,0.1);  color: var(--accent2); border: 1px solid rgba(88,166,255,0.2); }
+  .risk-medium   { background: rgba(210,153,34,0.1);  color: var(--warn); border: 1px solid rgba(210,153,34,0.25); }
+  .risk-high     { background: rgba(247,129,102,0.1); color: var(--accent3); border: 1px solid rgba(247,129,102,0.25); }
+  .risk-critical { background: rgba(255,50,50,0.1);   color: #ff5555; border: 1px solid rgba(255,50,50,0.3); }
+
+  /* Sections */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    animation: fadeUp .4s ease both;
+  }
+  .section-card:nth-child(2) { animation-delay: .05s; }
+  .section-card:nth-child(3) { animation-delay: .10s; }
+  .section-card:nth-child(4) { animation-delay: .15s; }
+  .section-card:nth-child(5) { animation-delay: .20s; }
+  .section-card:nth-child(6) { animation-delay: .25s; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .section-head-icon { font-size: 1rem; }
+  .section-body { padding: 18px 20px; }
+
+  /* Token breakdown */
+  .tokens-wrap {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+  }
+  .token {
+    font-family: var(--mono); font-size: 0.82rem;
+    padding: 5px 12px; border-radius: 6px;
+    border: 1px solid; cursor: default;
+    transition: transform .15s;
+    position: relative;
+  }
+  .token:hover { transform: translateY(-2px); }
+  .token-command  { background: rgba(57,211,83,0.1);  border-color: rgba(57,211,83,0.3);  color: var(--accent); }
+  .token-flag     { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: var(--accent2); }
+  .token-arg      { background: rgba(210,153,34,0.1); border-color: rgba(210,153,34,0.3); color: var(--warn); }
+  .token-pipe     { background: rgba(247,129,102,0.1);border-color: rgba(247,129,102,0.3);color: var(--accent3); }
+  .token-redirect { background: rgba(160,110,255,0.1);border-color: rgba(160,110,255,0.3);color: #b39dff; }
+  .token-subshell { background: rgba(255,200,80,0.1); border-color: rgba(255,200,80,0.3); color: #ffd060; }
+
+  .token-type-label {
+    font-size: 0.6rem; color: var(--muted);
+    margin-top: 1px; display: block; text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Token legend */
+  .token-legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    padding-top: 10px; border-top: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 2px;
+  }
+
+  /* Part explanations */
+  .parts-list { display: flex; flex-direction: column; gap: 10px; }
+  .part-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 12px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    transition: border-color .2s;
+  }
+  .part-row:hover { border-color: rgba(57,211,83,0.2); }
+  .part-token-badge {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 5px;
+    flex-shrink: 0; white-space: nowrap;
+    align-self: flex-start; margin-top: 1px;
+  }
+  .part-body { flex: 1; min-width: 0; }
+  .part-name { font-size: 0.82rem; font-weight: 700; margin-bottom: 3px; }
+  .part-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.55; }
+  .part-example {
+    font-family: var(--mono); font-size: 0.72rem;
+    color: var(--accent2); margin-top: 5px;
+    background: rgba(88,166,255,0.06); padding: 3px 8px;
+    border-radius: 4px; display: inline-block;
+  }
+
+  /* Use cases */
+  .usecases-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .usecase-card {
+    padding: 12px 14px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .usecase-icon { font-size: 1.2rem; margin-bottom: 6px; display: block; }
+  .usecase-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 3px; }
+  .usecase-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+  /* Safer alternatives */
+  .alt-list { display: flex; flex-direction: column; gap: 10px; }
+  .alt-row {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    border-left: 3px solid var(--accent3);
+  }
+  .alt-cmd {
+    font-family: var(--mono); font-size: 0.82rem; font-weight: 700;
+    color: var(--accent); margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .alt-copy {
+    font-size: 0.65rem; padding: 1px 6px;
+    background: rgba(57,211,83,0.08); border: 1px solid rgba(57,211,83,0.2);
+    border-radius: 4px; cursor: pointer; color: var(--accent);
+    transition: all .15s;
+  }
+  .alt-copy:hover { background: rgba(57,211,83,0.18); }
+  .alt-reason { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+  /* Danger warnings */
+  .danger-box {
+    background: rgba(255,50,50,0.06); border: 1px solid rgba(255,50,50,0.2);
+    border-radius: 8px; padding: 14px 16px;
+    border-left: 3px solid #ff5555;
+  }
+  .danger-title {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700;
+    color: #ff5555; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .danger-body { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+
+  /* Pro tips */
+  .tips-list { display: flex; flex-direction: column; gap: 8px; }
+  .tip-row {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 12px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .tip-icon { font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }
+  .tip-text { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
+  .tip-text strong { color: var(--text); }
+  .tip-text code {
+    font-family: var(--mono); font-size: 0.75rem; color: var(--accent2);
+    background: rgba(88,166,255,0.08); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Related commands */
+  .related-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+  .related-chip {
+    font-family: var(--mono); font-size: 0.75rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--accent2); padding: 5px 12px; border-radius: 6px;
+    cursor: pointer; transition: all .15s;
+  }
+  .related-chip:hover {
+    background: rgba(88,166,255,0.1);
+    border-color: rgba(88,166,255,0.4);
+    transform: translateY(-1px);
+  }
+
+  /* ── INTERACTIVE COMMAND BUILDER ── */
+  #builder-section {
+    max-width: 760px; margin: 0 auto 28px; padding: 0 20px;
+    position: relative; z-index: 1;
+  }
+  .builder-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px;
+    cursor: pointer; transition: border-color .2s;
+    user-select: none;
+  }
+  .builder-toggle:hover { border-color: rgba(57,211,83,0.3); }
+  .builder-toggle-label {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .builder-toggle-hint { font-size: 0.65rem; color: var(--muted); margin-left: 4px; font-weight:400; }
+  .builder-chevron { font-size: 0.7rem; color: var(--muted); transition: transform .2s; }
+  #builder-section.open .builder-chevron { transform: rotate(90deg); }
+  .builder-body {
+    display: none; background: var(--surface);
+    border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 10px 10px; padding: 20px;
+  }
+  #builder-section.open .builder-body { display: block; }
+  .builder-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .builder-field { display: flex; flex-direction: column; gap: 5px; }
+  .builder-label { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .builder-select, .builder-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 0.8rem;
+    padding: 8px 12px; border-radius: 7px; outline: none; transition: border-color .2s;
+  }
+  .builder-select:focus, .builder-input:focus { border-color: rgba(57,211,83,0.4); }
+  .builder-select { min-width: 160px; cursor: pointer; }
+  .builder-input  { min-width: 200px; flex: 1; }
+  .builder-flags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .builder-flag-toggle {
+    font-family: var(--mono); font-size: 0.72rem;
+    padding: 5px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--muted); cursor: pointer; transition: all .15s; user-select: none;
+  }
+  .builder-flag-toggle.active { background: rgba(57,211,83,0.1); border-color: rgba(57,211,83,0.35); color: var(--accent); }
+  .builder-flag-toggle:hover { border-color: rgba(57,211,83,0.25); color: var(--text); }
+  .builder-output {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px;
+    font-family: var(--mono); font-size: 0.88rem; color: var(--accent);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 4px; min-height: 44px;
+  }
+  .builder-output-cmd { flex: 1; word-break: break-all; }
+  .builder-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .builder-action-btn {
+    font-family: var(--mono); font-size: 0.7rem;
+    padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .builder-action-btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .builder-action-btn.primary:hover { background: #4ade80; }
+  .builder-action-btn:not(.primary):hover { border-color: var(--accent); color: var(--accent); }
+  .builder-flag-desc { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 8px; min-height: 16px; }
+
+  /* ── PIPE CHAIN VISUALISER ── */
+  .pipe-viz-wrap { overflow-x: auto; padding: 8px 0 16px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .pipe-chain { display: flex; align-items: stretch; gap: 0; min-width: max-content; }
+  .pipe-stage {
+    display: flex; flex-direction: column;
+    min-width: 180px; max-width: 230px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: border-color .2s;
+  }
+  .pipe-stage:hover { border-color: rgba(57,211,83,0.3); }
+  .pipe-stage-head {
+    padding: 8px 12px; font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+  }
+  .pipe-stage-num {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; font-weight: 700; color: #000; flex-shrink: 0;
+  }
+  .pipe-stage-cmd { font-family: var(--mono); font-size: 0.78rem; font-weight: 700; padding: 8px 12px; color: var(--accent); border-bottom: 1px solid var(--border); word-break: break-all; }
+  .pipe-stage-body { padding: 8px 12px; flex: 1; }
+  .pipe-stage-label { font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; }
+  .pipe-stage-desc  { font-size: 0.7rem; color: var(--muted); line-height: 1.5; }
+  .pipe-stage-io { padding: 6px 12px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+  .pipe-stage-io span { color: var(--accent2); }
+  .pipe-arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 6px; flex-shrink: 0; position: relative; min-width: 40px;
+  }
+  .pipe-arrow-svg { flex-shrink: 0; }
+  .pipe-arrow-label {
+    position: absolute; top: 30%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 0.52rem; color: var(--accent3);
+    white-space: nowrap; text-align: center; width: 100%;
+  }
+  .pipe-data-flow {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 16px; margin-top: 12px;
+    background: rgba(88,166,255,0.05); border: 1px solid rgba(88,166,255,0.12);
+    border-radius: 8px; font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .pipe-data-tag { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.2); color: var(--accent2); padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; }
+  .pipe-data-arrow { color: var(--accent3); font-size: 0.7rem; }
+
+  /* ── OS COMPATIBILITY ── */
+  .os-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+  .os-card {
+    padding: 12px 14px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 6px; transition: border-color .2s;
+  }
+  .os-card:hover { border-color: rgba(57,211,83,0.2); }
+  .os-card-head { display: flex; align-items: center; gap: 8px; }
+  .os-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .os-name { font-size: 0.8rem; font-weight: 700; }
+  .os-badge {
+    font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; align-self: flex-start;
+  }
+  .os-badge.yes  { background: rgba(57,211,83,0.12);  color: var(--accent); border: 1px solid rgba(57,211,83,0.25); }
+  .os-badge.no   { background: rgba(247,129,102,0.1); color: var(--accent3); border: 1px solid rgba(247,129,102,0.2); }
+  .os-badge.diff { background: rgba(210,153,34,0.1);  color: var(--warn); border: 1px solid rgba(210,153,34,0.2); }
+  .os-badge.pkg  { background: rgba(88,166,255,0.1);  color: var(--accent2); border: 1px solid rgba(88,166,255,0.2); }
+  .os-note { font-size: 0.68rem; color: var(--muted); line-height: 1.4; }
+
+  /* ── COMMON MISTAKES ── */
+  .mistakes-list { display: flex; flex-direction: column; gap: 12px; }
+  .mistake-card {
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(247,129,102,0.2);
+    background: rgba(247,129,102,0.03); transition: border-color .2s;
+  }
+  .mistake-card:hover { border-color: rgba(247,129,102,0.35); }
+  .mistake-head {
+    padding: 10px 14px; background: rgba(247,129,102,0.06);
+    border-bottom: 1px solid rgba(247,129,102,0.15);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mistake-num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(247,129,102,0.2); color: var(--accent3);
+    font-family: var(--mono); font-size: 0.65rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .mistake-title { font-size: 0.82rem; font-weight: 700; color: var(--accent3); }
+  .mistake-body { padding: 12px 14px; }
+  .mistake-code-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+  .mistake-wrong, .mistake-right { border-radius: 6px; padding: 8px 12px; font-family: var(--mono); font-size: 0.75rem; }
+  .mistake-wrong { background: rgba(255,50,50,0.08); border: 1px solid rgba(255,50,50,0.2); }
+  .mistake-right { background: rgba(57,211,83,0.08); border: 1px solid rgba(57,211,83,0.2); }
+  .mistake-code-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; font-weight: 700; }
+  .mistake-wrong .mistake-code-label { color: #ff5555; }
+  .mistake-right .mistake-code-label { color: var(--accent); }
+  .mistake-code-val { color: var(--text); word-break: break-all; }
+  .mistake-explanation { font-size: 0.75rem; color: var(--muted); line-height: 1.55; }
+
+  /* ── HISTORY ── */
+  #history-section {
+    display: none; max-width: 760px;
+    margin: 0 auto 40px; padding: 0 20px;
+    position: relative; z-index: 1;
+  }
+  .history-title {
+    font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .history-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .history-chip {
+    font-family: var(--mono); font-size: 0.7rem;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 4px 10px; border-radius: 5px;
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .history-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .history-chip .h-del {
+    opacity: .4; font-size: 0.75rem; line-height: 1;
+    transition: opacity .15s;
+  }
+  .history-chip:hover .h-del { opacity: 1; color: var(--accent3); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; padding: 32px 20px;
+    font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+    border-top: 1px solid var(--border); position: relative; z-index: 1;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Syntax highlight in output */
+  .hl-cmd  { color: var(--accent); }
+  .hl-flag { color: var(--accent2); }
+  .hl-arg  { color: var(--warn); }
+  .hl-pipe { color: var(--accent3); }
+
+  @media (max-width: 600px) {
+    header { padding: 12px 16px; }
+    .hero { padding: 36px 16px 28px; }
+    .cmd-header { flex-direction: column; }
+    .cmd-header-actions { align-self: flex-start; }
+    .usecases-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-6">
+<body>
 
-    <div class="max-w-3xl w-full space-y-8">
-        <div class="text-center">
-            <h1 class="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                Linux Command Explainer
-            </h1>
-            <p class="mt-3 text-gray-400 text-lg">Understand any Linux command in seconds.</p>
-        </div>
+<header>
+  <div class="logo">
+    <div class="logo-icon">EL</div>
+    <span>Eknatha<span class="logo-brand">Labs</span></span>
+    <span class="logo-sep">/</span>
+    <span style="color:var(--muted);font-weight:400">linux-explainer</span>
+  </div>
+  <div class="header-right">
+    <div class="header-tag">v1.0</div>
+    <div class="header-counter" id="explain-count">0 commands explained</div>
+  </div>
+</header>
 
-        <div class="glass-morphism p-6 rounded-2xl shadow-2xl">
-            <div class="relative">
-                <input type="text" id="commandInput" 
-                    placeholder="e.g. ls -la or tar -xzvf archive.tar.gz" 
-                    class="w-full bg-slate-800 border border-slate-700 rounded-xl py-4 px-6 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-lg font-mono">
-                <button onclick="explainCommand()" 
-                    class="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-500 px-6 rounded-lg font-bold transition-colors">
-                    Explain
-                </button>
-            </div>
-            <p id="errorMsg" class="mt-2 text-red-400 text-sm hidden">Please enter a command.</p>
-        </div>
+<main>
+  <section class="hero">
+    <div class="hero-eyebrow">// linux command explainer</div>
+    <h1>Understand any<br><span class="hl">Linux command</span><br>in seconds</h1>
+    <p class="hero-sub">
+      Paste any command — simple or complex — and get a plain-English breakdown
+      of every token, flag, pipe, and argument. With use cases, risk level, and safer alternatives.
+    </p>
 
-        <div id="resultArea" class="hidden space-y-4">
-            <div class="glass-morphism p-6 rounded-2xl border-l-4 border-emerald-500">
-                <h3 class="text-emerald-400 font-bold mb-2 uppercase text-xs tracking-widest">The Breakdown</h3>
-                <div id="explanationOutput" class="space-y-4 font-mono text-sm leading-relaxed">
-                    </div>
-            </div>
-        </div>
-
-        <footer class="text-center text-gray-500 text-sm">
-            <p>Made for DevOps Engineers & Terminal Lovers</p>
-            <a href="https://github.com/eknatha" class="hover:text-blue-400 transition-colors"><i class="fab fa-github mt-4 text-xl"></i></a>
-        </footer>
+    <div class="examples">
+      <span class="example-chip" onclick="setExample(this)">find / -name *.log -mtime +7 -delete</span>
+      <span class="example-chip" onclick="setExample(this)">ps aux | grep nginx | awk '{print $2}'</span>
+      <span class="example-chip" onclick="setExample(this)">tar -czf backup.tar.gz /var/www</span>
+      <span class="example-chip" onclick="setExample(this)">chmod 755 /usr/local/bin/deploy.sh</span>
+      <span class="example-chip" onclick="setExample(this)">netstat -tulpn | grep LISTEN</span>
+      <span class="example-chip" onclick="setExample(this)">dd if=/dev/sda of=/dev/sdb bs=4M status=progress</span>
+      <span class="example-chip" onclick="setExample(this)">awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -10</span>
+      <span class="example-chip" onclick="setExample(this)">systemctl restart nginx && journalctl -u nginx -n 50</span>
     </div>
+  </section>
 
-    <script>
-        // Simple Dictionary Logic (To avoid 'Failed to Fetch')
-        const dictionary = {
-            "ls": "Lists directory contents.",
-            "-l": "Use a long listing format (shows permissions, owner, size).",
-            "-a": "Do not ignore entries starting with . (shows hidden files).",
-            "tar": "An archiving utility used to store/extract files.",
-            "-x": "Extract files from an archive.",
-            "-z": "Filter the archive through gzip (compression).",
-            "-v": "Verbosely list files processed.",
-            "-f": "Use archive file or device ARCHIVE.",
-            "sudo": "Execute a command as another user (usually superuser).",
-            "grep": "Print lines that match patterns.",
-            "chmod": "Change file mode bits (permissions).",
-            "chown": "Change file owner and group."
-        };
+  <!-- Terminal input -->
+  <div class="terminal-wrap">
+    <div class="terminal-box">
+      <div class="terminal-bar">
+        <div class="tbar-dot red"></div>
+        <div class="tbar-dot yellow"></div>
+        <div class="tbar-dot green"></div>
+        <div class="tbar-title">bash — linux-explainer</div>
+      </div>
+      <div class="terminal-input-row">
+        <div class="terminal-prompt">
+          <span class="path">~/</span>
+          <span class="sym">$</span>
+        </div>
+        <input id="cmd-input" type="text" spellcheck="false" autocomplete="off"
+          placeholder="Paste or type any Linux command..." />
+        <button class="explain-btn" id="explain-btn" onclick="explain()">
+          Explain <span class="btn-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
-        function explainCommand() {
-            const input = document.getElementById('commandInput').value.trim();
-            const resultArea = document.getElementById('resultArea');
-            const output = document.getElementById('explanationOutput');
-            const errorMsg = document.getElementById('errorMsg');
+  <!-- Interactive Command Builder -->
+  <div id="builder-section">
+    <div class="builder-toggle" onclick="toggleBuilder()">
+      <div class="builder-toggle-label">
+        🔧 Interactive Command Builder
+        <span class="builder-toggle-hint">— build commands visually without memorising flags</span>
+      </div>
+      <span class="builder-chevron">▶</span>
+    </div>
+    <div class="builder-body">
+      <div class="builder-row">
+        <div class="builder-field">
+          <label class="builder-label">Base Command</label>
+          <select class="builder-select" id="b-cmd" onchange="builderUpdate()">
+            <option value="">— select —</option>
+            <option value="find">find</option>
+            <option value="grep">grep</option>
+            <option value="ls">ls</option>
+            <option value="ps">ps</option>
+            <option value="chmod">chmod</option>
+            <option value="tar">tar</option>
+            <option value="curl">curl</option>
+            <option value="ssh">ssh</option>
+            <option value="rsync">rsync</option>
+            <option value="awk">awk</option>
+            <option value="sed">sed</option>
+            <option value="netstat">netstat</option>
+            <option value="df">df</option>
+            <option value="du">du</option>
+            <option value="systemctl">systemctl</option>
+            <option value="journalctl">journalctl</option>
+            <option value="docker">docker</option>
+            <option value="kubectl">kubectl</option>
+          </select>
+        </div>
+        <div class="builder-field" style="flex:1">
+          <label class="builder-label">Target / Path / Pattern</label>
+          <input class="builder-input" id="b-target" type="text" placeholder="e.g. /var/log, *.conf, 755..." oninput="builderUpdate()" />
+        </div>
+        <div class="builder-field">
+          <label class="builder-label">Additional Arg</label>
+          <input class="builder-input" id="b-arg2" type="text" placeholder="e.g. output file, host..." style="min-width:140px" oninput="builderUpdate()" />
+        </div>
+      </div>
+      <div class="builder-label" style="margin-bottom:8px">Flags</div>
+      <div class="builder-flags" id="b-flags"></div>
+      <div class="builder-flag-desc" id="b-flag-desc">Hover a flag to see what it does</div>
+      <div class="builder-output">
+        <div class="builder-output-cmd" id="b-output">$ select a command above</div>
+        <div class="builder-actions">
+          <button class="builder-action-btn" onclick="builderCopy()">📋 Copy</button>
+          <button class="builder-action-btn primary" onclick="builderExplain()">Explain →</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            if (!input) {
-                errorMsg.classList.remove('hidden');
-                return;
-            }
+  <!-- History -->
+  <div id="history-section">
+    <div class="history-title">// recent commands</div>
+    <div class="history-chips" id="history-chips"></div>
+  </div>
 
-            errorMsg.classList.add('hidden');
-            output.innerHTML = "";
-            resultArea.classList.remove('hidden');
+  <!-- Loading -->
+  <div id="loading">
+    <div class="loading-inner">
+      <div class="loading-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="loading-text" id="loading-text">Parsing command tokens...</div>
+      <div class="loading-cmd" id="loading-cmd"></div>
+    </div>
+  </div>
 
-            const parts = input.split(/\s+/);
-            
-            parts.forEach((part, index) => {
-                let meaning = dictionary[part] || "Argument or unknown parameter.";
-                
-                const item = document.createElement('div');
-                item.className = "p-3 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-blue-500 transition-all";
-                item.innerHTML = `
-                    <span class="text-blue-400 font-bold">${part}</span>
-                    <span class="text-gray-500 mx-2">→</span>
-                    <span class="text-gray-300">${meaning}</span>
-                `;
-                output.appendChild(item);
-            });
-        }
+  <!-- Error -->
+  <div id="error-box">
+    <div class="error-inner" id="error-msg"></div>
+  </div>
 
-        // Allow Enter key to trigger search
-        document.getElementById('commandInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') explainCommand();
-        });
-    </script>
+  <!-- Results -->
+  <div id="results"></div>
+
+</main>
+
+<footer>
+  Built by <a href="https://eknathalabs.com" target="_blank">eknathalabs.com</a>
+  · Powered by Claude AI · No command data stored
+  · <a href="https://eknathareddyp.github.io/github-profile-analyzer" target="_blank">GitHub Profile Analyzer</a>
+</footer>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let history = JSON.parse(localStorage.getItem('ell-history') || '[]');
+let explainCount = parseInt(localStorage.getItem('ell-count') || '0');
+
+updateCountDisplay();
+renderHistory();
+
+// ── ENTER KEY ─────────────────────────────────────────────────────────────────
+document.getElementById('cmd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') explain();
+});
+
+// ── SET EXAMPLE ───────────────────────────────────────────────────────────────
+function setExample(el) {
+  document.getElementById('cmd-input').value = el.textContent.trim();
+  document.getElementById('cmd-input').focus();
+  // Smooth scroll to input
+  document.querySelector('.terminal-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+function addToHistory(cmd) {
+  history = [cmd, ...history.filter(c => c !== cmd)].slice(0, 10);
+  localStorage.setItem('ell-history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const sec   = document.getElementById('history-section');
+  const chips = document.getElementById('history-chips');
+  if (!history.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  chips.innerHTML = history.map((cmd, i) => `
+    <div class="history-chip" onclick="loadHistory('${cmd.replace(/'/g,"\\'")}')">
+      <span>${cmd.length > 40 ? cmd.slice(0,37)+'...' : cmd}</span>
+      <span class="h-del" onclick="removeHistory(event,${i})">✕</span>
+    </div>`).join('');
+}
+
+function loadHistory(cmd) {
+  document.getElementById('cmd-input').value = cmd;
+  explain();
+}
+
+function removeHistory(e, idx) {
+  e.stopPropagation();
+  history.splice(idx, 1);
+  localStorage.setItem('ell-history', JSON.stringify(history));
+  renderHistory();
+}
+
+function updateCountDisplay() {
+  document.getElementById('explain-count').textContent =
+    `${explainCount} command${explainCount !== 1 ? 's' : ''} explained`;
+}
+
+// ── COPY UTILITY ──────────────────────────────────────────────────────────────
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function copyCmd(cmd) {
+  navigator.clipboard.writeText(cmd).then(() => {
+    // visual feedback handled by CSS
+  });
+}
+
+// ── HIGHLIGHT COMMAND ─────────────────────────────────────────────────────────
+function highlightCmd(cmd) {
+  // Very simple syntax highlight for display
+  return cmd
+    .replace(/(\|)/g,          '<span class="hl-pipe">|</span>')
+    .replace(/(>>?)/g,         '<span class="hl-pipe">$1</span>')
+    .replace(/\s(-{1,2}\w+)/g, ' <span class="hl-flag">$1</span>');
+}
+
+// ── MAIN EXPLAIN FUNCTION ─────────────────────────────────────────────────────
+async function explain() {
+  const input = document.getElementById('cmd-input');
+  const btn   = document.getElementById('explain-btn');
+  const cmd   = input.value.trim();
+  if (!cmd) { input.focus(); return; }
+
+  btn.disabled = true;
+  showLoading(cmd);
+  hideResults();
+
+  const steps = [
+    'Parsing command tokens...',
+    'Identifying flags and arguments...',
+    'Analyzing risk level...',
+    'Generating plain-English explanation...',
+    'Finding safer alternatives...',
+  ];
+  let si = 0;
+  document.getElementById('loading-cmd').textContent = cmd;
+  const stepTimer = setInterval(() => {
+    si = (si + 1) % steps.length;
+    document.getElementById('loading-text').textContent = steps[si];
+  }, 900);
+
+  try {
+    const prompt = buildPrompt(cmd);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    clearInterval(stepTimer);
+
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const data = await res.json();
+    const raw  = data.content?.map(b => b.text || '').join('') || '';
+
+    // Strip JSON fences
+    const clean = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); }
+    catch { throw new Error('Could not parse response. Please try again.'); }
+
+    addToHistory(cmd);
+    explainCount++;
+    localStorage.setItem('ell-count', explainCount);
+    updateCountDisplay();
+
+    hideLoading();
+    renderResults(cmd, parsed);
+
+  } catch(err) {
+    clearInterval(stepTimer);
+    hideLoading();
+    showError(err.message || 'Something went wrong. Please try again.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── PROMPT BUILDER ────────────────────────────────────────────────────────────
+function buildPrompt(cmd) {
+  const hasPipe = cmd.includes('|');
+  return `You are an expert Linux/Unix system administrator and educator. Analyze this Linux command and return ONLY valid JSON with no preamble, no markdown fences, no extra text.
+
+Command: ${cmd}
+
+Return this exact JSON structure:
+{
+  "command": "${cmd.replace(/"/g,'\\"')}",
+  "summary": "One sentence plain-English summary of what this entire command does",
+  "emoji": "single emoji that represents this command's purpose",
+  "risk": "safe|low|medium|high|critical",
+  "risk_reason": "Brief explanation of why this risk level",
+  "tokens": [
+    {
+      "token": "the token text",
+      "type": "command|flag|arg|pipe|redirect|subshell",
+      "name": "Human readable name e.g. 'Recursive flag'",
+      "description": "Plain English explanation of exactly what this token does",
+      "example": "optional: a practical example usage of just this token"
+    }
+  ],
+  "use_cases": [
+    { "emoji": "emoji", "title": "Use case title", "description": "When and why you'd use this command" }
+  ],
+  "safer_alternatives": [
+    { "command": "the safer command", "reason": "Why this is safer or better" }
+  ],
+  "danger_warning": "null OR string warning for destructive commands (rm -rf, dd, mkfs, etc.)",
+  "pro_tips": ["Practical pro tip as a string with **bold** for key terms and \`code\` for commands"],
+  "related_commands": ["cmd1", "cmd2", "cmd3"],
+  "pipe_stages": ${hasPipe ? `[
+    {
+      "stage": 1,
+      "command": "the command at this stage",
+      "label": "Short label e.g. 'Filter processes'",
+      "description": "What this stage does",
+      "input": "What data enters this stage",
+      "output": "What data this stage produces"
+    }
+  ]` : 'null'},
+  "os_compat": [
+    {
+      "os": "Ubuntu/Debian",
+      "icon": "🐧",
+      "status": "yes|no|diff|pkg",
+      "note": "Brief note e.g. 'Works natively' or 'Use gfind from findutils' or 'Behaves differently: -i flag requires backup extension'"
+    },
+    { "os": "CentOS/RHEL", "icon": "🎩", "status": "yes|no|diff|pkg", "note": "..." },
+    { "os": "Alpine Linux", "icon": "🏔", "status": "yes|no|diff|pkg", "note": "..." },
+    { "os": "macOS",        "icon": "🍎", "status": "yes|no|diff|pkg", "note": "..." },
+    { "os": "Arch Linux",   "icon": "⚙️",  "status": "yes|no|diff|pkg", "note": "..." },
+    { "os": "Windows WSL",  "icon": "🪟",  "status": "yes|no|diff|pkg", "note": "..." }
+  ],
+  "common_mistakes": [
+    {
+      "title": "Short mistake title e.g. 'Forgetting quotes around glob patterns'",
+      "wrong": "the wrong version of the command",
+      "right": "the correct version",
+      "explanation": "Why the wrong version fails and what the right version does differently"
+    }
+  ]
+}
+
+Rules:
+- tokens array must cover EVERY part of the command including pipes, redirects, subshells
+- use_cases: 2-4 items
+- safer_alternatives: 1-3 items (if none needed, provide improved/variant versions)
+- pro_tips: 2-3 items
+- related_commands: 3-6 items
+- danger_warning: only for truly destructive commands, null otherwise
+- pipe_stages: ONLY if command contains | pipes; null otherwise. Each pipe segment gets its own stage object
+- os_compat: all 6 OS entries required. status: yes=works natively, no=not available, diff=works but differently, pkg=needs install
+- common_mistakes: 2-3 real beginner/intermediate mistakes specific to THIS command
+- Be specific and educational, not generic`;
+}
+
+// ── RENDER RESULTS ────────────────────────────────────────────────────────────
+function renderResults(cmd, d) {
+  const riskColors = {
+    safe:     { class: 'risk-safe',     label: '✓ Safe',     color: '#39d353' },
+    low:      { class: 'risk-low',      label: '● Low Risk',  color: '#58a6ff' },
+    medium:   { class: 'risk-medium',   label: '⚠ Medium',   color: '#d29922' },
+    high:     { class: 'risk-high',     label: '⚠ High',     color: '#f78166' },
+    critical: { class: 'risk-critical', label: '☠ Critical', color: '#ff5555' },
+  };
+  const risk = riskColors[d.risk] || riskColors.safe;
+
+  const tokenColors = {
+    command:  { bg:'rgba(57,211,83,0.1)',  border:'rgba(57,211,83,0.3)',  color:'#39d353',  label:'CMD'  },
+    flag:     { bg:'rgba(88,166,255,0.1)', border:'rgba(88,166,255,0.3)', color:'#58a6ff',  label:'FLAG' },
+    arg:      { bg:'rgba(210,153,34,0.1)', border:'rgba(210,153,34,0.3)', color:'#d29922',  label:'ARG'  },
+    pipe:     { bg:'rgba(247,129,102,0.1)',border:'rgba(247,129,102,0.3)',color:'#f78166',  label:'PIPE' },
+    redirect: { bg:'rgba(160,110,255,0.1)',border:'rgba(160,110,255,0.3)',color:'#b39dff',  label:'REDIR'},
+    subshell: { bg:'rgba(255,200,80,0.1)', border:'rgba(255,200,80,0.3)', color:'#ffd060',  label:'SUB'  },
+  };
+
+  function formatTip(tip) {
+    return tip
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+  }
+
+  const html = `
+  <!-- Command header -->
+  <div class="cmd-header">
+    <div class="cmd-header-icon">${d.emoji || '⚙️'}</div>
+    <div class="cmd-header-body">
+      <div class="cmd-header-title">$ ${cmd}</div>
+      <div class="cmd-header-desc">${d.summary}</div>
+      <div>
+        <span class="risk-badge ${risk.class}">${risk.label}</span>
+        ${d.risk_reason ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-left:8px">${d.risk_reason}</span>` : ''}
+      </div>
+    </div>
+    <div class="cmd-header-actions">
+      <button class="icon-btn" onclick="copyText('${cmd.replace(/'/g,"\\'")}', this)">📋 Copy</button>
+    </div>
+  </div>
+
+  ${d.danger_warning && d.danger_warning !== 'null' ? `
+  <!-- Danger warning -->
+  <div class="section-card">
+    <div class="danger-box" style="margin:0;border-radius:0;border:none;border-left:3px solid #ff5555">
+      <div class="danger-title">☠ DANGER — READ BEFORE RUNNING</div>
+      <div class="danger-body">${d.danger_warning}</div>
+    </div>
+  </div>` : ''}
+
+  <!-- Token breakdown -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">🔬</span> Token Breakdown
+    </div>
+    <div class="section-body">
+      <div class="tokens-wrap">
+        ${(d.tokens || []).map(t => {
+          const tc = tokenColors[t.type] || tokenColors.arg;
+          return `<div class="token token-${t.type}"
+            style="background:${tc.bg};border-color:${tc.border};color:${tc.color}"
+            title="${t.name}: ${t.description}">
+            ${t.token}
+            <span class="token-type-label">${tc.label}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="token-legend">
+        ${Object.entries(tokenColors).map(([k,v]) =>
+          `<div class="legend-item">
+            <div class="legend-dot" style="background:${v.color}"></div>
+            <span>${v.label} = ${k}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Part by part -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">📖</span> Part-by-Part Explanation
+    </div>
+    <div class="section-body">
+      <div class="parts-list">
+        ${(d.tokens || []).map(t => {
+          const tc = tokenColors[t.type] || tokenColors.arg;
+          return `
+          <div class="part-row">
+            <div class="part-token-badge"
+              style="background:${tc.bg};border:1px solid ${tc.border};color:${tc.color}">
+              ${t.token}
+            </div>
+            <div class="part-body">
+              <div class="part-name">${t.name}</div>
+              <div class="part-desc">${t.description}</div>
+              ${t.example ? `<div class="part-example"># ${t.example}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Use cases -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">💡</span> When to Use This
+    </div>
+    <div class="section-body">
+      <div class="usecases-grid">
+        ${(d.use_cases || []).map(u => `
+        <div class="usecase-card">
+          <span class="usecase-icon">${u.emoji}</span>
+          <div class="usecase-title">${u.title}</div>
+          <div class="usecase-desc">${u.description}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Safer alternatives -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">🛡️</span> Safer / Better Alternatives
+    </div>
+    <div class="section-body">
+      <div class="alt-list">
+        ${(d.safer_alternatives || []).map(a => `
+        <div class="alt-row">
+          <div class="alt-cmd">
+            <span>$ ${a.command}</span>
+            <span class="alt-copy" onclick="copyText('${a.command.replace(/'/g,"\\'")}', this)">copy</span>
+          </div>
+          <div class="alt-reason">${a.reason}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Pro tips -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">⚡</span> Pro Tips
+    </div>
+    <div class="section-body">
+      <div class="tips-list">
+        ${(d.pro_tips || []).map(tip => `
+        <div class="tip-row">
+          <span class="tip-icon">›</span>
+          <div class="tip-text">${formatTip(tip)}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Related commands -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">🔗</span> Related Commands
+    </div>
+    <div class="section-body">
+      <div class="related-wrap">
+        ${(d.related_commands || []).map(rc => `
+        <span class="related-chip" onclick="loadRelated('${rc.replace(/'/g,"\\'")}')">
+          $ ${rc}
+        </span>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  ${d.pipe_stages && Array.isArray(d.pipe_stages) && d.pipe_stages.length > 1 ? `
+  <!-- Pipe Chain Visualiser -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">🔀</span> Pipe Chain Visualiser — Data Flow
+    </div>
+    <div class="section-body">
+      <div class="pipe-viz-wrap">
+        <div class="pipe-chain">
+          ${d.pipe_stages.map((stage, i) => {
+            const colors = ['#39d353','#58a6ff','#f78166','#d29922','#b39dff','#ffd060'];
+            const c = colors[i % colors.length];
+            return `
+            <div class="pipe-stage" style="border-color:${c}22">
+              <div class="pipe-stage-head" style="color:${c}">
+                <div class="pipe-stage-num" style="background:${c}">${stage.stage}</div>
+                ${stage.label}
+              </div>
+              <div class="pipe-stage-cmd">${stage.command}</div>
+              <div class="pipe-stage-body">
+                <div class="pipe-stage-label">${stage.label}</div>
+                <div class="pipe-stage-desc">${stage.description}</div>
+              </div>
+              <div class="pipe-stage-io">
+                ↳ outputs: <span>${stage.output}</span>
+              </div>
+            </div>
+            ${i < d.pipe_stages.length - 1 ? `
+            <div class="pipe-arrow">
+              <svg class="pipe-arrow-svg" width="40" height="24" viewBox="0 0 40 24">
+                <line x1="0" y1="12" x2="30" y2="12" stroke="#f78166" stroke-width="2"/>
+                <polyline points="24,6 32,12 24,18" fill="none" stroke="#f78166" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+              <span class="pipe-arrow-label">pipe</span>
+            </div>` : ''}`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="pipe-data-flow">
+        <span style="color:var(--text);font-weight:700">Data flow:</span>
+        ${d.pipe_stages.map((s, i) => `
+          <span class="pipe-data-tag">${s.output}</span>
+          ${i < d.pipe_stages.length - 1 ? '<span class="pipe-data-arrow">→</span>' : ''}`).join('')}
+      </div>
+    </div>
+  </div>` : ''}
+
+  <!-- OS Compatibility -->
+  ${d.os_compat && d.os_compat.length ? `
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">🖥️</span> OS Compatibility
+    </div>
+    <div class="section-body">
+      <div class="os-grid">
+        ${d.os_compat.map(os => `
+        <div class="os-card">
+          <div class="os-card-head">
+            <span class="os-icon">${os.icon}</span>
+            <span class="os-name">${os.os}</span>
+          </div>
+          <span class="os-badge ${os.status}">
+            ${os.status === 'yes' ? '✓ Native' : os.status === 'no' ? '✗ N/A' : os.status === 'diff' ? '⚠ Different' : '📦 Install'}
+          </span>
+          <div class="os-note">${os.note}</div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted)">
+        <span><span style="color:var(--accent)">✓ Native</span> = works out of the box</span>
+        <span><span style="color:var(--warn)">⚠ Different</span> = syntax/behaviour varies</span>
+        <span><span style="color:var(--accent2)">📦 Install</span> = needs package install</span>
+        <span><span style="color:var(--accent3)">✗ N/A</span> = not available</span>
+      </div>
+    </div>
+  </div>` : ''}
+
+  <!-- Common Mistakes -->
+  ${d.common_mistakes && d.common_mistakes.length ? `
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-head-icon">⚠️</span> Common Mistakes
+    </div>
+    <div class="section-body">
+      <div class="mistakes-list">
+        ${d.common_mistakes.map((m, i) => `
+        <div class="mistake-card">
+          <div class="mistake-head">
+            <div class="mistake-num">${i + 1}</div>
+            <div class="mistake-title">${m.title}</div>
+          </div>
+          <div class="mistake-body">
+            <div class="mistake-code-row">
+              <div class="mistake-wrong">
+                <div class="mistake-code-label">✗ Wrong</div>
+                <div class="mistake-code-val">$ ${m.wrong}</div>
+              </div>
+              <div class="mistake-right">
+                <div class="mistake-code-label">✓ Correct</div>
+                <div class="mistake-code-val">$ ${m.right}</div>
+              </div>
+            </div>
+            <div class="mistake-explanation">${m.explanation}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>` : ''}`;
+
+  const el = document.getElementById('results');
+  el.innerHTML = html;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function loadRelated(cmd) {
+  document.getElementById('cmd-input').value = cmd;
+  explain();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── INTERACTIVE COMMAND BUILDER ───────────────────────────────────────────────
+const BUILDER_DATA = {
+  find: {
+    flags: [
+      { flag:'-name',    val:'*.log',    desc:'Match files by name pattern (case-sensitive)' },
+      { flag:'-iname',   val:'*.LOG',    desc:'Match files by name (case-insensitive)' },
+      { flag:'-type f',  val:'',         desc:'Match only regular files' },
+      { flag:'-type d',  val:'',         desc:'Match only directories' },
+      { flag:'-mtime +7',val:'',         desc:'Modified more than 7 days ago' },
+      { flag:'-mtime -1',val:'',         desc:'Modified in the last 24 hours' },
+      { flag:'-size +100M',val:'',       desc:'Files larger than 100MB' },
+      { flag:'-delete',  val:'',         desc:'⚠ Delete matched files (destructive!)' },
+      { flag:'-exec ls -la {} \\;',val:'',desc:'Execute a command on each match' },
+      { flag:'-maxdepth 2',val:'',       desc:'Limit search to 2 directory levels deep' },
+    ]
+  },
+  grep: {
+    flags: [
+      { flag:'-r',   val:'',       desc:'Recursive search through directories' },
+      { flag:'-i',   val:'',       desc:'Case-insensitive matching' },
+      { flag:'-n',   val:'',       desc:'Show line numbers in output' },
+      { flag:'-l',   val:'',       desc:'Print only filenames with matches' },
+      { flag:'-v',   val:'',       desc:'Invert match — show non-matching lines' },
+      { flag:'-E',   val:'',       desc:'Enable extended regular expressions (ERE)' },
+      { flag:'-c',   val:'',       desc:'Print count of matching lines' },
+      { flag:'-A 3', val:'',       desc:'Show 3 lines after each match (context)' },
+      { flag:'-B 3', val:'',       desc:'Show 3 lines before each match (context)' },
+      { flag:'--include="*.log"',val:'',desc:'Only search files matching pattern' },
+    ]
+  },
+  ls: {
+    flags: [
+      { flag:'-l',  val:'', desc:'Long format — permissions, owner, size, date' },
+      { flag:'-a',  val:'', desc:'Show hidden files (starting with .)' },
+      { flag:'-h',  val:'', desc:'Human-readable file sizes (KB, MB, GB)' },
+      { flag:'-t',  val:'', desc:'Sort by modification time, newest first' },
+      { flag:'-r',  val:'', desc:'Reverse sort order' },
+      { flag:'-S',  val:'', desc:'Sort by file size, largest first' },
+      { flag:'-R',  val:'', desc:'Recursive — list subdirectories too' },
+      { flag:'-1',  val:'', desc:'One file per line output format' },
+    ]
+  },
+  ps: {
+    flags: [
+      { flag:'aux',  val:'', desc:'All processes for all users in BSD format' },
+      { flag:'-ef',  val:'', desc:'All processes in full format (System V style)' },
+      { flag:'-u root', val:'', desc:'Only processes owned by root' },
+      { flag:'--sort=-%cpu', val:'', desc:'Sort by CPU usage descending' },
+      { flag:'--sort=-%mem', val:'', desc:'Sort by memory usage descending' },
+      { flag:'-o pid,comm,%cpu,%mem', val:'', desc:'Custom output columns' },
+    ]
+  },
+  chmod: {
+    flags: [
+      { flag:'755', val:'', desc:'rwxr-xr-x — owner full, group/others read+execute' },
+      { flag:'644', val:'', desc:'rw-r--r-- — owner read/write, others read-only' },
+      { flag:'600', val:'', desc:'rw------- — owner only, private file' },
+      { flag:'777', val:'', desc:'⚠ rwxrwxrwx — full permissions for everyone' },
+      { flag:'+x',  val:'', desc:'Add execute permission for all users' },
+      { flag:'-x',  val:'', desc:'Remove execute permission' },
+      { flag:'-R',  val:'', desc:'Apply recursively to all files in directory' },
+      { flag:'u+s', val:'', desc:'Set SUID bit — run as file owner' },
+    ]
+  },
+  tar: {
+    flags: [
+      { flag:'-c', val:'', desc:'Create a new archive' },
+      { flag:'-x', val:'', desc:'Extract files from archive' },
+      { flag:'-z', val:'', desc:'Compress/decompress with gzip (.tar.gz)' },
+      { flag:'-j', val:'', desc:'Compress/decompress with bzip2 (.tar.bz2)' },
+      { flag:'-J', val:'', desc:'Compress/decompress with xz (.tar.xz)' },
+      { flag:'-f', val:'', desc:'Specify the archive filename (required)' },
+      { flag:'-v', val:'', desc:'Verbose — list files being processed' },
+      { flag:'-t', val:'', desc:'List contents of archive without extracting' },
+      { flag:'-C /tmp', val:'', desc:'Extract to specific directory' },
+      { flag:'--exclude="*.log"', val:'', desc:'Exclude files matching pattern' },
+    ]
+  },
+  curl: {
+    flags: [
+      { flag:'-o file.html', val:'', desc:'Save output to file instead of stdout' },
+      { flag:'-O', val:'',           desc:'Save output using remote filename' },
+      { flag:'-I', val:'',           desc:'Fetch HTTP headers only (HEAD request)' },
+      { flag:'-L', val:'',           desc:'Follow HTTP redirects automatically' },
+      { flag:'-s', val:'',           desc:'Silent mode — suppress progress output' },
+      { flag:'-v', val:'',           desc:'Verbose — show full request/response headers' },
+      { flag:'-X POST', val:'',      desc:'Use POST instead of GET method' },
+      { flag:'-H "Content-Type: application/json"', val:'', desc:'Add a custom request header' },
+      { flag:'-d \'{"key":"val"}\'', val:'', desc:'Send data in POST request body' },
+      { flag:'-u user:pass', val:'', desc:'HTTP basic authentication credentials' },
+    ]
+  },
+  ssh: {
+    flags: [
+      { flag:'-i ~/.ssh/id_rsa', val:'', desc:'Specify private key file for authentication' },
+      { flag:'-p 2222', val:'',          desc:'Connect to non-default port' },
+      { flag:'-L 8080:localhost:80', val:'', desc:'Local port forwarding tunnel' },
+      { flag:'-R 8080:localhost:80', val:'', desc:'Remote port forwarding tunnel' },
+      { flag:'-N', val:'',               desc:'No remote command — used with tunnelling' },
+      { flag:'-v', val:'',               desc:'Verbose debugging output' },
+      { flag:'-A', val:'',               desc:'Forward SSH agent to remote host' },
+      { flag:'-o StrictHostKeyChecking=no', val:'', desc:'Skip host key verification (use carefully)' },
+    ]
+  },
+  rsync: {
+    flags: [
+      { flag:'-a', val:'', desc:'Archive mode — preserves permissions, timestamps, symlinks' },
+      { flag:'-v', val:'', desc:'Verbose — show files being transferred' },
+      { flag:'-z', val:'', desc:'Compress data during transfer' },
+      { flag:'-P', val:'', desc:'Show progress and keep partial transfers' },
+      { flag:'--delete', val:'', desc:'⚠ Delete files at destination not in source' },
+      { flag:'--exclude="*.tmp"', val:'', desc:'Exclude files matching pattern' },
+      { flag:'-n', val:'', desc:'Dry run — show what would be transferred without doing it' },
+      { flag:'--checksum', val:'', desc:'Use checksum instead of file size/time to compare' },
+    ]
+  },
+  awk: {
+    flags: [
+      { flag:'-F:', val:'',   desc:'Set field separator to colon (e.g. for /etc/passwd)' },
+      { flag:'-F","', val:'', desc:'Set field separator to comma (CSV processing)' },
+      { flag:'-v OFS=,', val:'', desc:'Set output field separator' },
+      { flag:'-v RS=""', val:'', desc:'Set record separator (blank line = paragraph mode)' },
+      { flag:'NR==5', val:'',    desc:'Only process line number 5' },
+      { flag:'NF>2', val:'',     desc:'Only process lines with more than 2 fields' },
+      { flag:'END{print NR}', val:'', desc:'Print total number of records at end' },
+    ]
+  },
+  sed: {
+    flags: [
+      { flag:'-i', val:'',              desc:'Edit file in-place (modifies original file)' },
+      { flag:'-i.bak', val:'',          desc:'Edit in-place, save backup with .bak extension' },
+      { flag:'-n', val:'',              desc:'Suppress default output (use with p command)' },
+      { flag:'-e "s/old/new/g"', val:'', desc:'Substitute all occurrences of old with new' },
+      { flag:'-E', val:'',              desc:'Enable extended regular expressions' },
+      { flag:'-r', val:'',              desc:'Alias for -E on some systems' },
+      { flag:'1,5d', val:'',            desc:'Delete lines 1 through 5' },
+      { flag:'5p', val:'',              desc:'Print line 5 only (use with -n)' },
+    ]
+  },
+  netstat: {
+    flags: [
+      { flag:'-t', val:'', desc:'Show TCP connections' },
+      { flag:'-u', val:'', desc:'Show UDP connections' },
+      { flag:'-l', val:'', desc:'Show only listening sockets' },
+      { flag:'-p', val:'', desc:'Show process ID and name (requires root)' },
+      { flag:'-n', val:'', desc:'Show numeric addresses instead of hostnames' },
+      { flag:'-r', val:'', desc:'Show routing table' },
+      { flag:'-s', val:'', desc:'Show network statistics per protocol' },
+    ]
+  },
+  df: {
+    flags: [
+      { flag:'-h', val:'', desc:'Human-readable sizes (KB, MB, GB)' },
+      { flag:'-T', val:'', desc:'Show filesystem type' },
+      { flag:'-i', val:'', desc:'Show inode usage instead of block usage' },
+      { flag:'-a', val:'', desc:'Include all filesystems including pseudo ones' },
+      { flag:'--total', val:'', desc:'Show grand total at end of output' },
+    ]
+  },
+  du: {
+    flags: [
+      { flag:'-h', val:'',    desc:'Human-readable sizes (KB, MB, GB)' },
+      { flag:'-s', val:'',    desc:'Summary — only show total for each argument' },
+      { flag:'-a', val:'',    desc:'Show all files, not just directories' },
+      { flag:'--max-depth=1', val:'', desc:'Only go 1 directory level deep' },
+      { flag:'--exclude="*.log"', val:'', desc:'Exclude files matching pattern' },
+      { flag:'--apparent-size', val:'', desc:'Show apparent size instead of disk usage' },
+    ]
+  },
+  systemctl: {
+    flags: [
+      { flag:'start',   val:'nginx.service', desc:'Start a service' },
+      { flag:'stop',    val:'nginx.service', desc:'Stop a service' },
+      { flag:'restart', val:'nginx.service', desc:'Restart a service' },
+      { flag:'reload',  val:'nginx.service', desc:'Reload config without full restart' },
+      { flag:'status',  val:'nginx.service', desc:'Show service status and recent logs' },
+      { flag:'enable',  val:'nginx.service', desc:'Enable auto-start on boot' },
+      { flag:'disable', val:'nginx.service', desc:'Disable auto-start on boot' },
+      { flag:'list-units', val:'--type=service', desc:'List all loaded service units' },
+    ]
+  },
+  journalctl: {
+    flags: [
+      { flag:'-u nginx', val:'',       desc:'Show logs for a specific systemd unit' },
+      { flag:'-n 100', val:'',         desc:'Show only last 100 lines' },
+      { flag:'-f', val:'',             desc:'Follow mode — stream new log entries live' },
+      { flag:'-e', val:'',             desc:'Jump to end of journal immediately' },
+      { flag:'--since "1 hour ago"', val:'', desc:'Show logs from last hour' },
+      { flag:'-p err', val:'',         desc:'Only show error-level messages and above' },
+      { flag:'--no-pager', val:'',     desc:'Disable pager, print all to stdout' },
+      { flag:'-o json', val:'',        desc:'Output in JSON format (machine-readable)' },
+    ]
+  },
+  docker: {
+    flags: [
+      { flag:'ps',    val:'',    desc:'List running containers' },
+      { flag:'ps -a', val:'',    desc:'List all containers including stopped ones' },
+      { flag:'images',val:'',    desc:'List locally available images' },
+      { flag:'logs',  val:'-f container_name', desc:'Stream container log output' },
+      { flag:'exec',  val:'-it container_name bash', desc:'Run interactive shell in container' },
+      { flag:'stop',  val:'container_name', desc:'Gracefully stop a running container' },
+      { flag:'rm',    val:'-f container_name', desc:'⚠ Force remove a container' },
+      { flag:'rmi',   val:'image:tag', desc:'Remove a locally cached image' },
+      { flag:'pull',  val:'nginx:latest', desc:'Download an image from registry' },
+      { flag:'inspect', val:'container_name', desc:'Show detailed container/image metadata' },
+    ]
+  },
+  kubectl: {
+    flags: [
+      { flag:'get pods',    val:'-n default', desc:'List pods in a namespace' },
+      { flag:'get svc',     val:'',           desc:'List services' },
+      { flag:'describe pod',val:'pod-name',   desc:'Show detailed info about a pod' },
+      { flag:'logs',        val:'-f pod-name', desc:'Stream pod logs' },
+      { flag:'exec',        val:'-it pod-name -- bash', desc:'Open shell in a running pod' },
+      { flag:'apply',       val:'-f manifest.yaml', desc:'Apply/update resources from YAML' },
+      { flag:'delete',      val:'pod pod-name', desc:'⚠ Delete a Kubernetes resource' },
+      { flag:'scale',       val:'deployment/myapp --replicas=3', desc:'Scale a deployment' },
+      { flag:'rollout status', val:'deployment/myapp', desc:'Watch rollout progress' },
+      { flag:'port-forward', val:'pod/pod-name 8080:80', desc:'Forward local port to pod' },
+    ]
+  },
+};
+
+let activeFlags = new Set();
+
+function toggleBuilder() {
+  document.getElementById('builder-section').classList.toggle('open');
+}
+
+function builderUpdate() {
+  const cmd    = document.getElementById('b-cmd').value;
+  const target = document.getElementById('b-target').value.trim();
+  const arg2   = document.getElementById('b-arg2').value.trim();
+  const data   = BUILDER_DATA[cmd];
+
+  // Render flags for this command
+  const flagsEl = document.getElementById('b-flags');
+  if (data) {
+    if (!flagsEl._lastCmd || flagsEl._lastCmd !== cmd) {
+      activeFlags.clear();
+      flagsEl._lastCmd = cmd;
+      flagsEl.innerHTML = data.flags.map((f, i) =>
+        `<div class="builder-flag-toggle" data-idx="${i}" data-flag="${f.flag}"
+          onmouseenter="showFlagDesc('${f.desc.replace(/'/g,"\\'")}')"
+          onmouseleave="hideFlagDesc()"
+          onclick="toggleBuilderFlag(this)">${f.flag}</div>`
+      ).join('');
+    }
+  } else {
+    flagsEl.innerHTML = '';
+    flagsEl._lastCmd = '';
+    activeFlags.clear();
+  }
+
+  // Build command string
+  let built = cmd || '';
+  if (built) {
+    const selectedFlags = data
+      ? data.flags.filter((_, i) => activeFlags.has(i)).map(f => f.flag).join(' ')
+      : '';
+    if (selectedFlags) built += ' ' + selectedFlags;
+    if (target) built += ' ' + target;
+    if (arg2)   built += ' ' + arg2;
+  }
+  document.getElementById('b-output').textContent = built ? '$ ' + built : '$ select a command above';
+  document.getElementById('b-output')._cmd = built;
+}
+
+function toggleBuilderFlag(el) {
+  const idx = parseInt(el.getAttribute('data-idx'));
+  if (activeFlags.has(idx)) { activeFlags.delete(idx); el.classList.remove('active'); }
+  else { activeFlags.add(idx); el.classList.add('active'); }
+  builderUpdate();
+}
+
+function showFlagDesc(desc) {
+  document.getElementById('b-flag-desc').textContent = desc;
+}
+function hideFlagDesc() {
+  document.getElementById('b-flag-desc').textContent = 'Hover a flag to see what it does';
+}
+
+function builderCopy() {
+  const cmd = document.getElementById('b-output')._cmd;
+  if (!cmd) return;
+  navigator.clipboard.writeText(cmd).then(() => {
+    const btn = document.querySelector('.builder-action-btn:not(.primary)');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function builderExplain() {
+  const cmd = document.getElementById('b-output')._cmd;
+  if (!cmd || cmd === 'select a command above') return;
+  document.getElementById('cmd-input').value = cmd;
+  explain();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────────────────
+function showLoading(cmd) {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading-text').textContent = 'Parsing command tokens...';
+  document.getElementById('loading-cmd').textContent = cmd;
+}
+function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+function hideResults()  {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('error-box').style.display = 'none';
+}
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  document.getElementById('error-msg').textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+</script>
 </body>
 </html>
