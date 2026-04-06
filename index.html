@@ -30,465 +30,947 @@
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── grid noise overlay ── */
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; overflow-x: hidden; }
   body::before {
     content: '';
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
     background-image:
       linear-gradient(rgba(0,229,160,.015) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0,229,160,.015) 1px, transparent 1px);
     background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
+    pointer-events: none; z-index: 0;
   }
-
-  /* ── scanline ── */
   body::after {
     content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,.08) 2px,
-      rgba(0,0,0,.08) 4px
-    );
-    pointer-events: none;
-    z-index: 0;
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.07) 2px, rgba(0,0,0,.07) 4px);
+    pointer-events: none; z-index: 0;
   }
+  .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 20px 80px; }
 
-  /* ── layout ── */
-  .wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 20px 80px;
-  }
-
-  /* ── header ── */
-  header {
-    padding: 32px 0 48px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .logo-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .logo-icon {
-    width: 38px;
-    height: 38px;
-    border: 1.5px solid var(--green);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: var(--green);
-    box-shadow: 0 0 14px rgba(0,229,160,.2);
-    flex-shrink: 0;
-  }
-  .brand {
-    font-family: var(--sans);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--green);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-  }
+  /* HEADER */
+  header { padding: 32px 0 44px; }
+  .logo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .logo-icon { width: 38px; height: 38px; border: 1.5px solid var(--green); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--green); box-shadow: 0 0 14px rgba(0,229,160,.2); flex-shrink: 0; }
+  .brand { font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--green); letter-spacing: .08em; text-transform: uppercase; }
   .tagline { font-size: 10px; color: var(--text-mute); letter-spacing: .12em; text-transform: uppercase; margin-top: 2px; }
-  .headline {
-    font-family: var(--sans);
-    font-size: clamp(28px, 5vw, 48px);
-    font-weight: 800;
-    line-height: 1.1;
-    color: #fff;
-    margin-top: 20px;
-  }
+  .headline { font-family: var(--sans); font-size: clamp(28px,5vw,48px); font-weight: 800; line-height: 1.1; color: #fff; }
   .headline span { color: var(--green); }
-  .sub {
-    font-size: 13px;
-    color: var(--text-dim);
-    max-width: 540px;
-    line-height: 1.7;
-    margin-top: 8px;
-  }
+  .sub { font-size: 13px; color: var(--text-dim); max-width: 560px; line-height: 1.7; margin-top: 8px; }
 
-  /* ── api key box ── */
-  .apikey-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--surface);
-    border: 1.5px solid var(--border2);
-    border-radius: var(--radius);
-    padding: 10px 16px;
-    margin-bottom: 14px;
-  }
-  .apikey-box:focus-within { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,166,35,.06); }
-  .apikey-icon { font-size: 14px; flex-shrink: 0; }
-  #apiKeyInput {
-    flex: 1;
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    caret-color: var(--amber);
-  }
-  #apiKeyInput::placeholder { color: var(--text-mute); }
-  .apikey-link {
-    font-size: 11px;
-    color: var(--amber);
-    text-decoration: none;
-    white-space: nowrap;
-    opacity: .8;
-    transition: opacity .15s;
-  }
-  .apikey-link:hover { opacity: 1; }
-  .apikey-note {
-    font-size: 11px;
-    color: var(--text-mute);
-    margin-bottom: 20px;
-    margin-top: -6px;
-    padding-left: 4px;
-  }
-
-  /* ── terminal input ── */
-  .terminal-box {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--glow), 0 4px 40px rgba(0,0,0,.5);
-    margin-bottom: 28px;
-    transition: border-color .2s;
-  }
-  .terminal-box:focus-within {
-    border-color: var(--green-dim);
-    box-shadow: 0 0 0 3px rgba(0,229,160,.06), 0 4px 40px rgba(0,0,0,.5);
-  }
-  .term-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface2);
-  }
+  /* TERMINAL */
+  .terminal-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--glow), 0 4px 40px rgba(0,0,0,.5); margin-bottom: 20px; transition: border-color .2s; }
+  .terminal-box:focus-within { border-color: var(--green-dim); box-shadow: 0 0 0 3px rgba(0,229,160,.06), 0 4px 40px rgba(0,0,0,.5); }
+  .term-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
   .dot { width: 11px; height: 11px; border-radius: 50%; }
-  .dot-r { background: #ff5f57; }
-  .dot-y { background: #febc2e; }
-  .dot-g { background: #28c840; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
   .term-title { margin-left: 4px; font-size: 11px; color: var(--text-mute); }
-  .input-row {
-    display: flex;
-    align-items: center;
-    padding: 16px 20px;
-    gap: 12px;
-  }
+  .input-row { display: flex; align-items: center; padding: 16px 20px; gap: 12px; }
   .prompt { color: var(--green); font-size: 16px; user-select: none; flex-shrink: 0; }
-  #cmdInput {
-    flex: 1;
-    background: none;
-    border: none;
-    outline: none;
-    color: #fff;
-    font-family: var(--mono);
-    font-size: 16px;
-    caret-color: var(--green);
-  }
+  #cmdInput { flex: 1; background: none; border: none; outline: none; color: #fff; font-family: var(--mono); font-size: 16px; caret-color: var(--green); }
   #cmdInput::placeholder { color: var(--text-mute); }
-  .go-btn {
-    background: var(--green);
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 20px;
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    letter-spacing: .04em;
-    transition: background .15s, transform .1s;
-    flex-shrink: 0;
-  }
-  .go-btn:hover { background: #00ffc0; }
-  .go-btn:active { transform: scale(.97); }
-  .go-btn:disabled { background: var(--border2); color: var(--text-mute); cursor: not-allowed; }
+  .go-btn { background: var(--green); color: #000; border: none; border-radius: 6px; padding: 8px 20px; font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: .04em; transition: background .15s, transform .1s; flex-shrink: 0; }
+  .go-btn:hover { background: #00ffc0; } .go-btn:active { transform: scale(.97); }
 
-  /* ── suggestions chips ── */
-  .chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 32px;
-  }
+  /* CHIPS */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px; }
   .chip-label { font-size: 10px; color: var(--text-mute); letter-spacing: .1em; text-transform: uppercase; align-self: center; margin-right: 4px; }
-  .chip {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 5px 13px;
-    font-size: 12px;
-    color: var(--text-dim);
-    cursor: pointer;
-    transition: border-color .15s, color .15s, background .15s;
-    user-select: none;
-  }
+  .chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 13px; font-size: 12px; color: var(--text-dim); cursor: pointer; transition: border-color .15s, color .15s, background .15s; user-select: none; }
   .chip:hover { border-color: var(--green); color: var(--green); background: rgba(0,229,160,.05); }
 
-  /* ── result card ── */
+  /* RESULT */
   #result { display: none; animation: fadeUp .35s ease; }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .result-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .result-cmd {
-    font-size: 22px;
-    color: var(--green);
-    letter-spacing: .04em;
-  }
-  .risk-badge {
-    font-size: 11px;
-    font-family: var(--sans);
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-  .risk-low    { background: rgba(0,229,160,.12); color: var(--green); border: 1px solid rgba(0,229,160,.25); }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+  .result-cmd { font-size: 20px; color: var(--green); letter-spacing: .03em; word-break: break-all; }
+  .risk-badge { font-size: 11px; font-family: var(--sans); font-weight: 600; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
+  .risk-low    { background: rgba(0,229,160,.12);  color: var(--green); border: 1px solid rgba(0,229,160,.25); }
   .risk-medium { background: rgba(245,166,35,.12); color: var(--amber); border: 1px solid rgba(245,166,35,.25); }
   .risk-high   { background: rgba(255,95,95,.12);  color: var(--red);   border: 1px solid rgba(255,95,95,.25); }
 
-  .card {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 22px 24px;
-    margin-bottom: 16px;
-  }
-  .card-title {
-    font-size: 10px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--text-mute);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 16px; }
+  .card-title { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
   .explanation { font-size: 14px; color: var(--text); line-height: 1.8; }
-  .explanation strong { color: #fff; }
 
-  /* tokens */
   .tokens { display: flex; flex-wrap: wrap; gap: 8px; }
-  .token {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 6px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
+  .token { background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 12px; display: flex; flex-direction: column; gap: 3px; }
   .token-part { font-size: 14px; color: var(--blue); }
   .token-label { font-size: 10px; color: var(--text-mute); }
 
-  /* examples */
   .examples-list { display: flex; flex-direction: column; gap: 12px; }
-  .example-item {}
-  .example-cmd {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-left: 3px solid var(--green);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: var(--green);
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .example-cmd span.ps { color: var(--text-mute); }
+  .example-cmd { background: var(--surface2); border: 1px solid var(--border2); border-left: 3px solid var(--green); border-radius: 6px; padding: 10px 14px; font-size: 13px; color: var(--green); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .example-cmd .ps { color: var(--text-mute); flex-shrink: 0; }
+  .example-cmd .ecmd { flex: 1; word-break: break-all; }
   .example-desc { font-size: 12px; color: var(--text-dim); padding-left: 4px; }
-  .copy-btn {
-    margin-left: auto;
-    background: none;
-    border: 1px solid var(--border2);
-    border-radius: 5px;
-    padding: 3px 9px;
-    font-size: 10px;
-    color: var(--text-mute);
-    cursor: pointer;
-    font-family: var(--mono);
-    transition: border-color .15s, color .15s;
-  }
+  .copy-btn { margin-left: auto; background: none; border: 1px solid var(--border2); border-radius: 5px; padding: 3px 9px; font-size: 10px; color: var(--text-mute); cursor: pointer; font-family: var(--mono); transition: border-color .15s, color .15s; flex-shrink: 0; }
   .copy-btn:hover { border-color: var(--green); color: var(--green); }
 
-  /* suggestions */
-  .sugg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .sugg-chip {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 20px;
-    padding: 5px 13px;
-    font-size: 12px;
-    color: var(--purple);
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-  }
-  .sugg-chip:hover { border-color: var(--purple); background: rgba(192,132,252,.07); }
-
-  /* flags table */
   .flags-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .flags-table th { text-align: left; color: var(--text-mute); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 0 10px 10px; }
   .flags-table td { padding: 8px 10px; border-top: 1px solid var(--border); vertical-align: top; }
   .flags-table td:first-child { color: var(--amber); font-size: 12px; white-space: nowrap; }
   .flags-table td:last-child { color: var(--text-dim); line-height: 1.6; }
 
-  /* loading */
-  .loading {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 30px 0;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border2);
-    border-top-color: var(--green);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-    flex-shrink: 0;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .sugg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sugg-chip { background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px; padding: 5px 13px; font-size: 12px; color: var(--purple); cursor: pointer; transition: border-color .15s, background .15s; }
+  .sugg-chip:hover { border-color: var(--purple); background: rgba(192,132,252,.07); }
 
-  /* error */
-  .error-box {
-    background: rgba(255,95,95,.07);
-    border: 1px solid rgba(255,95,95,.2);
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    color: var(--red);
-    font-size: 13px;
-  }
+  .protip-card { background: rgba(245,166,35,.04); border: 1.5px solid rgba(245,166,35,.18); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 16px; }
 
-  /* footer */
-  footer {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    padding: 24px 0 32px;
-    color: var(--text-mute);
-    font-size: 11px;
-    letter-spacing: .06em;
-  }
+  .notfound-box { background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; }
+  .notfound-box h3 { font-family: var(--sans); color: #fff; margin-bottom: 8px; font-size: 16px; }
+  .notfound-box p { font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+  .generic-tokens { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .generic-token { background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 5px 11px; font-size: 13px; color: var(--blue); }
+
+  footer { position: relative; z-index: 1; text-align: center; padding: 24px 0 32px; color: var(--text-mute); font-size: 11px; letter-spacing: .06em; }
   footer a { color: var(--green); text-decoration: none; }
 
-  /* responsive */
   @media (max-width: 600px) {
     .input-row { flex-wrap: wrap; }
     .go-btn { width: 100%; }
-    .result-header { flex-direction: column; align-items: flex-start; gap: 10px; }
   }
 </style>
 </head>
 <body>
-
 <div class="wrap">
-  <!-- HEADER -->
   <header>
     <div class="logo-row">
-      <div class="logo-icon">⚡</div>
+      <div class="logo-icon">&#9889;</div>
       <div>
         <div class="brand">EknathaLabs</div>
         <div class="tagline">Built for Everyone</div>
       </div>
     </div>
     <h1 class="headline">Linux Command<br /><span>Explainer</span></h1>
-    <p class="sub">Type any Linux command — get a breakdown of tokens, flags, real-world examples, risk level, and smart suggestions. Powered by Claude AI.</p>
+    <p class="sub">Type any Linux command — instantly get a token breakdown, flags reference, real-world examples, risk level, and smart suggestions. 100% offline, no API key needed.</p>
   </header>
 
-  <!-- API KEY INPUT -->
-  <div class="apikey-box">
-    <span class="apikey-icon">🔑</span>
-    <input id="apiKeyInput" type="password" placeholder="Paste your Anthropic API key  (sk-ant-…)" autocomplete="off" spellcheck="false" />
-    <a href="https://console.anthropic.com/settings/keys" target="_blank" class="apikey-link">Get key ↗</a>
-  </div>
-  <p class="apikey-note">🔒 Your key is never stored — it stays in your browser session only.</p>
-
-  <!-- TERMINAL INPUT -->
   <div class="terminal-box">
     <div class="term-header">
-      <div class="dot dot-r"></div>
-      <div class="dot dot-y"></div>
-      <div class="dot dot-g"></div>
-      <span class="term-title">bash — eknatha@linux</span>
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <span class="term-title">bash &#8212; eknatha@linux</span>
     </div>
     <div class="input-row">
       <span class="prompt">$&nbsp;</span>
-      <input id="cmdInput" type="text" placeholder="e.g.  tar -czf backup.tar.gz /var/log  or  awk '{print $1}' access.log" autocomplete="off" spellcheck="false" />
-      <button class="go-btn" id="explainBtn" onclick="explain()">Explain ↵</button>
+      <input id="cmdInput" type="text" placeholder="e.g.  tar -czf backup.tar.gz /var/log  or  chmod 755 deploy.sh" autocomplete="off" spellcheck="false" />
+      <button class="go-btn" onclick="explain()">Explain &#8629;</button>
     </div>
   </div>
 
-  <!-- QUICK CHIPS -->
   <div class="chip-row">
     <span class="chip-label">Try</span>
-    <span class="chip" onclick="quick('find / -name *.log -mtime +7 -delete')">find … -delete</span>
-    <span class="chip" onclick="quick('rsync -avz --progress /src/ user@host:/dest/')">rsync</span>
+    <span class="chip" onclick="quick('ls -lah /var/log')">ls -lah</span>
+    <span class="chip" onclick="quick('find /var/log -name *.log -mtime +30 -delete')">find -delete</span>
+    <span class="chip" onclick="quick('rsync -avz /src/ user@host:/dest/')">rsync</span>
     <span class="chip" onclick="quick('ss -tulnp')">ss -tulnp</span>
-    <span class="chip" onclick="quick('awk \\'NR%2==0\\' file.txt')">awk NR%2</span>
+    <span class="chip" onclick="quick('tar -czf backup.tar.gz /var/log')">tar</span>
     <span class="chip" onclick="quick('chmod -R 755 /var/www')">chmod -R</span>
     <span class="chip" onclick="quick('curl -I https://example.com')">curl -I</span>
     <span class="chip" onclick="quick('journalctl -u nginx --since today')">journalctl</span>
     <span class="chip" onclick="quick('kubectl get pods -n production -o wide')">kubectl</span>
-    <span class="chip" onclick="quick('df -hT | grep -v tmpfs')">df -hT</span>
+    <span class="chip" onclick="quick('df -hT')">df -hT</span>
+    <span class="chip" onclick="quick('grep -rn ERROR /var/log --include=*.log')">grep -rn</span>
+    <span class="chip" onclick="quick('ps aux')">ps aux</span>
+    <span class="chip" onclick="quick('iptables -L -nv')">iptables</span>
     <span class="chip" onclick="quick('strace -p 1234 -e trace=network')">strace</span>
   </div>
 
-  <!-- RESULT -->
   <div id="result"></div>
 </div>
 
-<!-- FOOTER -->
 <footer>
-  Built with ♥ by <a href="https://eknathalabs.com" target="_blank">EknathaLabs</a> &nbsp;·&nbsp; Built for Everyone &nbsp;·&nbsp;
+  Built with &#9829; by <a href="https://eknathalabs.com" target="_blank">EknathaLabs</a> &nbsp;&middot;&nbsp; Built for Everyone &nbsp;&middot;&nbsp;
   <a href="https://github.com/eknathareddyp" target="_blank">GitHub</a>
 </footer>
 
 <script>
-const API_URL = 'https://api.anthropic.com/v1/messages';
+// ═══════════════════════════════════════════════════════════
+//  OFFLINE KNOWLEDGE BASE — 40+ commands
+// ═══════════════════════════════════════════════════════════
+const KB = {
+  ls: {
+    summary: "List directory contents with optional detail and sorting.",
+    risk: "low", risk_reason: "Read-only operation, no system changes.",
+    explanation: "ls reads directory entries and displays them. With -l it shows permissions, ownership, size, and timestamps. -a reveals hidden dotfiles. Pipe to grep or awk for filtering. Colors are controlled by LS_COLORS.",
+    flags: [
+      { flag: "-l", long: "", desc: "Long format: permissions, links, owner, size, date" },
+      { flag: "-a", long: "--all", desc: "Show hidden files (starting with .)" },
+      { flag: "-h", long: "--human-readable", desc: "Print sizes as K, M, G instead of bytes" },
+      { flag: "-t", long: "", desc: "Sort by modification time, newest first" },
+      { flag: "-R", long: "--recursive", desc: "List subdirectories recursively" },
+      { flag: "-S", long: "", desc: "Sort by file size, largest first" },
+    ],
+    examples: [
+      { cmd: "ls -lah /var/log", desc: "Show all files including hidden with human-readable sizes in /var/log" },
+      { cmd: "ls -lt /tmp | head -20", desc: "Show the 20 most recently modified files in /tmp" },
+      { cmd: "ls -lS /usr/bin | tail -10", desc: "Show the 10 smallest binaries in /usr/bin" },
+    ],
+    suggestions: ["find", "tree", "du", "stat"],
+    pro_tip: "Use `ls --color=always | less -R` to get colorized output inside less without losing terminal color codes.",
+  },
+  cd: {
+    summary: "Change the current working directory.",
+    risk: "low", risk_reason: "Navigation only, no file modifications.",
+    explanation: "cd updates the shell's working directory. `cd -` returns to the previous directory. `cd ~` always goes home. In scripts, always pair cd with `|| exit 1` to catch failure before running destructive follow-up commands.",
+    flags: [],
+    examples: [
+      { cmd: "cd /var/log/nginx", desc: "Navigate to nginx log directory" },
+      { cmd: "cd -", desc: "Jump back to the previous directory" },
+      { cmd: "cd ~", desc: "Go to your home directory from anywhere" },
+    ],
+    suggestions: ["pwd", "pushd", "popd", "ls"],
+    pro_tip: "Use `pushd /path` and `popd` when you need a directory stack — navigate away and return without remembering the original path.",
+  },
+  pwd: {
+    summary: "Print the full absolute path of the current working directory.",
+    risk: "low", risk_reason: "Read-only, purely informational.",
+    explanation: "pwd resolves and prints the absolute path. -P shows the physical path resolving symlinks, useful after cd-ing through symlinked directories. The $PWD variable is always available as an alternative.",
+    flags: [
+      { flag: "-P", long: "--physical", desc: "Print real physical path, resolving all symlinks" },
+      { flag: "-L", long: "--logical", desc: "Use shell logical path including symlinks (default)" },
+    ],
+    examples: [
+      { cmd: "pwd", desc: "Show current directory" },
+      { cmd: "pwd -P", desc: "Show real path resolving any symlinks" },
+      { cmd: "SCRIPT_DIR=$(pwd)", desc: "Capture current directory into a variable in a script" },
+    ],
+    suggestions: ["cd", "ls", "dirs"],
+    pro_tip: "In bash scripts use `$PWD` built-in variable instead of calling `$(pwd)` — it's faster since it avoids spawning a subshell.",
+  },
+  cp: {
+    summary: "Copy files or directories from source to destination.",
+    risk: "medium", risk_reason: "Can silently overwrite destination files without warning.",
+    explanation: "cp copies files and directories. Without -r it refuses to copy directories. -p preserves timestamps and permissions — critical for backups. -u only copies when source is newer. The -i flag adds interactive prompts before overwriting.",
+    flags: [
+      { flag: "-r", long: "--recursive", desc: "Copy directories and all their contents recursively" },
+      { flag: "-p", long: "--preserve", desc: "Preserve timestamps, permissions, and ownership" },
+      { flag: "-i", long: "--interactive", desc: "Prompt before overwriting existing files" },
+      { flag: "-u", long: "--update", desc: "Copy only when source is newer than destination" },
+      { flag: "-v", long: "--verbose", desc: "Print each file as it is copied" },
+      { flag: "-a", long: "--archive", desc: "Same as -dR --preserve=all — full archive copy" },
+    ],
+    examples: [
+      { cmd: "cp -rp /etc/nginx /etc/nginx.bak", desc: "Backup nginx config recursively with preserved permissions" },
+      { cmd: "cp -i config.yml /etc/app/", desc: "Copy config with confirmation prompt if destination exists" },
+      { cmd: "cp -av /src/* /dst/", desc: "Archive-copy all files verbosely showing each transfer" },
+    ],
+    suggestions: ["mv", "rsync", "tar", "scp"],
+    pro_tip: "Prefer `rsync -a` over `cp -r` for large directories — rsync is resumable, shows progress, and handles edge cases better.",
+  },
+  mv: {
+    summary: "Move or rename files and directories.",
+    risk: "medium", risk_reason: "Overwrites destination without warning and cannot be undone.",
+    explanation: "mv moves or renames files. Cross-filesystem moves copy then delete. Use -i for safety in scripts. Unlike cp, the original is always removed after a successful move.",
+    flags: [
+      { flag: "-i", long: "--interactive", desc: "Prompt before overwriting" },
+      { flag: "-n", long: "--no-clobber", desc: "Do not overwrite existing files" },
+      { flag: "-v", long: "--verbose", desc: "Show what is being moved" },
+      { flag: "-b", long: "--backup", desc: "Create a backup of each overwritten file" },
+    ],
+    examples: [
+      { cmd: "mv config.yml config.yml.bak", desc: "Rename file as backup before editing" },
+      { cmd: "mv -v /tmp/deploy/* /var/www/html/", desc: "Move all deploy files to web root verbosely" },
+      { cmd: "mv -i *.log /archive/logs/", desc: "Move all log files to archive with overwrite confirmation" },
+    ],
+    suggestions: ["cp", "rm", "rename", "rsync"],
+    pro_tip: "Use `mv -b` to auto-create tilde-suffixed backups (~) on overwrite — great for safe config file rotation.",
+  },
+  rm: {
+    summary: "Remove files or directories permanently with no recycle bin.",
+    risk: "high", risk_reason: "Permanently deletes files. No undo. No trash. Irreversible.",
+    explanation: "rm deletes files immediately. There is no recycle bin on Linux. The -rf combination recursively forces deletion — extremely dangerous near / or $HOME. Always double-check paths in scripts and never use unquoted variables.",
+    flags: [
+      { flag: "-r", long: "--recursive", desc: "Remove directories and all their contents" },
+      { flag: "-f", long: "--force", desc: "Ignore nonexistent files, never prompt" },
+      { flag: "-i", long: "--interactive", desc: "Prompt before every removal" },
+      { flag: "-v", long: "--verbose", desc: "Show each file as it is removed" },
+    ],
+    examples: [
+      { cmd: "rm -i file.txt", desc: "Delete file with confirmation prompt" },
+      { cmd: "rm -rf /tmp/build_artifacts/", desc: "Force-delete a build directory recursively" },
+      { cmd: "find . -name '*.tmp' -delete", desc: "Safer: find and delete tmp files without rm -rf" },
+    ],
+    suggestions: ["find -delete", "trash-cli", "mv", "shred"],
+    pro_tip: "Never run `rm -rf $VAR/path` — if $VAR is empty it becomes `rm -rf /path`. Always validate and quote variables before destructive commands.",
+  },
+  mkdir: {
+    summary: "Create one or more new directories.",
+    risk: "low", risk_reason: "Creates directories only, no destructive action.",
+    explanation: "mkdir creates directories. The -p flag creates all parent directories as needed and suppresses errors if already existing — ideal for idempotent scripts and CI pipelines.",
+    flags: [
+      { flag: "-p", long: "--parents", desc: "Create parent dirs as needed, no error if existing" },
+      { flag: "-m", long: "--mode", desc: "Set permissions for the new directory (like chmod)" },
+      { flag: "-v", long: "--verbose", desc: "Print a message for each created directory" },
+    ],
+    examples: [
+      { cmd: "mkdir -p /opt/app/{logs,config,data}", desc: "Create app directory with three subdirectories via brace expansion" },
+      { cmd: "mkdir -m 700 /home/user/.ssh", desc: "Create .ssh directory with strict owner-only permissions" },
+      { cmd: "mkdir -pv /var/www/html/static/css", desc: "Create full nested path verbosely" },
+    ],
+    suggestions: ["rm", "ls", "chmod", "touch"],
+    pro_tip: "Use brace expansion `mkdir -p project/{src,tests,docs,bin}` to scaffold entire project structures in one command.",
+  },
+  chmod: {
+    summary: "Change file or directory access permissions.",
+    risk: "medium", risk_reason: "Wrong permissions can lock out users or expose sensitive files.",
+    explanation: "chmod modifies read/write/execute bits for owner, group, and others. Octal notation (755, 644) is compact; symbolic notation (u+x, go-w) is readable. -R applies recursively — be cautious applying broad permissions to deep trees.",
+    flags: [
+      { flag: "-R", long: "--recursive", desc: "Apply permissions recursively to all files in directory" },
+      { flag: "-v", long: "--verbose", desc: "Output diagnostic for every file processed" },
+      { flag: "-c", long: "--changes", desc: "Like verbose but only report when a change is made" },
+    ],
+    examples: [
+      { cmd: "chmod 755 deploy.sh", desc: "Make script executable by owner, readable+executable by group/others" },
+      { cmd: "chmod -R 644 /var/www/html/", desc: "Set all web files owner-writable and world-readable" },
+      { cmd: "chmod u+x,go-w script.sh", desc: "Add execute for owner, remove write for group and others symbolically" },
+    ],
+    suggestions: ["chown", "chgrp", "umask", "stat", "ls -l"],
+    pro_tip: "Set different permissions for files vs directories: `find /path -type f -exec chmod 644 {} \\; && find /path -type d -exec chmod 755 {} \\;`",
+  },
+  chown: {
+    summary: "Change the owner and/or group of files and directories.",
+    risk: "medium", risk_reason: "Incorrect ownership can break application access or create privilege escalation paths.",
+    explanation: "chown changes file ownership. Format is `user:group`. -R applies recursively. Only root can change ownership to another user. Combining with find for targeted changes is safer than broad recursive runs.",
+    flags: [
+      { flag: "-R", long: "--recursive", desc: "Operate on all files in directories recursively" },
+      { flag: "-v", long: "--verbose", desc: "Output diagnostic for every file processed" },
+      { flag: "--reference", long: "", desc: "Use ownership of a reference file instead of user:group" },
+    ],
+    examples: [
+      { cmd: "chown www-data:www-data /var/www/html", desc: "Give nginx/apache ownership of the web root" },
+      { cmd: "chown -R deploy:deploy /opt/app/", desc: "Recursively set deploy user as owner of app directory" },
+      { cmd: "chown --reference=/etc/nginx/nginx.conf /etc/nginx/sites-enabled/app", desc: "Copy ownership from another file as reference" },
+    ],
+    suggestions: ["chmod", "chgrp", "ls -l", "stat", "id"],
+    pro_tip: "After deploying files as root, always run `chown -R appuser:appuser /opt/app` to restore correct service ownership before starting the application.",
+  },
+  find: {
+    summary: "Search for files and directories matching criteria across a directory tree.",
+    risk: "medium", risk_reason: "Actions like -delete or -exec rm can permanently remove files.",
+    explanation: "find traverses directory trees evaluating each file against expressions for name, type, size, time, permissions, and owner. Actions include -exec, -delete, and -print0. Always test with -print before using -delete.",
+    flags: [
+      { flag: "-name", long: "", desc: "Match by filename pattern (case-sensitive)" },
+      { flag: "-iname", long: "", desc: "Match by filename (case-insensitive)" },
+      { flag: "-type", long: "", desc: "Filter by type: f=file, d=directory, l=symlink" },
+      { flag: "-mtime", long: "", desc: "Match by modification time in days (+7 = older than 7 days)" },
+      { flag: "-size", long: "", desc: "Match by size (+100M = larger than 100MB)" },
+      { flag: "-exec", long: "", desc: "Execute a command on each matched file" },
+      { flag: "-delete", long: "", desc: "Delete matched files (dangerous — test first with -print)" },
+      { flag: "-maxdepth", long: "", desc: "Limit directory traversal depth" },
+    ],
+    examples: [
+      { cmd: "find /var/log -name '*.log' -mtime +30 -delete", desc: "Delete log files older than 30 days" },
+      { cmd: "find /home -type f -size +100M", desc: "Find all files over 100MB under /home" },
+      { cmd: "find /etc -name '*.conf' -exec grep -l 'password' {} \\;", desc: "Find config files containing the word 'password'" },
+    ],
+    suggestions: ["grep", "locate", "fd", "xargs", "ls"],
+    pro_tip: "Test destructive find commands safely: replace `-delete` with `-print` first to preview what would be affected.",
+  },
+  grep: {
+    summary: "Search text using patterns — print lines matching a regex from files or stdin.",
+    risk: "low", risk_reason: "Read-only search, no system modifications.",
+    explanation: "grep filters lines matching a regular expression. -r scans directories recursively, -v inverts to show non-matching lines, -P enables Perl-compatible regex. Use --include to scope recursive searches to specific file types.",
+    flags: [
+      { flag: "-r", long: "--recursive", desc: "Search recursively through directories" },
+      { flag: "-i", long: "--ignore-case", desc: "Case-insensitive matching" },
+      { flag: "-v", long: "--invert-match", desc: "Print lines that do NOT match" },
+      { flag: "-n", long: "--line-number", desc: "Prefix output with line numbers" },
+      { flag: "-l", long: "--files-with-matches", desc: "Only print filenames with at least one match" },
+      { flag: "-c", long: "--count", desc: "Count matching lines per file" },
+      { flag: "-E", long: "--extended-regexp", desc: "Use extended regex (ERE)" },
+      { flag: "-P", long: "--perl-regexp", desc: "Use Perl-compatible regex for advanced patterns" },
+      { flag: "--include", long: "", desc: "Scope recursive search to files matching a glob" },
+    ],
+    examples: [
+      { cmd: "grep -rn 'ERROR' /var/log/ --include='*.log'", desc: "Find ERROR lines with line numbers across all log files" },
+      { cmd: "grep -v '^#' /etc/nginx/nginx.conf", desc: "Show nginx config without comment lines" },
+      { cmd: "grep -P 'Failed password.*from (\\d+\\.){3}\\d+' /var/log/auth.log", desc: "Extract failed SSH login IPs using Perl regex" },
+    ],
+    suggestions: ["awk", "sed", "ripgrep", "find", "less"],
+    pro_tip: "Use `grep -c ''` to count total lines in a file — faster than `wc -l` when already in a grep pipeline.",
+  },
+  awk: {
+    summary: "Powerful text processing language for pattern scanning and field-based reporting.",
+    risk: "low", risk_reason: "Read-only text transformation unless piped to write operations.",
+    explanation: "awk processes text line-by-line, splitting each into fields ($1, $2, etc.) by a delimiter (default: whitespace). Supports conditionals, loops, and arithmetic — ideal for log analysis, report generation, and structured text extraction.",
+    flags: [
+      { flag: "-F", long: "", desc: "Set field separator (-F: for colon-delimited files like /etc/passwd)" },
+      { flag: "-v", long: "", desc: "Assign a variable before program execution" },
+      { flag: "-f", long: "", desc: "Read awk program from a file" },
+    ],
+    examples: [
+      { cmd: "awk '{print $1, $NF}' access.log", desc: "Print first and last field from each line (e.g. IP and status code)" },
+      { cmd: "awk -F: '$3 >= 1000 {print $1}' /etc/passwd", desc: "List all usernames with UID >= 1000 (regular users)" },
+      { cmd: "awk '/ERROR/{count++} END{print count}' app.log", desc: "Count ERROR occurrences in a log file" },
+    ],
+    suggestions: ["sed", "grep", "cut", "sort", "uniq"],
+    pro_tip: "`awk 'NR==FNR{a[$0];next} $0 in a'` finds common lines between two files — a classic awk idiom for set intersection without sorting.",
+  },
+  sed: {
+    summary: "Stream editor — transform text using substitution, deletion, and insertion.",
+    risk: "medium", risk_reason: "In-place editing with -i permanently modifies files without undo.",
+    explanation: "sed reads input line by line applying editing commands. The `s/pattern/replacement/flags` command substitutes text. -i edits files in place. Always test with a dry run (without -i) before modifying files.",
+    flags: [
+      { flag: "-i", long: "--in-place", desc: "Edit file in-place (use -i.bak to keep a backup)" },
+      { flag: "-n", long: "--quiet", desc: "Suppress automatic printing of pattern space" },
+      { flag: "-e", long: "--expression", desc: "Add a script command to execute" },
+      { flag: "-r", long: "--regexp-extended", desc: "Use extended regular expressions" },
+    ],
+    examples: [
+      { cmd: "sed -i.bak 's/localhost/db.prod.internal/g' app.conf", desc: "Replace hostname in config, keeping .bak backup" },
+      { cmd: "sed -n '100,200p' huge.log", desc: "Print only lines 100 to 200 from a large log" },
+      { cmd: "sed '/^$/d' config.txt", desc: "Remove all blank lines from a file" },
+    ],
+    suggestions: ["awk", "grep", "tr", "perl", "vim"],
+    pro_tip: "Always use `-i.bak` instead of bare `-i` — it creates a backup and is portable across Linux and macOS.",
+  },
+  tar: {
+    summary: "Archive and compress files — the standard Linux backup and packaging tool.",
+    risk: "medium", risk_reason: "Extraction can overwrite existing files; archives may contain absolute paths.",
+    explanation: "tar bundles files into an archive. Combined with gzip (-z), bzip2 (-j), or xz (-J) it compresses too. The -C flag changes extraction directory. Always inspect archives with -t before extracting to avoid surprises.",
+    flags: [
+      { flag: "-c", long: "--create", desc: "Create a new archive" },
+      { flag: "-x", long: "--extract", desc: "Extract files from an archive" },
+      { flag: "-t", long: "--list", desc: "List archive contents without extracting" },
+      { flag: "-z", long: "--gzip", desc: "Compress/decompress with gzip (.tar.gz)" },
+      { flag: "-j", long: "--bzip2", desc: "Compress/decompress with bzip2 (.tar.bz2)" },
+      { flag: "-J", long: "--xz", desc: "Compress/decompress with xz (.tar.xz) — best compression ratio" },
+      { flag: "-f", long: "--file", desc: "Specify archive filename" },
+      { flag: "-v", long: "--verbose", desc: "Verbosely list files processed" },
+      { flag: "-C", long: "--directory", desc: "Change to directory before extracting" },
+    ],
+    examples: [
+      { cmd: "tar -czf backup-$(date +%F).tar.gz /var/www/html", desc: "Create date-stamped compressed backup of web root" },
+      { cmd: "tar -xzf archive.tar.gz -C /opt/app/", desc: "Extract archive into /opt/app/" },
+      { cmd: "tar -tzf archive.tar.gz | head -20", desc: "Preview compressed archive contents before extracting" },
+    ],
+    suggestions: ["gzip", "zip", "rsync", "scp", "find"],
+    pro_tip: "Exclude directories on archive: `tar --exclude='./logs' --exclude='./.git' -czf archive.tar.gz .`",
+  },
+  ssh: {
+    summary: "Securely connect to a remote host over an encrypted SSH tunnel.",
+    risk: "medium", risk_reason: "Grants remote access; misconfigured keys or jump hosts can be security risks.",
+    explanation: "ssh creates an encrypted connection to a remote machine. Key-based authentication (-i) is strongly preferred over passwords. -J enables jump host proxying through bastion servers. -L/-R set up local/remote port forwarding tunnels.",
+    flags: [
+      { flag: "-i", long: "", desc: "Specify private key file for authentication" },
+      { flag: "-p", long: "", desc: "Connect to a non-standard SSH port" },
+      { flag: "-L", long: "", desc: "Local port forwarding: tunnel a remote port to localhost" },
+      { flag: "-R", long: "", desc: "Remote port forwarding: expose local port on remote host" },
+      { flag: "-J", long: "", desc: "Jump/bastion host proxy" },
+      { flag: "-N", long: "", desc: "Do not execute a remote command (useful for tunnels)" },
+      { flag: "-v", long: "", desc: "Verbose mode for debugging connection issues" },
+    ],
+    examples: [
+      { cmd: "ssh -i ~/.ssh/prod.pem ubuntu@10.0.1.5", desc: "Connect to EC2 instance with a PEM key" },
+      { cmd: "ssh -L 5432:db.internal:5432 bastion.host", desc: "Tunnel PostgreSQL through bastion to localhost:5432" },
+      { cmd: "ssh -J bastion.host user@private.server", desc: "Connect to private server through a jump/bastion host" },
+    ],
+    suggestions: ["scp", "rsync", "ssh-keygen", "ssh-copy-id", "mosh"],
+    pro_tip: "Configure `~/.ssh/config` with Host aliases — replace `ssh -i key.pem -p 2222 user@long.host.com` with just `ssh prod`.",
+  },
+  rsync: {
+    summary: "Fast, resumable file synchronization tool — local or over SSH.",
+    risk: "medium", risk_reason: "--delete removes destination files not in source — use with caution.",
+    explanation: "rsync transfers only changed file blocks (delta transfer) making it extremely efficient. -a preserves permissions, timestamps, symlinks, and ownership. --delete mirrors the source exactly. Always test with -n (dry-run) first.",
+    flags: [
+      { flag: "-a", long: "--archive", desc: "Archive: recursive + preserve perms, times, symlinks, owner" },
+      { flag: "-v", long: "--verbose", desc: "Show transferred files" },
+      { flag: "-z", long: "--compress", desc: "Compress data during transfer" },
+      { flag: "--progress", long: "", desc: "Show per-file progress during transfer" },
+      { flag: "--delete", long: "", desc: "Delete destination files not in source (mirror mode)" },
+      { flag: "--exclude", long: "", desc: "Exclude files matching a pattern" },
+      { flag: "-n", long: "--dry-run", desc: "Simulate without actually transferring" },
+    ],
+    examples: [
+      { cmd: "rsync -avz --progress /var/www/ user@host:/var/www/", desc: "Sync web root to remote server with progress display" },
+      { cmd: "rsync -av --delete --exclude='.git' /project/ /backup/", desc: "Mirror project directory excluding .git" },
+      { cmd: "rsync -avn /src/ /dst/", desc: "Dry-run to preview what would sync before committing" },
+    ],
+    suggestions: ["scp", "tar", "rclone", "ssh"],
+    pro_tip: "Always test with `rsync -avn` (dry run) before using `--delete`. One typo in the source path could wipe your entire destination.",
+  },
+  curl: {
+    summary: "Transfer data to or from a server using HTTP, HTTPS, FTP, and more.",
+    risk: "low", risk_reason: "Read-only by default; piping responses to shell can execute arbitrary code.",
+    explanation: "curl is the Swiss Army knife for HTTP. -I sends HEAD request (headers only). -o saves to file. -s enables silent mode. -X sets the HTTP method. Essential for API testing, downloading files, and debugging web requests.",
+    flags: [
+      { flag: "-I", long: "--head", desc: "Fetch HTTP headers only (HEAD request)" },
+      { flag: "-o", long: "--output", desc: "Write output to a file" },
+      { flag: "-L", long: "--location", desc: "Follow HTTP redirects" },
+      { flag: "-s", long: "--silent", desc: "Silent mode — no progress bar" },
+      { flag: "-X", long: "--request", desc: "Specify HTTP method (GET, POST, PUT, DELETE)" },
+      { flag: "-H", long: "--header", desc: "Add a custom HTTP header" },
+      { flag: "-d", long: "--data", desc: "Send POST body data" },
+      { flag: "-k", long: "--insecure", desc: "Skip SSL certificate verification (testing only)" },
+    ],
+    examples: [
+      { cmd: "curl -I https://example.com", desc: "Check HTTP response headers and status code" },
+      { cmd: "curl -X POST -H 'Content-Type: application/json' -d '{\"key\":\"val\"}' https://api.example.com/data", desc: "Send JSON POST to a REST API endpoint" },
+      { cmd: "curl -fsSL https://get.docker.com | bash", desc: "Download and execute Docker install script" },
+    ],
+    suggestions: ["wget", "httpie", "nc", "jq", "openssl"],
+    pro_tip: "Check HTTP status codes in scripts: `curl -w '\\n%{http_code}' -s -o /dev/null https://url` — no download, just the status.",
+  },
+  ps: {
+    summary: "Display information about currently running processes.",
+    risk: "low", risk_reason: "Read-only process snapshot.",
+    explanation: "ps takes a snapshot of processes. `ps aux` shows all processes for all users (BSD format). Columns include PID, %CPU, %MEM, and COMMAND. Combine with grep to find specific processes. For live views use top or htop.",
+    flags: [
+      { flag: "a", long: "", desc: "Show processes for all users" },
+      { flag: "u", long: "", desc: "User-oriented format: show USER, CPU%, MEM%" },
+      { flag: "x", long: "", desc: "Include processes without a controlling terminal" },
+      { flag: "-e", long: "", desc: "Select all processes (POSIX)" },
+      { flag: "--sort", long: "", desc: "Sort output (e.g. --sort=-%cpu for highest CPU first)" },
+    ],
+    examples: [
+      { cmd: "ps aux | grep nginx", desc: "Find nginx worker processes and their PIDs" },
+      { cmd: "ps aux --sort=-%mem | head -10", desc: "Show top 10 memory-consuming processes" },
+      { cmd: "ps -ef --forest", desc: "Show all processes as a parent-child tree" },
+    ],
+    suggestions: ["top", "htop", "pgrep", "kill", "systemctl"],
+    pro_tip: "Use `pgrep -la nginx` instead of `ps aux | grep nginx` — cleaner output that won't include the grep process itself.",
+  },
+  kill: {
+    summary: "Send a signal to a process — commonly used to terminate processes.",
+    risk: "high", risk_reason: "SIGKILL (-9) immediately terminates without cleanup — can corrupt data.",
+    explanation: "kill sends signals to processes by PID. Default is SIGTERM (15) which requests graceful shutdown. SIGKILL (9) cannot be caught and forces immediate termination — use as last resort. SIGHUP (1) typically reloads service config.",
+    flags: [
+      { flag: "-9", long: "-SIGKILL", desc: "Force kill immediately — no cleanup, potential data loss" },
+      { flag: "-15", long: "-SIGTERM", desc: "Graceful termination request (default signal)" },
+      { flag: "-1", long: "-SIGHUP", desc: "Hangup — typically reloads service configuration" },
+      { flag: "-l", long: "", desc: "List all available signal names and numbers" },
+    ],
+    examples: [
+      { cmd: "kill -15 1234", desc: "Gracefully terminate process 1234 (gives it time to clean up)" },
+      { cmd: "kill -9 $(pgrep -f stuck_process)", desc: "Force-kill process by name when SIGTERM failed" },
+      { cmd: "kill -1 $(pgrep nginx)", desc: "Send SIGHUP to nginx to reload configuration without restart" },
+    ],
+    suggestions: ["pkill", "killall", "pgrep", "ps", "systemctl"],
+    pro_tip: "Always try SIGTERM first, wait 5s, then SIGKILL. Jumping to -9 can corrupt databases and leave stale lock files behind.",
+  },
+  df: {
+    summary: "Report disk space usage of mounted filesystems.",
+    risk: "low", risk_reason: "Read-only filesystem inspection.",
+    explanation: "df shows disk space for each filesystem. -h makes sizes human-readable. -T shows the filesystem type (ext4, xfs, tmpfs). Filter with grep to exclude tmpfs mounts in containers which can clutter output.",
+    flags: [
+      { flag: "-h", long: "--human-readable", desc: "Show sizes in K, M, G, T" },
+      { flag: "-T", long: "--print-type", desc: "Show filesystem type" },
+      { flag: "-i", long: "--inodes", desc: "Show inode usage instead of block usage" },
+      { flag: "--total", long: "", desc: "Show a grand total row" },
+    ],
+    examples: [
+      { cmd: "df -hT | grep -v tmpfs", desc: "Show real disk usage excluding temporary filesystems" },
+      { cmd: "df -i /", desc: "Check inode usage on root — exhaustion prevents new files even with free space" },
+      { cmd: "df -h --total", desc: "All filesystem usage with a total summary line" },
+    ],
+    suggestions: ["du", "lsblk", "mount", "fdisk"],
+    pro_tip: "A disk can show free space but give 'No space left on device' — always check inodes with `df -i` too.",
+  },
+  du: {
+    summary: "Estimate disk usage of files and directories.",
+    risk: "low", risk_reason: "Read-only — scans disk usage without modifications.",
+    explanation: "du walks the directory tree summing file sizes. -s gives a total for each argument. --max-depth limits recursion depth. Piping to `sort -rh` reveals the biggest disk consumers — essential for tracking down space hogs.",
+    flags: [
+      { flag: "-h", long: "--human-readable", desc: "Print sizes in human-readable format" },
+      { flag: "-s", long: "--summarize", desc: "Display only a total for each argument" },
+      { flag: "-a", long: "--all", desc: "Include all files, not just directories" },
+      { flag: "--max-depth", long: "", desc: "Limit directory recursion depth" },
+      { flag: "--exclude", long: "", desc: "Exclude files matching a pattern" },
+    ],
+    examples: [
+      { cmd: "du -sh /var/log/*", desc: "Show size of each item in /var/log" },
+      { cmd: "du -h --max-depth=2 / | sort -rh | head -20", desc: "Find top 20 largest directories from root" },
+      { cmd: "du -sh --exclude='.git' .", desc: "Get total size of current directory excluding .git" },
+    ],
+    suggestions: ["df", "ncdu", "find", "ls"],
+    pro_tip: "Install `ncdu` for an interactive disk usage explorer: `sudo apt install ncdu && ncdu /`",
+  },
+  ss: {
+    summary: "Investigate socket statistics — the modern, faster replacement for netstat.",
+    risk: "low", risk_reason: "Read-only network socket inspection.",
+    explanation: "ss queries the kernel directly for socket information — faster and more accurate than netstat. -tulnp is the canonical combination: TCP, UDP, Listening, Numeric, with Process info. Use to verify which services listen on which ports.",
+    flags: [
+      { flag: "-t", long: "--tcp", desc: "Show TCP sockets" },
+      { flag: "-u", long: "--udp", desc: "Show UDP sockets" },
+      { flag: "-l", long: "--listening", desc: "Show only listening sockets" },
+      { flag: "-n", long: "--numeric", desc: "Don't resolve service names or hostnames" },
+      { flag: "-p", long: "--processes", desc: "Show the process using each socket" },
+      { flag: "-4", long: "", desc: "Show only IPv4 sockets" },
+      { flag: "-6", long: "", desc: "Show only IPv6 sockets" },
+    ],
+    examples: [
+      { cmd: "ss -tulnp", desc: "Show all listening TCP/UDP ports with process names — standard network debug command" },
+      { cmd: "ss -tnp state established", desc: "Show established TCP connections with processes" },
+      { cmd: "ss -tulnp | grep :443", desc: "Check which process is listening on HTTPS port 443" },
+    ],
+    suggestions: ["netstat", "lsof", "nmap", "curl", "nc"],
+    pro_tip: "Use `ss -s` for a quick socket count summary by state — great for spotting connection storms or TIME_WAIT buildup.",
+  },
+  systemctl: {
+    summary: "Control the systemd init system and service manager.",
+    risk: "medium", risk_reason: "Starting, stopping, or disabling services directly affects system availability.",
+    explanation: "systemctl manages service lifecycle (start/stop/restart/reload), enables services to start at boot, and queries status with recent logs. Always verify service status after restart in automated scripts.",
+    flags: [],
+    examples: [
+      { cmd: "systemctl status nginx", desc: "Check nginx service status, PID, and recent log lines" },
+      { cmd: "systemctl restart nginx && systemctl is-active nginx", desc: "Restart nginx and confirm it's running" },
+      { cmd: "systemctl enable --now docker", desc: "Enable Docker at boot AND start it immediately" },
+    ],
+    suggestions: ["journalctl", "service", "ps", "kill"],
+    pro_tip: "Use `systemctl list-units --type=service --state=failed` to see all failed services — great for post-reboot health checks.",
+  },
+  journalctl: {
+    summary: "Query and display logs from the systemd journal.",
+    risk: "low", risk_reason: "Read-only log access.",
+    explanation: "journalctl is the log viewer for systemd systems. -u filters by service unit, -f follows live, --since/--until enables time-based filtering, -p filters by priority. Output can be formatted as JSON for machine processing.",
+    flags: [
+      { flag: "-u", long: "--unit", desc: "Show logs for a specific service unit" },
+      { flag: "-f", long: "--follow", desc: "Follow new log entries live (like tail -f)" },
+      { flag: "-n", long: "--lines", desc: "Show last N lines" },
+      { flag: "-p", long: "--priority", desc: "Filter by priority: err, warning, info, debug" },
+      { flag: "--since", long: "", desc: "Show entries since date/time or relative ('today', '1 hour ago')" },
+      { flag: "-o", long: "--output", desc: "Output format: short, json, verbose, cat" },
+    ],
+    examples: [
+      { cmd: "journalctl -u nginx -f --since '5 minutes ago'", desc: "Live-follow nginx logs from last 5 minutes" },
+      { cmd: "journalctl -p err --since today", desc: "Show all error-level entries since midnight" },
+      { cmd: "journalctl -u postgresql -o json | jq '.MESSAGE'", desc: "Stream PostgreSQL logs as JSON and extract message field" },
+    ],
+    suggestions: ["systemctl", "tail", "grep", "dmesg"],
+    pro_tip: "Use `journalctl --vacuum-size=500M` to reduce journal disk usage when it grows too large.",
+  },
+  kubectl: {
+    summary: "Command-line tool for controlling Kubernetes clusters.",
+    risk: "medium", risk_reason: "Deleting resources or applying bad configs can disrupt production workloads.",
+    explanation: "kubectl communicates with the Kubernetes API server to manage cluster resources. Always verify your current context with `kubectl config current-context` before running destructive commands in production.",
+    flags: [
+      { flag: "-n", long: "--namespace", desc: "Specify Kubernetes namespace" },
+      { flag: "--context", long: "", desc: "Use a specific kubeconfig context" },
+      { flag: "-o", long: "--output", desc: "Output format: wide, yaml, json, jsonpath" },
+      { flag: "--all-namespaces", long: "", desc: "Operate across all namespaces" },
+      { flag: "-l", long: "--selector", desc: "Filter by label selector" },
+      { flag: "--dry-run", long: "", desc: "Preview what would happen without applying" },
+    ],
+    examples: [
+      { cmd: "kubectl get pods -n production -o wide", desc: "List all production pods with node and IP info" },
+      { cmd: "kubectl logs -f deployment/api-server -n production --tail=100", desc: "Follow API server deployment logs" },
+      { cmd: "kubectl rollout restart deployment/frontend -n production", desc: "Perform a rolling restart of the frontend deployment" },
+    ],
+    suggestions: ["helm", "k9s", "kubectx", "kubeadm", "stern"],
+    pro_tip: "Set `kubectl config set-context --current --namespace=production` to avoid typing -n production on every command.",
+  },
+  docker: {
+    summary: "Build, run, and manage Linux containers and container images.",
+    risk: "medium", risk_reason: "Containers run as root by default; misconfigured mounts can expose the host filesystem.",
+    explanation: "docker manages the full container lifecycle. The daemon runs as root — use rootless Docker or podman for better security in production. Containers share the host kernel, so namespace escapes are a real risk on unpatched kernels.",
+    flags: [],
+    examples: [
+      { cmd: "docker ps -a --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'", desc: "List all containers with name, status, and ports in a clean table" },
+      { cmd: "docker logs -f --tail=100 container_name", desc: "Follow last 100 lines of container output" },
+      { cmd: "docker exec -it container_name /bin/sh", desc: "Open an interactive shell inside a running container" },
+    ],
+    suggestions: ["docker-compose", "podman", "kubectl", "buildah"],
+    pro_tip: "Use `docker system prune -af` to remove all unused images, containers, and volumes — reclaims gigabytes on busy CI servers.",
+  },
+  git: {
+    summary: "Distributed version control system for tracking and managing code changes.",
+    risk: "medium", risk_reason: "Force push and history rewrite on shared branches can overwrite collaborators' work.",
+    explanation: "git tracks file changes through commits and supports branching and merging. The working directory, staging area (index), and repository are distinct zones. Remote operations interact with upstream repositories.",
+    flags: [],
+    examples: [
+      { cmd: "git log --oneline --graph --all --decorate", desc: "Visualize full branch history as a compact decorated graph" },
+      { cmd: "git stash push -m 'WIP: feature-x' && git checkout main", desc: "Stash current work and switch to main" },
+      { cmd: "git diff HEAD~3 -- src/api/", desc: "Show changes in src/api/ over the last 3 commits" },
+    ],
+    suggestions: ["git-flow", "tig", "gh", "hub"],
+    pro_tip: "Use `git reflog` to recover lost commits after a bad reset or rebase — git keeps unreachable commits for ~90 days.",
+  },
+  ping: {
+    summary: "Test network reachability to a host using ICMP echo requests.",
+    risk: "low", risk_reason: "Generates network traffic; can be blocked by firewalls.",
+    explanation: "ping sends ICMP ECHO_REQUEST packets and measures round-trip time. -c limits packet count (required in scripts on Linux). Packet loss percentage indicates network quality.",
+    flags: [
+      { flag: "-c", long: "--count", desc: "Stop after sending N packets" },
+      { flag: "-i", long: "--interval", desc: "Wait N seconds between sending each packet" },
+      { flag: "-W", long: "", desc: "Time in seconds to wait for a response" },
+      { flag: "-s", long: "--packet-size", desc: "Data bytes in the packet" },
+    ],
+    examples: [
+      { cmd: "ping -c 4 google.com", desc: "Send 4 pings and show round-trip statistics" },
+      { cmd: "ping -c 1 -W 2 10.0.1.5 && echo 'Host up' || echo 'Host down'", desc: "Script: check if host responds within 2 seconds" },
+      { cmd: "ping -i 0.2 -c 100 host | tail -2", desc: "Rapid 100-ping latency test, show summary only" },
+    ],
+    suggestions: ["traceroute", "mtr", "curl", "nc", "nmap"],
+    pro_tip: "Use `mtr` (My Traceroute) for comprehensive network diagnostics — it combines ping and traceroute with a real-time display.",
+  },
+  dig: {
+    summary: "DNS lookup utility — query DNS servers for domain records.",
+    risk: "low", risk_reason: "Read-only DNS query.",
+    explanation: "dig performs DNS queries and shows raw server responses including the full answer section. +short gives compact output. Specifying @8.8.8.8 queries Google's DNS directly, bypassing local cache.",
+    flags: [],
+    examples: [
+      { cmd: "dig +short A example.com", desc: "Get IPv4 addresses for a domain concisely" },
+      { cmd: "dig MX gmail.com @8.8.8.8", desc: "Query Google DNS directly for Gmail mail server records" },
+      { cmd: "dig -x 8.8.8.8 +short", desc: "Reverse DNS lookup — find the hostname for an IP" },
+    ],
+    suggestions: ["nslookup", "host", "ping", "curl", "whois"],
+    pro_tip: "Use `dig +trace example.com` to see the full resolution chain from root servers — essential for DNS propagation debugging.",
+  },
+  lsof: {
+    summary: "List open files — show which processes have which files and sockets open.",
+    risk: "low", risk_reason: "Read-only file descriptor inspection.",
+    explanation: "On Linux everything is a file — including sockets, pipes, and devices. lsof shows all open file descriptors. -i filters for network connections, -p for a PID, +D for a directory. Invaluable for 'file in use' errors.",
+    flags: [
+      { flag: "-i", long: "", desc: "List network connections (filter: :port or protocol)" },
+      { flag: "-p", long: "", desc: "List files open by a specific PID" },
+      { flag: "-u", long: "", desc: "List files open by a specific user" },
+      { flag: "-n", long: "", desc: "Don't resolve hostnames (faster output)" },
+      { flag: "+D", long: "", desc: "Recursively list files open in a directory" },
+    ],
+    examples: [
+      { cmd: "lsof -i :80", desc: "Find which process is using port 80" },
+      { cmd: "lsof -p 1234 | grep REG", desc: "List regular files open by process 1234" },
+      { cmd: "lsof +D /var/log/ | grep -v grep", desc: "Find processes actively writing to /var/log/" },
+    ],
+    suggestions: ["ss", "fuser", "ps", "strace"],
+    pro_tip: "Use `lsof -u alice | wc -l` to count total open file descriptors for a user — helpful when hitting system ulimit errors.",
+  },
+  strace: {
+    summary: "Trace system calls and signals made by a process in real time.",
+    risk: "low", risk_reason: "Read-only tracing; can slow the traced process significantly under heavy load.",
+    explanation: "strace intercepts every system call a process makes — file opens, network reads, memory maps. It's the ultimate black-box debugger: no source code needed. -e filters to specific syscall categories.",
+    flags: [
+      { flag: "-p", long: "", desc: "Attach to an already running process by PID" },
+      { flag: "-e", long: "", desc: "Filter syscalls (e.g. -e trace=network,read,write)" },
+      { flag: "-o", long: "", desc: "Write output to a file instead of stderr" },
+      { flag: "-f", long: "", desc: "Trace child processes forked by the main process" },
+      { flag: "-c", long: "", desc: "Count syscall time/frequency and show summary table" },
+    ],
+    examples: [
+      { cmd: "strace -p 1234 -e trace=network", desc: "Trace all network syscalls of running process 1234" },
+      { cmd: "strace -c -f ./program", desc: "Run program and show syscall frequency summary table" },
+      { cmd: "strace -e openat ./prog 2>&1 | grep 'No such file'", desc: "Find missing config or library files a program tries to load" },
+    ],
+    suggestions: ["ltrace", "perf", "gdb", "lsof", "tcpdump"],
+    pro_tip: "Use `strace -e openat ./prog 2>&1 | grep ENOENT` to instantly see every file the program fails to open.",
+  },
+  iptables: {
+    summary: "Configure the Linux kernel firewall — manage network packet filtering rules.",
+    risk: "high", risk_reason: "Wrong rules can lock you out of SSH or drop critical traffic permanently.",
+    explanation: "iptables manages netfilter rules through chains. INPUT/OUTPUT/FORWARD handle incoming, outgoing, and routed traffic. Rules are evaluated top-to-bottom; first match wins. Save rules with iptables-save before making changes.",
+    flags: [
+      { flag: "-A", long: "--append", desc: "Append a rule to a chain" },
+      { flag: "-I", long: "--insert", desc: "Insert a rule at the top (highest priority)" },
+      { flag: "-D", long: "--delete", desc: "Delete a specific rule" },
+      { flag: "-L", long: "--list", desc: "List all rules in a chain" },
+      { flag: "-n", long: "--numeric", desc: "Show numeric IPs without hostname resolution" },
+      { flag: "-F", long: "--flush", desc: "Delete all rules from a chain" },
+    ],
+    examples: [
+      { cmd: "iptables -L -nv", desc: "List all firewall rules with packet/byte counts numerically" },
+      { cmd: "iptables -A INPUT -p tcp --dport 22 -s 10.0.0.0/8 -j ACCEPT", desc: "Allow SSH only from private 10.x.x.x range" },
+      { cmd: "iptables-save > /etc/iptables/rules.v4", desc: "Save current rules to persist across reboots" },
+    ],
+    suggestions: ["ufw", "nftables", "firewalld", "ss", "fail2ban"],
+    pro_tip: "Before adding restrictive rules on a remote server: `echo 'iptables -F' | at now + 5 minutes` — schedules a flush so you can't permanently lock yourself out.",
+  },
+  useradd: {
+    summary: "Create a new user account on the Linux system.",
+    risk: "medium", risk_reason: "Creates system access; poor configuration can introduce security vulnerabilities.",
+    explanation: "useradd creates user accounts in /etc/passwd. -m creates a home directory, -s sets the login shell, -G adds to supplementary groups, -r creates a service account without login. On Debian/Ubuntu, `adduser` is the friendlier interactive wrapper.",
+    flags: [
+      { flag: "-m", long: "--create-home", desc: "Create a home directory for the new user" },
+      { flag: "-s", long: "--shell", desc: "Set login shell (e.g. /bin/bash or /usr/sbin/nologin)" },
+      { flag: "-G", long: "--groups", desc: "Add to supplementary groups (comma-separated)" },
+      { flag: "-u", long: "--uid", desc: "Specify a numeric user ID" },
+      { flag: "-r", long: "--system", desc: "Create a system account (no home, no interactive login)" },
+    ],
+    examples: [
+      { cmd: "useradd -m -s /bin/bash -G sudo,docker deploy", desc: "Create deploy user with home, bash, and sudo+docker access" },
+      { cmd: "useradd -r -s /usr/sbin/nologin prometheus", desc: "Create a service account with no login shell for Prometheus" },
+      { cmd: "useradd -m -u 1500 -G developers alice", desc: "Create alice with a specific UID and developers group" },
+    ],
+    suggestions: ["passwd", "usermod", "userdel", "groupadd", "id"],
+    pro_tip: "For service accounts always use `-r -s /usr/sbin/nologin` — prevents interactive login while still allowing the service to run as that user.",
+  },
+  crontab: {
+    summary: "View, edit, or manage per-user cron schedules for recurring jobs.",
+    risk: "medium", risk_reason: "Misconfigured jobs run commands automatically — potentially destructively.",
+    explanation: "crontab manages scheduled jobs. The five time fields are: minute (0-59), hour (0-23), day (1-31), month (1-12), weekday (0-7). `*` means any, `,` for lists, `-` for ranges, `/` for intervals. Always use full paths in cron commands.",
+    flags: [
+      { flag: "-e", long: "", desc: "Edit current user's crontab in $EDITOR" },
+      { flag: "-l", long: "", desc: "List current crontab" },
+      { flag: "-r", long: "", desc: "Remove current user's crontab entirely" },
+      { flag: "-u", long: "", desc: "Specify another user (root only)" },
+    ],
+    examples: [
+      { cmd: "crontab -l", desc: "View current cron schedule" },
+      { cmd: "0 */6 * * * /usr/local/bin/health_check.sh", desc: "Run health check every 6 hours" },
+      { cmd: "30 23 * * 5 /opt/scripts/weekly-report.sh >> /var/log/reports.log 2>&1", desc: "Weekly report every Friday at 11:30 PM with full logging" },
+    ],
+    suggestions: ["at", "systemd timer", "watch", "cronie"],
+    pro_tip: "Use https://crontab.guru to visually verify cron expressions before deploying them.",
+  },
+  // Aliases / common variants
+  scp: {
+    summary: "Securely copy files between local and remote hosts over SSH.",
+    risk: "medium", risk_reason: "Can overwrite remote files silently; key misuse is a risk.",
+    explanation: "scp uses SSH to transfer files. -r copies directories. Note: -P (capital) sets the port for scp, unlike ssh which uses lowercase -p. For large or resumable transfers prefer rsync.",
+    flags: [
+      { flag: "-r", long: "", desc: "Recursively copy entire directories" },
+      { flag: "-i", long: "", desc: "Specify private key" },
+      { flag: "-P", long: "", desc: "Specify SSH port (capital P)" },
+      { flag: "-p", long: "", desc: "Preserve modification times and permissions" },
+      { flag: "-C", long: "", desc: "Enable compression during transfer" },
+    ],
+    examples: [
+      { cmd: "scp -i key.pem app.jar ubuntu@10.0.1.5:/opt/app/", desc: "Upload JAR to remote server" },
+      { cmd: "scp -rp user@host:/etc/nginx ./nginx-backup/", desc: "Download nginx config directory preserving timestamps" },
+      { cmd: "scp -P 2222 -C bigfile.tar.gz user@host:/tmp/", desc: "Upload large file over non-standard port with compression" },
+    ],
+    suggestions: ["rsync", "ssh", "sftp", "curl"],
+    pro_tip: "For anything over a few MB, use `rsync -avz --progress` instead — it resumes interrupted transfers automatically.",
+  },
+  wget: {
+    summary: "Download files from the web non-interactively.",
+    risk: "low", risk_reason: "Downloads files; piping output to shell can execute arbitrary code.",
+    explanation: "wget specializes in downloading and supports recursive website mirroring. Unlike curl it saves to a file by default. -c resumes interrupted downloads. -q suppresses output for scripts.",
+    flags: [
+      { flag: "-O", long: "", desc: "Save to a specific filename" },
+      { flag: "-c", long: "--continue", desc: "Resume a partially downloaded file" },
+      { flag: "-q", long: "--quiet", desc: "Silent mode" },
+      { flag: "-r", long: "--recursive", desc: "Download recursively (website mirroring)" },
+      { flag: "-P", long: "--directory-prefix", desc: "Set download directory" },
+    ],
+    examples: [
+      { cmd: "wget -c https://releases.ubuntu.com/22.04/ubuntu-22.04.4-live-server-amd64.iso", desc: "Download Ubuntu ISO with resume support" },
+      { cmd: "wget -q -O - https://example.com/install.sh | bash", desc: "Download and pipe install script to bash silently" },
+      { cmd: "wget --spider https://example.com/file", desc: "Check if URL exists without downloading" },
+    ],
+    suggestions: ["curl", "aria2c", "axel"],
+    pro_tip: "Use `wget --spider` to check if a URL exists without downloading — perfect for health check scripts.",
+  },
+  top: {
+    summary: "Real-time dynamic view of system processes, CPU, and memory usage.",
+    risk: "low", risk_reason: "Read-only by default; kill commands inside top carry risk.",
+    explanation: "top provides a live display sorted by CPU usage. Press M to sort by memory, k to kill a process, q to quit. -b runs batch mode for scripting.",
+    flags: [
+      { flag: "-b", long: "--batch", desc: "Non-interactive batch mode for scripts" },
+      { flag: "-n", long: "", desc: "Number of iterations before exiting" },
+      { flag: "-p", long: "", desc: "Monitor specific PIDs only" },
+      { flag: "-u", long: "", desc: "Show processes for a specific user" },
+    ],
+    examples: [
+      { cmd: "top -bn1 | head -20", desc: "Capture a single top snapshot for logging" },
+      { cmd: "top -u www-data", desc: "Monitor only web server user processes" },
+    ],
+    suggestions: ["htop", "ps", "vmstat", "iostat", "glances"],
+    pro_tip: "Install `htop` — same as top but with color, mouse support, and a much cleaner UI: `sudo apt install htop`",
+  },
+  netstat: {
+    summary: "Display network connections, routing tables, and interface statistics.",
+    risk: "low", risk_reason: "Read-only network inspection.",
+    explanation: "netstat is the classic network diagnostics tool. On modern Linux systems `ss` is preferred — faster and more accurate. -tulnp shows all listening services with process info.",
+    flags: [
+      { flag: "-t", long: "", desc: "TCP connections" },
+      { flag: "-u", long: "", desc: "UDP connections" },
+      { flag: "-l", long: "", desc: "Listening sockets only" },
+      { flag: "-n", long: "", desc: "Numeric addresses (no DNS)" },
+      { flag: "-p", long: "", desc: "Show process name and PID" },
+    ],
+    examples: [
+      { cmd: "netstat -tulnp", desc: "Show all listening TCP/UDP services with PIDs" },
+      { cmd: "netstat -rn", desc: "Display kernel routing table numerically" },
+    ],
+    suggestions: ["ss", "ip route", "lsof", "nmap"],
+    pro_tip: "`ss` is the modern replacement for `netstat`. Add `alias netstat='ss'` to your ~/.bashrc to build the habit.",
+  },
+  nmap: {
+    summary: "Network scanner — discover hosts and probe open ports on a network.",
+    risk: "medium", risk_reason: "Port scanning triggers IDS/IPS alerts and is illegal on networks you don't own.",
+    explanation: "nmap probes hosts and ports to map network topology. Always obtain explicit written permission before scanning any network you don't own or operate.",
+    flags: [
+      { flag: "-sV", long: "", desc: "Detect service versions on open ports" },
+      { flag: "-O", long: "", desc: "Enable OS detection" },
+      { flag: "-p", long: "", desc: "Ports to scan (-p 22,80,443 or -p 1-1024)" },
+      { flag: "-sn", long: "", desc: "Ping scan only — discover live hosts" },
+      { flag: "--open", long: "", desc: "Show only open ports" },
+    ],
+    examples: [
+      { cmd: "nmap -sn 10.0.0.0/24", desc: "Discover live hosts in a /24 subnet" },
+      { cmd: "nmap -sV -p 22,80,443 10.0.1.5", desc: "Check specific ports and detect service versions" },
+    ],
+    suggestions: ["masscan", "netcat", "ss", "dig", "curl"],
+    pro_tip: "Use `-T4` for faster scanning on local networks. Use `-T2` on slow WAN to avoid triggering rate limits.",
+  },
+  passwd: {
+    summary: "Change or set a user account password.",
+    risk: "medium", risk_reason: "Locking or changing passwords affects user access.",
+    explanation: "passwd updates /etc/shadow. Root can change any user's password. -l locks an account, -u unlocks, -e forces a password change on next login.",
+    flags: [
+      { flag: "-l", long: "--lock", desc: "Lock the account (prefix ! in shadow)" },
+      { flag: "-u", long: "--unlock", desc: "Unlock a locked account" },
+      { flag: "-e", long: "--expire", desc: "Force password change on next login" },
+    ],
+    examples: [
+      { cmd: "passwd alice", desc: "Interactively change alice's password (as root)" },
+      { cmd: "passwd -e deploy", desc: "Force deploy user to set a new password on next login" },
+      { cmd: "passwd -l tempuser", desc: "Lock tempuser account during an investigation" },
+    ],
+    suggestions: ["useradd", "usermod", "chage", "sudo"],
+    pro_tip: "Use `chage -l username` to view password expiry info including last changed date and warning period.",
+  },
+  tcpdump: {
+    summary: "Capture and analyze raw network packets on a network interface.",
+    risk: "low", risk_reason: "Captures all traffic including plaintext credentials and sensitive data.",
+    explanation: "tcpdump captures packets matching Berkeley Packet Filter (BPF) expressions. Requires root. -i specifies the interface. Write to .pcap files for analysis in Wireshark.",
+    flags: [
+      { flag: "-i", long: "", desc: "Network interface to capture on (use 'any' for all)" },
+      { flag: "-n", long: "", desc: "Don't resolve hostnames or port names" },
+      { flag: "-w", long: "", desc: "Write packets to a .pcap file" },
+      { flag: "-c", long: "", desc: "Exit after capturing N packets" },
+    ],
+    examples: [
+      { cmd: "tcpdump -i eth0 -n port 80 -w /tmp/http.pcap", desc: "Capture HTTP traffic to file for Wireshark analysis" },
+      { cmd: "tcpdump -i any -n 'host 10.0.1.5 and port 5432'", desc: "Capture PostgreSQL traffic to/from a specific host" },
+      { cmd: "tcpdump -i eth0 -n -c 100 port 53", desc: "Capture 100 DNS queries and exit" },
+    ],
+    suggestions: ["wireshark", "nmap", "ss", "iptables", "tshark"],
+    pro_tip: "Combine with -G and -W to auto-rotate capture files: `-G 60 -W 10` keeps 10 files of 60 seconds each.",
+  },
+};
 
+// ═══════════════════════════════════════════════════════════
+//  GENERIC TOKENIZER
+// ═══════════════════════════════════════════════════════════
+function tokenize(cmd) {
+  const parts = cmd.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+  return parts.map((p, i) => {
+    let type = 'argument';
+    if (i === 0 || (i === 1 && parts[0] === 'sudo')) type = 'command';
+    else if (/^-/.test(p)) type = 'flag';
+    else if (/^[|>&<]+$/.test(p)) type = 'operator';
+    else if (/^[\/~\.]/.test(p)) type = 'path';
+    else if (/^[A-Z_]+=/.test(p)) type = 'variable';
+    const descs = { command: 'base command', flag: 'option / flag', path: 'file or directory path', operator: 'shell operator', variable: 'environment variable', argument: 'argument' };
+    return { part: p, type, desc: descs[type] };
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOOKUP — base command matching
+// ═══════════════════════════════════════════════════════════
+function lookup(raw) {
+  const words = raw.trim().split(/\s+/);
+  const base = words[0] === 'sudo' ? words[1] : words[0];
+  return KB[base] || null;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI
+// ═══════════════════════════════════════════════════════════
 function quick(cmd) {
   document.getElementById('cmdInput').value = cmd;
   explain();
@@ -498,97 +980,26 @@ document.getElementById('cmdInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') explain();
 });
 
-async function explain() {
-  const cmd = document.getElementById('cmdInput').value.trim();
-  if (!cmd) return;
-
-  const btn = document.getElementById('explainBtn');
+function explain() {
+  const raw = document.getElementById('cmdInput').value.trim();
+  if (!raw) return;
   const resultEl = document.getElementById('result');
-
-  btn.disabled = true;
   resultEl.style.display = 'block';
-  resultEl.innerHTML = `
-    <div class="loading">
-      <div class="spinner"></div>
-      Analyzing <span style="color:var(--green)">${escHtml(cmd)}</span> …
-    </div>`;
-
-  const systemPrompt = `You are an expert Linux/DevOps engineer and educator. A user will give you a Linux shell command (or pipeline). You must respond ONLY with a valid JSON object — no markdown fences, no extra text — with this exact structure:
-
-{
-  "command": "the command as entered",
-  "summary": "one concise sentence explaining what this command does",
-  "risk": "low" | "medium" | "high",
-  "risk_reason": "brief reason for the risk level",
-  "tokens": [
-    { "part": "token_text", "type": "command|flag|option|argument|operator|path|variable", "desc": "what this token does" }
-  ],
-  "flags": [
-    { "flag": "-x", "long": "--example", "desc": "what it does" }
-  ],
-  "explanation": "2-4 sentence detailed explanation. Mention side effects, use cases, system interaction.",
-  "examples": [
-    { "cmd": "full example command", "desc": "what this specific example accomplishes" },
-    { "cmd": "another example", "desc": "another use case" },
-    { "cmd": "advanced example", "desc": "advanced scenario" }
-  ],
-  "suggestions": ["related_command_1", "related_command_2", "related_command_3"],
-  "pro_tip": "one expert-level tip or gotcha about this command"
+  const data = lookup(raw);
+  const tokens = tokenize(raw);
+  if (data) renderKnown(raw, data, tokens, resultEl);
+  else renderUnknown(raw, tokens, resultEl);
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-Keep flags array empty [] if the command has no flags. tokens must cover EVERY space-separated part of the command. Respond with pure JSON only.`;
-
-  try {
-    const apiKey = document.getElementById('apiKeyInput')?.value?.trim();
-    if (!apiKey) {
-      resultEl.innerHTML = `<div class="error-box">⚠ Please enter your Anthropic API key above to use this tool.</div>`;
-      btn.disabled = false;
-      return;
-    }
-
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: cmd }]
-      })
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || 'API error');
-
-    const rawText = data.content.map(b => b.text || '').join('');
-    let parsed;
-    try {
-      parsed = JSON.parse(rawText.replace(/```json|```/g, '').trim());
-    } catch(e) {
-      throw new Error('Could not parse response. Please try again.');
-    }
-
-    renderResult(parsed);
-  } catch (err) {
-    resultEl.innerHTML = `<div class="error-box">⚠ ${escHtml(err.message)}</div>`;
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function renderResult(d) {
+function renderKnown(raw, d, tokens, el) {
   const riskClass = { low: 'risk-low', medium: 'risk-medium', high: 'risk-high' }[d.risk] || 'risk-low';
-  const riskEmoji = { low: '🟢', medium: '🟡', high: '🔴' }[d.risk] || '🟢';
+  const riskEmoji = { low: '&#128994;', medium: '&#128993;', high: '&#128308;' }[d.risk] || '&#128994;';
 
-  const tokensHtml = (d.tokens || []).map(t => `
-    <div class="token" title="${escHtml(t.type)}">
-      <span class="token-part">${escHtml(t.part)}</span>
-      <span class="token-label">${escHtml(t.desc)}</span>
+  const tokensHtml = tokens.map(t => `
+    <div class="token">
+      <span class="token-part">${esc(t.part)}</span>
+      <span class="token-label">${esc(t.type)}</span>
     </div>`).join('');
 
   const flagsHtml = (d.flags && d.flags.length) ? `
@@ -596,68 +1007,87 @@ function renderResult(d) {
       <div class="card-title">Flags &amp; Options</div>
       <table class="flags-table">
         <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-        <tbody>
-          ${d.flags.map(f => `
-            <tr>
-              <td>${escHtml(f.flag)}${f.long ? ' / ' + escHtml(f.long) : ''}</td>
-              <td>${escHtml(f.desc)}</td>
-            </tr>`).join('')}
-        </tbody>
+        <tbody>${d.flags.map(f => `
+          <tr>
+            <td>${esc(f.flag)}${f.long ? ' / ' + esc(f.long) : ''}</td>
+            <td>${esc(f.desc)}</td>
+          </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
 
-  const examplesHtml = (d.examples || []).map((ex, i) => `
-    <div class="example-item">
+  const exHtml = (d.examples || []).map(ex => `
+    <div>
       <div class="example-cmd">
-        <span class="ps">$ </span>${escHtml(ex.cmd)}
-        <button class="copy-btn" onclick="copyText(this, '${ex.cmd.replace(/'/g,"\\'")}')">copy</button>
+        <span class="ps">$</span>
+        <span class="ecmd">${esc(ex.cmd)}</span>
+        <button class="copy-btn" onclick="copyText(this,'${ex.cmd.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">copy</button>
       </div>
-      <div class="example-desc">↳ ${escHtml(ex.desc)}</div>
+      <div class="example-desc">&#8627; ${esc(ex.desc)}</div>
     </div>`).join('');
 
-  const suggsHtml = (d.suggestions || []).map(s => `
-    <span class="sugg-chip" onclick="quick('${escAttr(s)}')">${escHtml(s)}</span>`).join('');
+  const suggsHtml = (d.suggestions || []).map(s =>
+    `<span class="sugg-chip" onclick="quick('${esc(s)}')">${esc(s)}</span>`
+  ).join('');
 
   const proTip = d.pro_tip ? `
-    <div class="card" style="border-color:rgba(245,166,35,.2);background:rgba(245,166,35,.04)">
+    <div class="protip-card">
       <div class="card-title" style="color:rgba(245,166,35,.5)">Pro Tip</div>
-      <div class="explanation" style="color:#d4c07a">${escHtml(d.pro_tip)}</div>
+      <div class="explanation" style="color:#d4c07a">${esc(d.pro_tip)}</div>
     </div>` : '';
 
-  document.getElementById('result').innerHTML = `
+  el.innerHTML = `
     <div class="result-header">
-      <span class="result-cmd">$ ${escHtml(d.command)}</span>
-      <span class="risk-badge ${riskClass}" title="${escHtml(d.risk_reason)}">${riskEmoji} ${d.risk} risk</span>
+      <span class="result-cmd">$ ${esc(raw)}</span>
+      <span class="risk-badge ${riskClass}" title="${esc(d.risk_reason)}">${riskEmoji} ${d.risk} risk</span>
     </div>
-
-    <div class="card">
-      <div class="card-title">Summary</div>
-      <div class="explanation">${escHtml(d.summary)}</div>
-    </div>
-
-    ${tokensHtml ? `<div class="card">
-      <div class="card-title">Token Breakdown</div>
-      <div class="tokens">${tokensHtml}</div>
-    </div>` : ''}
-
+    <div class="card"><div class="card-title">Summary</div><div class="explanation">${esc(d.summary)}</div></div>
+    <div class="card"><div class="card-title">Token Breakdown</div><div class="tokens">${tokensHtml}</div></div>
     ${flagsHtml}
-
-    <div class="card">
-      <div class="card-title">How It Works</div>
-      <div class="explanation">${escHtml(d.explanation)}</div>
-    </div>
-
-    ${examplesHtml ? `<div class="card">
-      <div class="card-title">Real-World Examples</div>
-      <div class="examples-list">${examplesHtml}</div>
-    </div>` : ''}
-
+    <div class="card"><div class="card-title">How It Works</div><div class="explanation">${esc(d.explanation)}</div></div>
+    ${exHtml ? `<div class="card"><div class="card-title">Real-World Examples</div><div class="examples-list">${exHtml}</div></div>` : ''}
     ${proTip}
+    ${suggsHtml ? `<div class="card"><div class="card-title">Related Commands</div><div class="sugg-chips">${suggsHtml}</div></div>` : ''}
+  `;
+}
 
-    ${suggsHtml ? `<div class="card">
-      <div class="card-title">Related Commands</div>
-      <div class="sugg-chips">${suggsHtml}</div>
-    </div>` : ''}
+function renderUnknown(raw, tokens, el) {
+  const base = raw.trim().split(/\s+/)[0];
+  const tokensHtml = tokens.map(t =>
+    `<div class="generic-token" title="${esc(t.type)}">${esc(t.part)}</div>`).join('');
+
+  el.innerHTML = `
+    <div class="result-header">
+      <span class="result-cmd">$ ${esc(raw)}</span>
+      <span class="risk-badge risk-low">&#9898; unknown</span>
+    </div>
+    <div class="notfound-box">
+      <h3>Not in local knowledge base</h3>
+      <p><span style="color:var(--blue)">${esc(base)}</span> isn't in our offline database yet.
+      Try the man page directly: <span style="color:var(--green)">man ${esc(base)}</span>
+      or <span style="color:var(--green)">${esc(base)} --help</span></p>
+      <div class="generic-tokens">${tokensHtml}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Universal Discovery Commands</div>
+      <div class="examples-list">
+        <div>
+          <div class="example-cmd"><span class="ps">$</span><span class="ecmd">man ${esc(base)}</span><button class="copy-btn" onclick="copyText(this,'man ${base}')">copy</button></div>
+          <div class="example-desc">&#8627; Read the official manual page</div>
+        </div>
+        <div>
+          <div class="example-cmd"><span class="ps">$</span><span class="ecmd">${esc(base)} --help</span><button class="copy-btn" onclick="copyText(this,'${base} --help')">copy</button></div>
+          <div class="example-desc">&#8627; Show built-in usage information</div>
+        </div>
+        <div>
+          <div class="example-cmd"><span class="ps">$</span><span class="ecmd">tldr ${esc(base)}</span><button class="copy-btn" onclick="copyText(this,'tldr ${base}')">copy</button></div>
+          <div class="example-desc">&#8627; Community examples (install: npm i -g tldr)</div>
+        </div>
+        <div>
+          <div class="example-cmd"><span class="ps">$</span><span class="ecmd">type ${esc(base)}</span><button class="copy-btn" onclick="copyText(this,'type ${base}')">copy</button></div>
+          <div class="example-desc">&#8627; Check if it's a binary, alias, or shell builtin</div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -668,11 +1098,9 @@ function copyText(btn, text) {
   });
 }
 
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escAttr(str) {
-  return String(str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>
