@@ -127,6 +127,11 @@
   #cmdInput::placeholder { color: var(--text-mute); }
   .go-btn { background: var(--green); color: #000; border: none; border-radius: 6px; padding: 8px 20px; font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: .04em; transition: background .15s, transform .1s; flex-shrink: 0; }
   .go-btn:hover { background: #00ffc0; } .go-btn:active { transform: scale(.97); }
+  .rand-btn { background: none; border: 1.5px solid var(--border2); border-radius: 6px; padding: 8px 14px; font-family: var(--mono); font-size: 13px; color: var(--text-mute); cursor: pointer; transition: border-color .15s, color .15s, transform .15s; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+  .rand-btn:hover { border-color: var(--purple); color: var(--purple); }
+  .rand-btn:active { transform: scale(.97); }
+  .rand-btn .dice { display: inline-block; font-size: 15px; transition: transform .35s; }
+  .rand-btn:hover .dice { transform: rotate(180deg); }
 
   /* CHIPS */
   .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px; }
@@ -327,6 +332,7 @@
     <div class="input-row">
       <span class="prompt">$&nbsp;</span>
       <input id="cmdInput" type="text" placeholder="e.g.  tar -czf backup.tar.gz /var/log  or  chmod 755 deploy.sh" autocomplete="off" spellcheck="false" />
+      <button class="rand-btn" onclick="randomCmd()" title="Surprise me — random command"><span class="dice">&#9861;</span> Random</button>
       <button class="go-btn" onclick="explain()">Explain &#8629;</button>
     </div>
   </div>
@@ -1539,6 +1545,30 @@ function toggleTheme() {
   document.getElementById('cotdSummary').textContent = data.summary;
   document.getElementById('cotdBanner').dataset.cmd  = exCmd;
 })();
+
+function randomCmd() {
+  const keys = Object.keys(KB);
+  // Pick a random key different from the current input
+  const current = document.getElementById('cmdInput').value.trim().split(/\s+/)[0];
+  let pick;
+  do {
+    pick = keys[Math.floor(Math.random() * keys.length)];
+  } while (pick === current && keys.length > 1);
+
+  // Use a representative example if available, else just the command name
+  const data = KB[pick];
+  const cmd = (data.examples && data.examples[0]) ? data.examples[0].cmd : pick;
+
+  // Animate dice
+  const dice = document.querySelector('.rand-btn .dice');
+  if (dice) {
+    dice.style.transform = 'rotate(360deg)';
+    setTimeout(() => { dice.style.transform = ''; }, 350);
+  }
+
+  document.getElementById('cmdInput').value = cmd;
+  explain();
+}
 
 function cotdExplain() {
   const cmd = document.getElementById('cotdBanner').dataset.cmd;
