@@ -1611,28 +1611,56 @@ function cotdExplain() {
     el.classList.remove('loading');
   }
 
-  // ── TODAY count — localStorage (always works, no API needed) ──
-  const todayKey = 'ek-visits-' + new Date().toISOString().slice(0, 10);
-  const allDays  = JSON.parse(localStorage.getItem('ek-visit-days') || '{}');
-  allDays[todayKey] = (allDays[todayKey] || 0) + 1;
-  localStorage.setItem('ek-visit-days', JSON.stringify(allDays));
-  setCount('todayCount', allDays[todayKey]);
+  // ── TODAY count ──────────────────────────────────────────────
+  // Only count ONCE per calendar day per browser.
+  // sessionStorage flag stops re-counting on refresh within same tab.
+  // localStorage flag stops re-counting when opening a new tab same day.
+  const todayStr  = new Date().toISOString().slice(0, 10); // "2025-04-06"
+  const seenToday = localStorage.getItem('ek-seen-date') === todayStr;
+  const seenSess  = sessionStorage.getItem('ek-counted') === '1';
+
+  if (!seenToday && !seenSess) {
+    // First visit today — increment
+    const prev = parseInt(localStorage.getItem('ek-today-count') || '0');
+    const next = prev + 1;
+    localStorage.setItem('ek-today-count', next);
+    localStorage.setItem('ek-seen-date', todayStr);
+    sessionStorage.setItem('ek-counted', '1');
+    setCount('todayCount', next);
+  } else {
+    // Already counted — just read stored value
+    const current = parseInt(localStorage.getItem('ek-today-count') || '1');
+    setCount('todayCount', current);
+  }
+
+  // Clean up yesterday's flag if date changed
+  const lastDate = localStorage.getItem('ek-seen-date');
+  if (lastDate && lastDate !== todayStr) {
+    localStorage.removeItem('ek-seen-date');
+    localStorage.setItem('ek-today-count', '0');
+  }
 
   // ── TOTAL count — counterapi.dev (free, CORS-enabled, no signup) ──
-  // namespace = eknathalabs  |  key = linux-explainer-total
+  // Only hit the API once per session (not every page load/refresh)
   const API = 'https://api.counterapi.dev/v1/eknathalabs/linux-explainer-total/up';
-  fetch(API)
+  const hitAPI = sessionStorage.getItem('ek-total-hit') !== '1';
+  const endpoint = hitAPI ? API
+    : 'https://api.counterapi.dev/v1/eknathalabs/linux-explainer-total';
+
+  fetch(endpoint)
     .then(r => r.json())
     .then(d => {
       const val = d.count || d.value || d.hits;
-      if (val != null) setCount('totalCount', val);
-      else throw new Error('no count field');
+      if (val != null) {
+        if (hitAPI) sessionStorage.setItem('ek-total-hit', '1');
+        setCount('totalCount', val);
+        localStorage.setItem('ek-total-cache', val);
+      } else throw new Error('no count field');
     })
     .catch(() => {
-      // Fallback: accumulate locally if API is unreachable
-      const stored = parseInt(localStorage.getItem('ek-total-fallback') || '0') + 1;
-      localStorage.setItem('ek-total-fallback', stored);
-      setCount('totalCount', stored + '+');
+      // Show cached value if API unreachable
+      const cached = localStorage.getItem('ek-total-cache');
+      setCount('totalCount', cached ? Number(cached).toLocaleString() : '—');
     });
 })();
 </script>
