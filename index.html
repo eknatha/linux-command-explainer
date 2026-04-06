@@ -127,6 +127,47 @@
     margin-top: 8px;
   }
 
+  /* ── api key box ── */
+  .apikey-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    margin-bottom: 14px;
+  }
+  .apikey-box:focus-within { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,166,35,.06); }
+  .apikey-icon { font-size: 14px; flex-shrink: 0; }
+  #apiKeyInput {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    caret-color: var(--amber);
+  }
+  #apiKeyInput::placeholder { color: var(--text-mute); }
+  .apikey-link {
+    font-size: 11px;
+    color: var(--amber);
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: .8;
+    transition: opacity .15s;
+  }
+  .apikey-link:hover { opacity: 1; }
+  .apikey-note {
+    font-size: 11px;
+    color: var(--text-mute);
+    margin-bottom: 20px;
+    margin-top: -6px;
+    padding-left: 4px;
+  }
+
   /* ── terminal input ── */
   .terminal-box {
     background: var(--surface);
@@ -397,6 +438,14 @@
     <p class="sub">Type any Linux command — get a breakdown of tokens, flags, real-world examples, risk level, and smart suggestions. Powered by Claude AI.</p>
   </header>
 
+  <!-- API KEY INPUT -->
+  <div class="apikey-box">
+    <span class="apikey-icon">🔑</span>
+    <input id="apiKeyInput" type="password" placeholder="Paste your Anthropic API key  (sk-ant-…)" autocomplete="off" spellcheck="false" />
+    <a href="https://console.anthropic.com/settings/keys" target="_blank" class="apikey-link">Get key ↗</a>
+  </div>
+  <p class="apikey-note">🔒 Your key is never stored — it stays in your browser session only.</p>
+
   <!-- TERMINAL INPUT -->
   <div class="terminal-box">
     <div class="term-header">
@@ -490,9 +539,21 @@ async function explain() {
 Keep flags array empty [] if the command has no flags. tokens must cover EVERY space-separated part of the command. Respond with pure JSON only.`;
 
   try {
+    const apiKey = document.getElementById('apiKeyInput')?.value?.trim();
+    if (!apiKey) {
+      resultEl.innerHTML = `<div class="error-box">⚠ Please enter your Anthropic API key above to use this tool.</div>`;
+      btn.disabled = false;
+      return;
+    }
+
     const res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
