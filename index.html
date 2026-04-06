@@ -175,6 +175,15 @@
     <span class="chip" onclick="quick('ps aux')">ps aux</span>
     <span class="chip" onclick="quick('iptables -L -nv')">iptables</span>
     <span class="chip" onclick="quick('strace -p 1234 -e trace=network')">strace</span>
+    <span class="chip" onclick="quick('sort -rn -k5 access.log | head -20')">sort -rn</span>
+    <span class="chip" onclick="quick('gzip -k -9 large_dump.sql')">gzip</span>
+    <span class="chip" onclick="quick('lsblk -f')">lsblk -f</span>
+    <span class="chip" onclick="quick('mount')">mount</span>
+    <span class="chip" onclick="quick('uptime')">uptime</span>
+    <span class="chip" onclick="quick('diff -u nginx.conf.bak nginx.conf')">diff -u</span>
+    <span class="chip" onclick="quick('hostnamectl')">hostnamectl</span>
+    <span class="chip" onclick="quick('openssl s_client -connect example.com:443')">openssl</span>
+    <span class="chip" onclick="quick('ssh-keygen -t ed25519 -C deploy@prod')">ssh-keygen</span>
   </div>
 
   <div id="result"></div>
@@ -939,6 +948,186 @@ const KB = {
     ],
     suggestions: ["wireshark", "nmap", "ss", "iptables", "tshark"],
     pro_tip: "Combine with -G and -W to auto-rotate capture files: `-G 60 -W 10` keeps 10 files of 60 seconds each.",
+  },
+
+  sort: {
+    summary: "Sort lines of text — alphabetically, numerically, or by a specific field.",
+    risk: "low", risk_reason: "Read-only by default; modifies files only when using -o.",
+    explanation: "sort reads lines from files or stdin and outputs them sorted. -n sorts numerically, -r reverses, -k selects a key column, -u deduplicates. Combine with uniq and awk for powerful log analysis and data processing pipelines.",
+    flags: [
+      { flag: "-n", long: "--numeric-sort", desc: "Sort by numeric value, not lexicographic order" },
+      { flag: "-r", long: "--reverse", desc: "Reverse the sort order (descending)" },
+      { flag: "-k", long: "--key", desc: "Sort by a specific field/column (e.g. -k2 for 2nd field)" },
+      { flag: "-t", long: "--field-separator", desc: "Set the field delimiter (default: whitespace)" },
+      { flag: "-u", long: "--unique", desc: "Output only unique lines, removing duplicates" },
+      { flag: "-h", long: "--human-numeric-sort", desc: "Sort human-readable numbers like 1K, 2M, 3G" },
+      { flag: "-o", long: "--output", desc: "Write result to a file (safe even if same as input)" },
+    ],
+    examples: [
+      { cmd: "sort -rn -k5 access.log | head -20", desc: "Top 20 lines by 5th column descending — e.g. largest request sizes" },
+      { cmd: "du -sh /var/log/* | sort -rh", desc: "List log directories sorted largest-first (human-readable sizes)" },
+      { cmd: "sort -t: -k3 -n /etc/passwd", desc: "Sort /etc/passwd by UID (3rd colon-delimited field) numerically" },
+    ],
+    suggestions: ["uniq", "awk", "grep", "cut", "head"],
+    pro_tip: "Use `sort -u` instead of `sort | uniq` — it deduplicates during the sort pass itself, which is faster on large inputs.",
+  },
+
+  gzip: {
+    summary: "Compress or decompress files using the GNU zip DEFLATE algorithm.",
+    risk: "low", risk_reason: "Replaces the original file by default — original is deleted after compression.",
+    explanation: "gzip compresses a single file and replaces it with a .gz version. -k keeps the original. -d decompresses (same as gunzip). Compression level -1 (fastest) through -9 (best ratio). Combine with tar for multi-file archives.",
+    flags: [
+      { flag: "-d", long: "--decompress", desc: "Decompress a .gz file (same as running gunzip)" },
+      { flag: "-k", long: "--keep", desc: "Keep the original file after compressing" },
+      { flag: "-c", long: "--stdout", desc: "Write output to stdout, don't replace file" },
+      { flag: "-r", long: "--recursive", desc: "Recursively compress all files in a directory" },
+      { flag: "-l", long: "--list", desc: "Show compression ratio and sizes for .gz files" },
+      { flag: "-1", long: "--fast", desc: "Fastest compression, lowest ratio" },
+      { flag: "-9", long: "--best", desc: "Best compression ratio, slowest speed" },
+      { flag: "-v", long: "--verbose", desc: "Show compression ratio for each file processed" },
+    ],
+    examples: [
+      { cmd: "gzip -k -9 large_dump.sql", desc: "Compress SQL dump with best ratio, keeping the original file" },
+      { cmd: "gzip -d archive.gz", desc: "Decompress a .gz file back to its original form" },
+      { cmd: "gzip -l *.gz", desc: "Show compression stats (ratio, original vs compressed size) for all .gz files" },
+    ],
+    suggestions: ["gunzip", "tar", "bzip2", "xz", "zcat"],
+    pro_tip: "Use `zcat file.gz | grep pattern` to search inside a compressed file without decompressing it to disk first.",
+  },
+
+  lsblk: {
+    summary: "List block devices — disks, partitions, and mount points in a tree view.",
+    risk: "low", risk_reason: "Read-only device inspection.",
+    explanation: "lsblk reads from /sys and presents block devices as a tree: disks, partitions, LVM volumes, and their mount points. Essential for understanding disk layout before partitioning, mounting, or expanding volumes in cloud and bare-metal environments.",
+    flags: [
+      { flag: "-f", long: "--fs", desc: "Show filesystem type, UUID, and label for each device" },
+      { flag: "-o", long: "--output", desc: "Specify output columns (e.g. -o NAME,SIZE,TYPE,MOUNTPOINT)" },
+      { flag: "-d", long: "--nodeps", desc: "List disks only — don't show partition children" },
+      { flag: "-n", long: "--noheadings", desc: "Suppress column headers (useful for scripting)" },
+      { flag: "-p", long: "--paths", desc: "Print full device paths (/dev/sda1 not just sda1)" },
+      { flag: "-e", long: "--exclude", desc: "Exclude device types by major number (-e 7 hides loop devices)" },
+    ],
+    examples: [
+      { cmd: "lsblk -f", desc: "Show all block devices with filesystem type, UUID, and mount points" },
+      { cmd: "lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT", desc: "Custom column view: name, size, type, filesystem, mount" },
+      { cmd: "lsblk -d -o NAME,SIZE,ROTA", desc: "List disks only with rotation flag (0=SSD, 1=HDD)" },
+    ],
+    suggestions: ["df", "mount", "fdisk", "parted", "blkid"],
+    pro_tip: "Use `lsblk -e 7` to hide loop devices that snap packages create — gives a clean view of real physical and virtual disks.",
+  },
+
+  mount: {
+    summary: "Mount a filesystem — attach a block device or network share to a directory.",
+    risk: "medium", risk_reason: "Mounting wrong filesystems or bad options can expose data or corrupt volumes.",
+    explanation: "mount attaches a filesystem to a mount point in the directory tree. Without arguments it lists all currently mounted filesystems. Persistent mounts belong in /etc/fstab. Use --bind to make a directory accessible at a second path.",
+    flags: [
+      { flag: "-t", long: "--types", desc: "Filesystem type: ext4, xfs, nfs, tmpfs, cifs, etc." },
+      { flag: "-o", long: "--options", desc: "Mount options: ro, rw, noexec, nosuid, uid=, size=" },
+      { flag: "-a", long: "--all", desc: "Mount all filesystems listed in /etc/fstab" },
+      { flag: "-r", long: "--read-only", desc: "Mount filesystem read-only" },
+      { flag: "--bind", long: "", desc: "Bind-mount: expose a directory at an additional path" },
+    ],
+    examples: [
+      { cmd: "mount | grep -v tmpfs | column -t", desc: "Show all real mounted filesystems in neatly aligned columns" },
+      { cmd: "mount -o ro /dev/sdb1 /mnt/recovery", desc: "Mount a partition read-only for safe forensic inspection" },
+      { cmd: "mount --bind /var/data /opt/app/data", desc: "Bind-mount /var/data so it appears at /opt/app/data too" },
+    ],
+    suggestions: ["umount", "lsblk", "df", "findmnt", "fstab"],
+    pro_tip: "Run `findmnt --verify` to validate /etc/fstab before rebooting — a single bad entry can prevent the system from booting.",
+  },
+
+  uptime: {
+    summary: "Show how long the system has been running, users logged in, and load averages.",
+    risk: "low", risk_reason: "Read-only system information.",
+    explanation: "uptime shows current time, system uptime, logged-in users, and 1/5/15-minute load averages. Load average represents processes waiting for CPU — compare against CPU core count (nproc) to assess saturation. Values above core count mean the system is overloaded.",
+    flags: [
+      { flag: "-p", long: "--pretty", desc: "Human-readable uptime: 'up 3 weeks, 2 days, 4 hours'" },
+      { flag: "-s", long: "--since", desc: "Show the exact date and time the system booted" },
+    ],
+    examples: [
+      { cmd: "uptime", desc: "Show time, uptime duration, user count, and 1/5/15-min load averages" },
+      { cmd: "uptime -p", desc: "Human-friendly duration: 'up 5 days, 3 hours, 12 minutes'" },
+      { cmd: "uptime -s", desc: "Show exact boot timestamp: '2024-01-15 09:23:11'" },
+    ],
+    suggestions: ["top", "vmstat", "w", "who", "last"],
+    pro_tip: "Load average > nproc (CPU core count) means the system is CPU-saturated. A 1-min spike is normal; sustained 15-min high load needs investigation.",
+  },
+
+  diff: {
+    summary: "Compare two files line by line and display the differences.",
+    risk: "low", risk_reason: "Read-only comparison — does not modify source files.",
+    explanation: "diff shows lines that differ between two files. Lines with < come from the first file, > from the second. -u produces unified diff format (used by git and patch). -r compares directories recursively. Process substitution allows comparing command output.",
+    flags: [
+      { flag: "-u", long: "--unified", desc: "Unified diff format with context lines — standard for patches and git" },
+      { flag: "-r", long: "--recursive", desc: "Compare directories recursively" },
+      { flag: "-i", long: "--ignore-case", desc: "Ignore case differences" },
+      { flag: "-w", long: "--ignore-all-space", desc: "Ignore all whitespace differences" },
+      { flag: "-q", long: "--brief", desc: "Report only whether files differ, not the details" },
+      { flag: "--color", long: "", desc: "Colorize the diff output (auto, always, never)" },
+    ],
+    examples: [
+      { cmd: "diff -u nginx.conf.bak nginx.conf", desc: "Show unified diff between backup and current nginx config" },
+      { cmd: "diff -rq /etc/app/ /etc/app.bak/", desc: "Quickly identify which files differ between two config directories" },
+      { cmd: "diff <(sort file1.txt) <(sort file2.txt)", desc: "Compare sorted versions of two files to find content differences ignoring line order" },
+    ],
+    suggestions: ["vimdiff", "patch", "colordiff", "meld", "git diff"],
+    pro_tip: "Pipe diff output to patch: `diff -u old new | patch -p0` — the universal way to distribute and apply config changes.",
+  },
+
+  hostnamectl: {
+    summary: "Query and set the system hostname, OS info, and machine identity.",
+    risk: "low", risk_reason: "Changing hostname can affect network identity and break service configs that rely on it.",
+    explanation: "hostnamectl manages three hostname types: static (persistent, stored in /etc/hostname), transient (runtime, overridden by DHCP), and pretty (human-readable display name). Running without arguments shows OS, kernel, hardware, and virtualization info — useful for inventory scripting.",
+    flags: [
+      { flag: "set-hostname", long: "", desc: "Set the static system hostname persistently" },
+      { flag: "--static", long: "", desc: "Target the static hostname specifically" },
+      { flag: "--transient", long: "", desc: "Target the transient (runtime) hostname" },
+      { flag: "--pretty", long: "", desc: "Target the pretty (human-readable) hostname" },
+    ],
+    examples: [
+      { cmd: "hostnamectl", desc: "Display full system identity: hostname, OS, kernel, arch, virtualization type" },
+      { cmd: "hostnamectl set-hostname prod-web-01", desc: "Permanently rename the system to prod-web-01" },
+      { cmd: "hostnamectl set-hostname 'Production Web Server 01' --pretty", desc: "Set a human-friendly pretty hostname that can include spaces" },
+    ],
+    suggestions: ["hostname", "uname -a", "timedatectl", "localectl"],
+    pro_tip: "After setting a new hostname, update /etc/hosts to map 127.0.1.1 to the new name — tools that do reverse DNS lookups will otherwise hang.",
+  },
+
+  openssl: {
+    summary: "Cryptography toolkit — TLS testing, key/certificate generation, and data encoding.",
+    risk: "medium", risk_reason: "Weak key sizes or mishandled private keys create serious security vulnerabilities.",
+    explanation: "openssl is a comprehensive crypto toolkit. It generates RSA/EC keys, creates CSRs, signs certificates, tests TLS handshakes, encodes/decodes base64, and computes hashes. Essential for PKI management, HTTPS setup, and debugging TLS certificate issues.",
+    flags: [],
+    examples: [
+      { cmd: "openssl s_client -connect example.com:443 -servername example.com", desc: "Test a TLS connection and inspect the full certificate chain for a remote host" },
+      { cmd: "openssl req -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj '/CN=example.com'", desc: "Generate a 4096-bit RSA private key and certificate signing request in one step" },
+      { cmd: "openssl x509 -in cert.pem -noout -text | grep -A2 'Validity'", desc: "Check expiry dates of a certificate from a PEM file" },
+    ],
+    suggestions: ["ssh-keygen", "cfssl", "certbot", "curl -k", "mkcert"],
+    pro_tip: "Check remote cert expiry without downloading a file: `echo | openssl s_client -connect host:443 2>/dev/null | openssl x509 -noout -dates`",
+  },
+
+  'ssh-keygen': {
+    summary: "Generate, inspect, and manage SSH public/private key pairs.",
+    risk: "low", risk_reason: "Private keys must be protected — exposure grants unauthorized SSH access.",
+    explanation: "ssh-keygen creates key pairs for passwordless SSH authentication. Ed25519 is the modern standard — shorter, faster, and more secure than RSA. -C adds an identifying comment. -f sets the filename. -R removes stale entries from known_hosts.",
+    flags: [
+      { flag: "-t", long: "", desc: "Key type: ed25519 (recommended), ecdsa, rsa" },
+      { flag: "-b", long: "", desc: "Key bits — for RSA: minimum 2048, prefer 4096" },
+      { flag: "-C", long: "", desc: "Comment to identify the key (typically email or hostname)" },
+      { flag: "-f", long: "", desc: "Output filename for the key pair" },
+      { flag: "-N", long: "", desc: "Passphrase for the private key ('' for none)" },
+      { flag: "-p", long: "", desc: "Change the passphrase of an existing private key" },
+      { flag: "-l", long: "", desc: "Show fingerprint of a public key file" },
+      { flag: "-R", long: "", desc: "Remove a host entry from ~/.ssh/known_hosts" },
+    ],
+    examples: [
+      { cmd: "ssh-keygen -t ed25519 -C 'deploy@prod' -f ~/.ssh/prod_ed25519", desc: "Generate a named Ed25519 key pair for production deployment" },
+      { cmd: "ssh-keygen -t rsa -b 4096 -C 'user@example.com'", desc: "Generate a 4096-bit RSA key for legacy system compatibility" },
+      { cmd: "ssh-keygen -l -f ~/.ssh/id_ed25519.pub", desc: "Display the fingerprint of a public key for verification" },
+    ],
+    suggestions: ["ssh-copy-id", "ssh", "openssl", "gpg", "age"],
+    pro_tip: "Always prefer Ed25519: `ssh-keygen -t ed25519` — the public key is 68 characters vs 800+ for RSA-4096, with stronger security properties.",
   },
 };
 
