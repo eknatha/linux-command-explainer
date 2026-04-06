@@ -1597,18 +1597,13 @@ function cotdExplain() {
 })();
 
 // ═══════════════════════════════════════════════════════════
-//  VISITOR COUNTER — countapi.xyz (free, no signup)
+//  VISITOR COUNTER — counterapi.dev (total) + localStorage (today)
 // ═══════════════════════════════════════════════════════════
 (function () {
-  const NAMESPACE = 'eknathalabs';
-  const TOTAL_KEY = 'linux-explainer-total';
-  const TODAY_KEY = 'linux-explainer-' + new Date().toISOString().slice(0, 10); // e.g. 2025-04-06
-
   function fmt(n) {
     if (n == null || isNaN(n)) return '—';
     return Number(n).toLocaleString();
   }
-
   function setCount(id, val) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1616,17 +1611,29 @@ function cotdExplain() {
     el.classList.remove('loading');
   }
 
-  // Hit total counter (increments on every page load)
-  fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/' + TOTAL_KEY)
-    .then(r => r.json())
-    .then(d => setCount('totalCount', d.value))
-    .catch(() => setCount('totalCount', '—'));
+  // ── TODAY count — localStorage (always works, no API needed) ──
+  const todayKey = 'ek-visits-' + new Date().toISOString().slice(0, 10);
+  const allDays  = JSON.parse(localStorage.getItem('ek-visit-days') || '{}');
+  allDays[todayKey] = (allDays[todayKey] || 0) + 1;
+  localStorage.setItem('ek-visit-days', JSON.stringify(allDays));
+  setCount('todayCount', allDays[todayKey]);
 
-  // Hit today's counter (increments once per calendar day per visitor)
-  fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/' + TODAY_KEY)
+  // ── TOTAL count — counterapi.dev (free, CORS-enabled, no signup) ──
+  // namespace = eknathalabs  |  key = linux-explainer-total
+  const API = 'https://api.counterapi.dev/v1/eknathalabs/linux-explainer-total/up';
+  fetch(API)
     .then(r => r.json())
-    .then(d => setCount('todayCount', d.value))
-    .catch(() => setCount('todayCount', '—'));
+    .then(d => {
+      const val = d.count || d.value || d.hits;
+      if (val != null) setCount('totalCount', val);
+      else throw new Error('no count field');
+    })
+    .catch(() => {
+      // Fallback: accumulate locally if API is unreachable
+      const stored = parseInt(localStorage.getItem('ek-total-fallback') || '0') + 1;
+      localStorage.setItem('ek-total-fallback', stored);
+      setCount('totalCount', stored + '+');
+    });
 })();
 </script>
 </body>
