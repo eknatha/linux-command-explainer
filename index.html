@@ -1,277 +1,618 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Linux Command Explainer Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Linux Command Explainer — EknathaLabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
 <style>
-:root {
-  --bg: #020617;
-  --card: #0f172a;
-  --text: #e2e8f0;
-}
+  :root {
+    --bg:        #0a0d0f;
+    --surface:   #111518;
+    --surface2:  #161b1f;
+    --border:    #1e2a30;
+    --border2:   #243039;
+    --green:     #00e5a0;
+    --green-dim: #00b87d;
+    --amber:     #f5a623;
+    --red:       #ff5f5f;
+    --blue:      #4fc3f7;
+    --purple:    #c084fc;
+    --text:      #d4e0e8;
+    --text-dim:  #6b8494;
+    --text-mute: #3d5060;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --radius: 10px;
+    --glow: 0 0 30px rgba(0,229,160,.08);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-.light {
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --text: #020617;
-}
+  /* ── grid noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui;
-  margin: 0;
-}
+  /* ── scanline ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.08) 2px,
+      rgba(0,0,0,.08) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  padding: 15px 30px;
-  background: var(--card);
-  font-weight: bold;
-  color: #38bdf8;
-}
+  /* ── layout ── */
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 30px;
-}
+  /* ── header ── */
+  header {
+    padding: 32px 0 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    border: 1.5px solid var(--green);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--green);
+    box-shadow: 0 0 14px rgba(0,229,160,.2);
+    flex-shrink: 0;
+  }
+  .brand {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .tagline { font-size: 10px; color: var(--text-mute); letter-spacing: .12em; text-transform: uppercase; margin-top: 2px; }
+  .headline {
+    font-family: var(--sans);
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: #fff;
+    margin-top: 20px;
+  }
+  .headline span { color: var(--green); }
+  .sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 540px;
+    line-height: 1.7;
+    margin-top: 8px;
+  }
 
-input {
-  width: 100%;
-  padding: 14px;
-  border-radius: 10px;
-  border: none;
-  background: var(--card);
-  color: var(--text);
-  font-size: 16px;
-}
+  /* ── terminal input ── */
+  .terminal-box {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--glow), 0 4px 40px rgba(0,0,0,.5);
+    margin-bottom: 28px;
+    transition: border-color .2s;
+  }
+  .terminal-box:focus-within {
+    border-color: var(--green-dim);
+    box-shadow: 0 0 0 3px rgba(0,229,160,.06), 0 4px 40px rgba(0,0,0,.5);
+  }
+  .term-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .term-title { margin-left: 4px; font-size: 11px; color: var(--text-mute); }
+  .input-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    gap: 12px;
+  }
+  .prompt { color: var(--green); font-size: 16px; user-select: none; flex-shrink: 0; }
+  #cmdInput {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 16px;
+    caret-color: var(--green);
+  }
+  #cmdInput::placeholder { color: var(--text-mute); }
+  .go-btn {
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .04em;
+    transition: background .15s, transform .1s;
+    flex-shrink: 0;
+  }
+  .go-btn:hover { background: #00ffc0; }
+  .go-btn:active { transform: scale(.97); }
+  .go-btn:disabled { background: var(--border2); color: var(--text-mute); cursor: not-allowed; }
 
-.card {
-  background: var(--card);
-  padding: 15px;
-  margin-top: 15px;
-  border-radius: 10px;
-}
+  /* ── suggestions chips ── */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .chip-label { font-size: 10px; color: var(--text-mute); letter-spacing: .1em; text-transform: uppercase; align-self: center; margin-right: 4px; }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 13px;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--green); color: var(--green); background: rgba(0,229,160,.05); }
 
-.cmd { color: #22c55e; font-weight: bold; }
-.flag { color: #facc15; }
-.pipe { color: #f87171; }
+  /* ── result card ── */
+  #result { display: none; animation: fadeUp .35s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-.example {
-  background: rgba(0,0,0,0.2);
-  padding: 8px;
-  margin-top: 5px;
-  border-radius: 6px;
-  font-family: monospace;
-}
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .result-cmd {
+    font-size: 22px;
+    color: var(--green);
+    letter-spacing: .04em;
+  }
+  .risk-badge {
+    font-size: 11px;
+    font-family: var(--sans);
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .risk-low    { background: rgba(0,229,160,.12); color: var(--green); border: 1px solid rgba(0,229,160,.25); }
+  .risk-medium { background: rgba(245,166,35,.12); color: var(--amber); border: 1px solid rgba(245,166,35,.25); }
+  .risk-high   { background: rgba(255,95,95,.12);  color: var(--red);   border: 1px solid rgba(255,95,95,.25); }
 
-.suggestion {
-  cursor: pointer;
-  padding: 5px;
-  display: inline-block;
-  background: #1e293b;
-  margin: 5px;
-  border-radius: 6px;
-}
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-button {
-  margin-top: 10px;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  background: #38bdf8;
-  cursor: pointer;
-}
+  .explanation { font-size: 14px; color: var(--text); line-height: 1.8; }
+  .explanation strong { color: #fff; }
 
-.footer {
-  text-align: center;
-  margin-top: 40px;
-  padding: 20px;
-  opacity: 0.7;
-}
+  /* tokens */
+  .tokens { display: flex; flex-wrap: wrap; gap: 8px; }
+  .token {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .token-part { font-size: 14px; color: var(--blue); }
+  .token-label { font-size: 10px; color: var(--text-mute); }
+
+  /* examples */
+  .examples-list { display: flex; flex-direction: column; gap: 12px; }
+  .example-item {}
+  .example-cmd {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .example-cmd span.ps { color: var(--text-mute); }
+  .example-desc { font-size: 12px; color: var(--text-dim); padding-left: 4px; }
+  .copy-btn {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-size: 10px;
+    color: var(--text-mute);
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: border-color .15s, color .15s;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* suggestions */
+  .sugg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sugg-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 5px 13px;
+    font-size: 12px;
+    color: var(--purple);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .sugg-chip:hover { border-color: var(--purple); background: rgba(192,132,252,.07); }
+
+  /* flags table */
+  .flags-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .flags-table th { text-align: left; color: var(--text-mute); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 0 10px 10px; }
+  .flags-table td { padding: 8px 10px; border-top: 1px solid var(--border); vertical-align: top; }
+  .flags-table td:first-child { color: var(--amber); font-size: 12px; white-space: nowrap; }
+  .flags-table td:last-child { color: var(--text-dim); line-height: 1.6; }
+
+  /* loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 30px 0;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* error */
+  .error-box {
+    background: rgba(255,95,95,.07);
+    border: 1px solid rgba(255,95,95,.2);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    color: var(--red);
+    font-size: 13px;
+  }
+
+  /* footer */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 24px 0 32px;
+    color: var(--text-mute);
+    font-size: 11px;
+    letter-spacing: .06em;
+  }
+  footer a { color: var(--green); text-decoration: none; }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .input-row { flex-wrap: wrap; }
+    .go-btn { width: 100%; }
+    .result-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  }
 </style>
 </head>
-
 <body>
 
-<div class="header">
-  <div>🚀 EknathaLabs</div>
-  <button onclick="toggleTheme()">🌗 Toggle</button>
+<div class="wrap">
+  <!-- HEADER -->
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="brand">EknathaLabs</div>
+        <div class="tagline">Built for Everyone</div>
+      </div>
+    </div>
+    <h1 class="headline">Linux Command<br /><span>Explainer</span></h1>
+    <p class="sub">Type any Linux command — get a breakdown of tokens, flags, real-world examples, risk level, and smart suggestions. Powered by Claude AI.</p>
+  </header>
+
+  <!-- TERMINAL INPUT -->
+  <div class="terminal-box">
+    <div class="term-header">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span class="term-title">bash — eknatha@linux</span>
+    </div>
+    <div class="input-row">
+      <span class="prompt">$&nbsp;</span>
+      <input id="cmdInput" type="text" placeholder="e.g.  tar -czf backup.tar.gz /var/log  or  awk '{print $1}' access.log" autocomplete="off" spellcheck="false" />
+      <button class="go-btn" id="explainBtn" onclick="explain()">Explain ↵</button>
+    </div>
+  </div>
+
+  <!-- QUICK CHIPS -->
+  <div class="chip-row">
+    <span class="chip-label">Try</span>
+    <span class="chip" onclick="quick('find / -name *.log -mtime +7 -delete')">find … -delete</span>
+    <span class="chip" onclick="quick('rsync -avz --progress /src/ user@host:/dest/')">rsync</span>
+    <span class="chip" onclick="quick('ss -tulnp')">ss -tulnp</span>
+    <span class="chip" onclick="quick('awk \\'NR%2==0\\' file.txt')">awk NR%2</span>
+    <span class="chip" onclick="quick('chmod -R 755 /var/www')">chmod -R</span>
+    <span class="chip" onclick="quick('curl -I https://example.com')">curl -I</span>
+    <span class="chip" onclick="quick('journalctl -u nginx --since today')">journalctl</span>
+    <span class="chip" onclick="quick('kubectl get pods -n production -o wide')">kubectl</span>
+    <span class="chip" onclick="quick('df -hT | grep -v tmpfs')">df -hT</span>
+    <span class="chip" onclick="quick('strace -p 1234 -e trace=network')">strace</span>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result"></div>
 </div>
 
-<div class="container">
-
-<h2>🐧 Linux Command Explainer Pro</h2>
-
-<input id="input" placeholder="Try: ls -la | grep txt" />
-
-<div id="suggestions"></div>
-<button onclick="copyLink()">🔗 Copy Share Link</button>
-
-<div id="output"></div>
-<div id="ai"></div>
-
-<p>👀 Visitors: <span id="visits">Loading...</span></p>
-
-<div class="footer">
-  Built by <strong>eknathalabs.com</strong> ·
-</div>
-
-</div>
+<!-- FOOTER -->
+<footer>
+  Built with ♥ by <a href="https://eknathalabs.com" target="_blank">EknathaLabs</a> &nbsp;·&nbsp; Built for Everyone &nbsp;·&nbsp;
+  <a href="https://github.com/eknathareddyp" target="_blank">GitHub</a>
+</footer>
 
 <script>
-const COMMANDS = {
-  ls: {
-    desc: "List directory contents",
-    examples: ["ls", "ls -la", "ls /var/log"],
-    use: "View files in a directory"
-  },
-  grep: {
-    desc: "Search text patterns",
-    examples: ["grep error file.log", "ls | grep txt"],
-    use: "Log filtering & search"
-  },
-  cd: {
-    desc: "Change directory",
-    examples: ["cd /home", "cd .."],
-    use: "Navigate filesystem"
-  },
-  rm: {
-    desc: "Remove files",
-    examples: ["rm file.txt", "rm -rf folder"],
-    use: "Delete files"
-  }
-};
+const API_URL = 'https://api.anthropic.com/v1/messages';
 
-const FLAGS = {
-  "-l": "Long listing",
-  "-a": "Show hidden files",
-  "-r": "Recursive",
-  "-f": "Force delete"
-};
+function quick(cmd) {
+  document.getElementById('cmdInput').value = cmd;
+  explain();
+}
 
-const input = document.getElementById("input");
-const output = document.getElementById("output");
-const suggestions = document.getElementById("suggestions");
-
-input.addEventListener("input", () => {
-  explain(input.value);
-  autoSuggest(input.value);
+document.getElementById('cmdInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') explain();
 });
 
-function explain(text) {
-  if (!text) return output.innerHTML = "";
+async function explain() {
+  const cmd = document.getElementById('cmdInput').value.trim();
+  if (!cmd) return;
 
-  let tokens = text.split(" ");
-  let html = "";
+  const btn = document.getElementById('explainBtn');
+  const resultEl = document.getElementById('result');
 
-  tokens.forEach(t => {
-    if (COMMANDS[t]) {
-      let cmd = COMMANDS[t];
-      html += `
-      <div class="card">
-        <div class="cmd">${t}</div>
-        <p>${cmd.desc}</p>
+  btn.disabled = true;
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      Analyzing <span style="color:var(--green)">${escHtml(cmd)}</span> …
+    </div>`;
 
-        <strong>Examples:</strong>
-        ${cmd.examples.map(e => `<div class="example">${e}</div>`).join("")}
+  const systemPrompt = `You are an expert Linux/DevOps engineer and educator. A user will give you a Linux shell command (or pipeline). You must respond ONLY with a valid JSON object — no markdown fences, no extra text — with this exact structure:
 
-        <strong>Use Case:</strong>
-        <p>${cmd.use}</p>
-      </div>`;
-    }
-    else if (FLAGS[t]) {
-      html += `<div class="card"><div class="flag">${t}</div><p>${FLAGS[t]}</p></div>`;
-    }
-    else if (t === "|") {
-      html += `<div class="card"><div class="pipe">|</div><p>Pipe output</p></div>`;
-    }
-    else if (t) {
-      html += `<div class="card">${t} → argument</div>`;
-    }
-  });
-
-  output.innerHTML = html;
-  aiExplain(text);
+{
+  "command": "the command as entered",
+  "summary": "one concise sentence explaining what this command does",
+  "risk": "low" | "medium" | "high",
+  "risk_reason": "brief reason for the risk level",
+  "tokens": [
+    { "part": "token_text", "type": "command|flag|option|argument|operator|path|variable", "desc": "what this token does" }
+  ],
+  "flags": [
+    { "flag": "-x", "long": "--example", "desc": "what it does" }
+  ],
+  "explanation": "2-4 sentence detailed explanation. Mention side effects, use cases, system interaction.",
+  "examples": [
+    { "cmd": "full example command", "desc": "what this specific example accomplishes" },
+    { "cmd": "another example", "desc": "another use case" },
+    { "cmd": "advanced example", "desc": "advanced scenario" }
+  ],
+  "suggestions": ["related_command_1", "related_command_2", "related_command_3"],
+  "pro_tip": "one expert-level tip or gotcha about this command"
 }
 
-function autoSuggest(text) {
-  let last = text.split(" ").pop();
-  let matches = Object.keys(COMMANDS).filter(c => c.startsWith(last));
-
-  suggestions.innerHTML = matches.map(m =>
-    `<span class="suggestion" onclick="selectSuggestion('${m}')">${m}</span>`
-  ).join("");
-}
-
-function selectSuggestion(cmd) {
-  input.value = cmd + " ";
-  explain(input.value);
-}
-
-function copyLink() {
-  let url = location.origin + location.pathname + "?cmd=" + encodeURIComponent(input.value);
-  navigator.clipboard.writeText(url);
-  alert("Link copied!");
-}
-
-function toggleTheme() {
-  document.body.classList.toggle("light");
-  localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
-}
-
-function loadTheme() {
-  if (localStorage.getItem("theme") === "light") {
-    document.body.classList.add("light");
-  }
-}
-
-async function visitorCount() {
-  let res = await fetch("https://api.countapi.xyz/hit/eknathalabs/linux-explainer");
-  let data = await res.json();
-  document.getElementById("visits").innerText = data.value;
-}
-
-function loadFromURL() {
-  let params = new URLSearchParams(window.location.search);
-  let cmd = params.get("cmd");
-  if (cmd) {
-    input.value = cmd;
-    explain(cmd);
-  }
-}
-
-async function aiExplain(command) {
-  const apiKey = "YOUR_OPENAI_API_KEY";
-  if (!apiKey) return;
+Keep flags array empty [] if the command has no flags. tokens must cover EVERY space-separated part of the command. Respond with pure JSON only.`;
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + apiKey,
-        "Content-Type": "application/json"
-      },
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: "Explain: " + command }]
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: cmd }]
       })
     });
 
     const data = await res.json();
-    document.getElementById("ai").innerHTML =
-      `<div class="card"><strong>🤖 AI:</strong><p>${data.choices[0].message.content}</p></div>`;
-  } catch (e) {}
+    if (data.error) throw new Error(data.error.message || 'API error');
+
+    const rawText = data.content.map(b => b.text || '').join('');
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      throw new Error('Could not parse response. Please try again.');
+    }
+
+    renderResult(parsed);
+  } catch (err) {
+    resultEl.innerHTML = `<div class="error-box">⚠ ${escHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
-loadTheme();
-visitorCount();
-loadFromURL();
-</script>
+function renderResult(d) {
+  const riskClass = { low: 'risk-low', medium: 'risk-medium', high: 'risk-high' }[d.risk] || 'risk-low';
+  const riskEmoji = { low: '🟢', medium: '🟡', high: '🔴' }[d.risk] || '🟢';
 
+  const tokensHtml = (d.tokens || []).map(t => `
+    <div class="token" title="${escHtml(t.type)}">
+      <span class="token-part">${escHtml(t.part)}</span>
+      <span class="token-label">${escHtml(t.desc)}</span>
+    </div>`).join('');
+
+  const flagsHtml = (d.flags && d.flags.length) ? `
+    <div class="card">
+      <div class="card-title">Flags &amp; Options</div>
+      <table class="flags-table">
+        <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+        <tbody>
+          ${d.flags.map(f => `
+            <tr>
+              <td>${escHtml(f.flag)}${f.long ? ' / ' + escHtml(f.long) : ''}</td>
+              <td>${escHtml(f.desc)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '';
+
+  const examplesHtml = (d.examples || []).map((ex, i) => `
+    <div class="example-item">
+      <div class="example-cmd">
+        <span class="ps">$ </span>${escHtml(ex.cmd)}
+        <button class="copy-btn" onclick="copyText(this, '${ex.cmd.replace(/'/g,"\\'")}')">copy</button>
+      </div>
+      <div class="example-desc">↳ ${escHtml(ex.desc)}</div>
+    </div>`).join('');
+
+  const suggsHtml = (d.suggestions || []).map(s => `
+    <span class="sugg-chip" onclick="quick('${escAttr(s)}')">${escHtml(s)}</span>`).join('');
+
+  const proTip = d.pro_tip ? `
+    <div class="card" style="border-color:rgba(245,166,35,.2);background:rgba(245,166,35,.04)">
+      <div class="card-title" style="color:rgba(245,166,35,.5)">Pro Tip</div>
+      <div class="explanation" style="color:#d4c07a">${escHtml(d.pro_tip)}</div>
+    </div>` : '';
+
+  document.getElementById('result').innerHTML = `
+    <div class="result-header">
+      <span class="result-cmd">$ ${escHtml(d.command)}</span>
+      <span class="risk-badge ${riskClass}" title="${escHtml(d.risk_reason)}">${riskEmoji} ${d.risk} risk</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Summary</div>
+      <div class="explanation">${escHtml(d.summary)}</div>
+    </div>
+
+    ${tokensHtml ? `<div class="card">
+      <div class="card-title">Token Breakdown</div>
+      <div class="tokens">${tokensHtml}</div>
+    </div>` : ''}
+
+    ${flagsHtml}
+
+    <div class="card">
+      <div class="card-title">How It Works</div>
+      <div class="explanation">${escHtml(d.explanation)}</div>
+    </div>
+
+    ${examplesHtml ? `<div class="card">
+      <div class="card-title">Real-World Examples</div>
+      <div class="examples-list">${examplesHtml}</div>
+    </div>` : ''}
+
+    ${proTip}
+
+    ${suggsHtml ? `<div class="card">
+      <div class="card-title">Related Commands</div>
+      <div class="sugg-chips">${suggsHtml}</div>
+    </div>` : ''}
+  `;
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  return String(str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+</script>
 </body>
 </html>
