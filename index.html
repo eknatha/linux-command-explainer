@@ -50,7 +50,32 @@
 
   /* HEADER */
   header { padding: 32px 0 44px; }
-  .logo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  .logo-row { display: flex; align-items: center; gap: 14px; }
+
+  /* VISITOR COUNTER */
+  .visitor-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 168px;
+    flex-shrink: 0;
+  }
+  .visitor-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .visitor-label { font-size: 10px; color: var(--text-mute); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+  .visitor-count { font-size: 14px; font-weight: 700; font-family: var(--mono); color: var(--green); min-width: 40px; text-align: right; transition: color .3s; }
+  .visitor-count.loading { color: var(--text-mute); }
+  .visitor-divider { height: 1px; background: var(--border); margin: 2px 0; }
+  .visitor-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 5px; box-shadow: 0 0 6px rgba(0,229,160,.6); animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(0,229,160,.6); } 50% { opacity: .4; box-shadow: 0 0 2px rgba(0,229,160,.2); } }
+  @media (max-width: 600px) {
+    .header-top { flex-direction: column; }
+    .visitor-box { width: 100%; min-width: unset; }
+  }
   .logo-icon { width: 38px; height: 38px; border: 1.5px solid var(--green); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--green); box-shadow: 0 0 14px rgba(0,229,160,.2); flex-shrink: 0; }
   .brand { font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--green); letter-spacing: .08em; text-transform: uppercase; }
   .tagline { font-size: 10px; color: var(--text-mute); letter-spacing: .12em; text-transform: uppercase; margin-top: 2px; }
@@ -136,11 +161,24 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="logo-row">
-      <div class="logo-icon">&#9889;</div>
-      <div>
-        <div class="brand">EknathaLabs</div>
-        <div class="tagline">Built for Everyone</div>
+    <div class="header-top">
+      <div class="logo-row">
+        <div class="logo-icon">&#9889;</div>
+        <div>
+          <div class="brand">EknathaLabs</div>
+          <div class="tagline">Built for Everyone</div>
+        </div>
+      </div>
+      <div class="visitor-box">
+        <div class="visitor-row">
+          <span class="visitor-label"><span class="visitor-dot"></span>Total Visitors</span>
+          <span class="visitor-count loading" id="totalCount">—</span>
+        </div>
+        <div class="visitor-divider"></div>
+        <div class="visitor-row">
+          <span class="visitor-label">Visitors Today</span>
+          <span class="visitor-count loading" id="todayCount">—</span>
+        </div>
       </div>
     </div>
     <h1 class="headline">Linux Command<br /><span>Explainer</span></h1>
@@ -1291,6 +1329,39 @@ function esc(str) {
   return String(str || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ═══════════════════════════════════════════════════════════
+//  VISITOR COUNTER — countapi.xyz (free, no signup)
+// ═══════════════════════════════════════════════════════════
+(function () {
+  const NAMESPACE = 'eknathalabs';
+  const TOTAL_KEY = 'linux-explainer-total';
+  const TODAY_KEY = 'linux-explainer-' + new Date().toISOString().slice(0, 10); // e.g. 2025-04-06
+
+  function fmt(n) {
+    if (n == null || isNaN(n)) return '—';
+    return Number(n).toLocaleString();
+  }
+
+  function setCount(id, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = fmt(val);
+    el.classList.remove('loading');
+  }
+
+  // Hit total counter (increments on every page load)
+  fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/' + TOTAL_KEY)
+    .then(r => r.json())
+    .then(d => setCount('totalCount', d.value))
+    .catch(() => setCount('totalCount', '—'));
+
+  // Hit today's counter (increments once per calendar day per visitor)
+  fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/' + TODAY_KEY)
+    .then(r => r.json())
+    .then(d => setCount('todayCount', d.value))
+    .catch(() => setCount('todayCount', '—'));
+})();
 </script>
 </body>
 </html>
