@@ -28,6 +28,37 @@
     --radius: 10px;
     --glow: 0 0 30px rgba(0,229,160,.08);
   }
+
+  /* ── LIGHT MODE ─────────────────────────────────────────── */
+  body.light {
+    --bg:        #f0f4f8;
+    --surface:   #ffffff;
+    --surface2:  #f5f7fa;
+    --border:    #d1dde8;
+    --border2:   #bfcfdc;
+    --green:     #007a56;
+    --green-dim: #006045;
+    --amber:     #b06d00;
+    --red:       #c0392b;
+    --blue:      #0277bd;
+    --purple:    #6d28d9;
+    --text:      #1a2733;
+    --text-dim:  #4a6070;
+    --text-mute: #8ea5b5;
+    --glow:      none;
+  }
+  body.light::before {
+    background-image:
+      linear-gradient(rgba(0,122,86,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,122,86,.03) 1px, transparent 1px);
+  }
+  body.light::after { display: none; }
+  body.light .terminal-box { box-shadow: 0 2px 16px rgba(0,0,0,.08); }
+  body.light .card { box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  body.light #cmdInput { color: var(--text); }
+  body.light .headline { color: #0f1e2a; }
+  body.light .visitor-box { box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; overflow-x: hidden; }
