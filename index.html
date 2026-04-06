@@ -152,6 +152,55 @@
   footer { position: relative; z-index: 1; text-align: center; padding: 24px 0 32px; color: var(--text-mute); font-size: 11px; letter-spacing: .06em; }
   footer a { color: var(--green); text-decoration: none; }
 
+  /* THEME TOGGLE */
+  .theme-toggle {
+    position: fixed; top: 18px; right: 20px; z-index: 100;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px;
+    font-size: 12px; font-family: var(--mono);
+    color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; gap: 7px;
+    transition: border-color .2s, color .2s, background .2s;
+    box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  }
+  .theme-toggle:hover { border-color: var(--green); color: var(--green); }
+  .theme-toggle .tog-icon { font-size: 14px; transition: transform .4s; }
+  body.light .theme-toggle { box-shadow: 0 2px 12px rgba(0,0,0,.1); }
+
+  /* COMMAND OF THE DAY */
+  .cotd-banner {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--purple);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex; align-items: flex-start; gap: 14px;
+    animation: fadeUp .4s ease;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .cotd-banner:hover { border-color: var(--purple); }
+  .cotd-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .cotd-body { flex: 1; min-width: 0; }
+  .cotd-label { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--purple); margin-bottom: 4px; }
+  .cotd-cmd { font-size: 16px; color: var(--green); margin-bottom: 4px; word-break: break-all; }
+  .cotd-summary { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .cotd-hint { font-size: 10px; color: var(--text-mute); margin-top: 6px; }
+
+  /* COLLAPSIBLE CARDS */
+  .card-toggle {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-mute); font-size: 14px; padding: 0; margin-left: auto;
+    transition: transform .25s, color .15s;
+    flex-shrink: 0;
+  }
+  .card-toggle:hover { color: var(--green); }
+  .card-toggle.collapsed { transform: rotate(-90deg); }
+  .card-body { overflow: hidden; transition: max-height .3s ease, opacity .25s ease; max-height: 2000px; opacity: 1; }
+  .card-body.collapsed { max-height: 0; opacity: 0; }
+  .card-title { cursor: pointer; user-select: none; }
+
   @media (max-width: 600px) {
     .input-row { flex-wrap: wrap; }
     .go-btn { width: 100%; }
@@ -159,7 +208,22 @@
 </style>
 </head>
 <body>
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle light/dark mode">
+  <span class="tog-icon" id="togIcon">&#9790;</span>
+  <span id="togLabel">Light</span>
+</button>
+
 <div class="wrap">
+  <div class="cotd-banner" id="cotdBanner" onclick="cotdExplain()" title="Click to explain this command">
+    <div class="cotd-icon">&#10024;</div>
+    <div class="cotd-body">
+      <div class="cotd-label">Command of the Day</div>
+      <div class="cotd-cmd" id="cotdCmd">Loading...</div>
+      <div class="cotd-summary" id="cotdSummary"></div>
+      <div class="cotd-hint">&#8629; Click to explain this command</div>
+    </div>
+  </div>
+
   <header>
     <div class="header-top">
       <div class="logo-row">
@@ -1229,9 +1293,7 @@ function renderKnown(raw, d, tokens, el) {
       <span class="token-label">${esc(t.type)}</span>
     </div>`).join('');
 
-  const flagsHtml = (d.flags && d.flags.length) ? `
-    <div class="card">
-      <div class="card-title">Flags &amp; Options</div>
+  const flagsInner = (d.flags && d.flags.length) ? `
       <table class="flags-table">
         <thead><tr><th>Flag</th><th>Description</th></tr></thead>
         <tbody>${d.flags.map(f => `
@@ -1239,8 +1301,8 @@ function renderKnown(raw, d, tokens, el) {
             <td>${esc(f.flag)}${f.long ? ' / ' + esc(f.long) : ''}</td>
             <td>${esc(f.desc)}</td>
           </tr>`).join('')}</tbody>
-      </table>
-    </div>` : '';
+      </table>` : '';
+  const flagsHtml = flagsInner ? collCard('Flags &amp; Options', flagsInner, false) : '';
 
   const exHtml = (d.examples || []).map(ex => `
     <div>
@@ -1258,8 +1320,11 @@ function renderKnown(raw, d, tokens, el) {
 
   const proTip = d.pro_tip ? `
     <div class="protip-card">
-      <div class="card-title" style="color:rgba(245,166,35,.5)">Pro Tip</div>
-      <div class="explanation" style="color:#d4c07a">${esc(d.pro_tip)}</div>
+      <div class="card-title" style="cursor:pointer;user-select:none" onclick="(function(el){var b=el.closest('.protip-card').querySelector('.card-body');var t=el.querySelector('.card-toggle');if(b){b.classList.toggle('collapsed');if(t)t.classList.toggle('collapsed')}})(this)">
+        Pro Tip
+        <button class="card-toggle" title="Toggle">&#9660;</button>
+      </div>
+      <div class="card-body"><div class="explanation" style="color:var(--amber);opacity:.9">${esc(d.pro_tip)}</div></div>
     </div>` : '';
 
   el.innerHTML = `
@@ -1267,14 +1332,23 @@ function renderKnown(raw, d, tokens, el) {
       <span class="result-cmd">$ ${esc(raw)}</span>
       <span class="risk-badge ${riskClass}" title="${esc(d.risk_reason)}">${riskEmoji} ${d.risk} risk</span>
     </div>
-    <div class="card"><div class="card-title">Summary</div><div class="explanation">${esc(d.summary)}</div></div>
-    <div class="card"><div class="card-title">Token Breakdown</div><div class="tokens">${tokensHtml}</div></div>
+    ${collCard('Summary', `<div class="explanation">${esc(d.summary)}</div>`, false)}
+    ${collCard('Token Breakdown', `<div class="tokens">${tokensHtml}</div>`, false)}
     ${flagsHtml}
-    <div class="card"><div class="card-title">How It Works</div><div class="explanation">${esc(d.explanation)}</div></div>
-    ${exHtml ? `<div class="card"><div class="card-title">Real-World Examples</div><div class="examples-list">${exHtml}</div></div>` : ''}
+    ${collCard('How It Works', `<div class="explanation">${esc(d.explanation)}</div>`, false)}
+    ${exHtml ? collCard('Real-World Examples', `<div class="examples-list">${exHtml}</div>`, false) : ''}
     ${proTip}
-    ${suggsHtml ? `<div class="card"><div class="card-title">Related Commands</div><div class="sugg-chips">${suggsHtml}</div></div>` : ''}
+    ${suggsHtml ? collCard('Related Commands', `<div class="sugg-chips">${suggsHtml}</div>`, false) : ''}
   `;
+  el.querySelectorAll('.card-title').forEach(t => {
+    t.addEventListener('click', () => {
+      const body = t.closest('.card').querySelector('.card-body');
+      const btn  = t.querySelector('.card-toggle');
+      if (!body) return;
+      body.classList.toggle('collapsed');
+      if (btn) btn.classList.toggle('collapsed');
+    });
+  });
 }
 
 function renderUnknown(raw, tokens, el) {
@@ -1328,6 +1402,70 @@ function copyText(btn, text) {
 function esc(str) {
   return String(str || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  COLLAPSIBLE CARD HELPER
+// ═══════════════════════════════════════════════════════════
+function collCard(title, bodyHtml, startCollapsed) {
+  const colClass = startCollapsed ? ' collapsed' : '';
+  const btnClass = startCollapsed ? ' collapsed' : '';
+  return `
+    <div class="card">
+      <div class="card-title">
+        ${title}
+        <button class="card-toggle${btnClass}" title="Toggle section">&#9660;</button>
+      </div>
+      <div class="card-body${colClass}">${bodyHtml}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DARK / LIGHT THEME TOGGLE
+// ═══════════════════════════════════════════════════════════
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  localStorage.setItem('ek-theme', isLight ? 'light' : 'dark');
+  document.getElementById('togIcon').innerHTML  = isLight ? '&#9728;' : '&#9790;';
+  document.getElementById('togLabel').textContent = isLight ? 'Dark' : 'Light';
+}
+(function initTheme() {
+  const saved = localStorage.getItem('ek-theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    const btn = document.getElementById('togIcon');
+    const lbl = document.getElementById('togLabel');
+    if (btn) btn.innerHTML = '&#9728;';
+    if (lbl) lbl.textContent = 'Dark';
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════
+//  COMMAND OF THE DAY
+// ═══════════════════════════════════════════════════════════
+(function initCOTD() {
+  const keys = Object.keys(KB);
+  // Pick deterministically from date so it changes daily
+  const today = new Date();
+  const seed  = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const idx   = seed % keys.length;
+  const name  = keys[idx];
+  const data  = KB[name];
+
+  // Build a representative example command
+  const exCmd = (data.examples && data.examples[0]) ? data.examples[0].cmd : name;
+
+  document.getElementById('cotdCmd').textContent    = '$ ' + exCmd;
+  document.getElementById('cotdSummary').textContent = data.summary;
+  document.getElementById('cotdBanner').dataset.cmd  = exCmd;
+})();
+
+function cotdExplain() {
+  const cmd = document.getElementById('cotdBanner').dataset.cmd;
+  if (!cmd) return;
+  document.getElementById('cmdInput').value = cmd;
+  explain();
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ═══════════════════════════════════════════════════════════
