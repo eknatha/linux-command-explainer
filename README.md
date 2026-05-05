@@ -13,7 +13,7 @@
 
 ## 🖥️ Live Demo
 
-**👉 [https://eknatha.github.io/linux-command-explainer/](https://eknatha.github.io/linux-command-explainer/)**
+**👉 [https://linux-command-explainer.eknathalabs.com//](https://linux-command-explainer.eknathalabs.com/)**
 
 ---
 
