@@ -92,56 +92,10 @@ $ tar -czf backup.tar.gz /var/log
 
 ## 🚀 Getting Started
 
-### Option 1 — Use the live site (no setup)
+###  Use the live site (no setup)
 
-👉 [https://eknatha.github.io/linux-command-explainer/](https://eknatha.github.io/linux-command-explainer/)
+👉 [https://linux-command-explainer.eknathalabs.com/](https://linux-command-explainer.eknathalabs.com/)
 
-### Option 2 — Run locally
-
-```bash
-# Clone the repo
-git clone https://github.com/eknatha/linux-command-explainer.git
-
-# Open in browser — no build step needed
-cd linux-command-explainer
-open index.html        # macOS
-xdg-open index.html    # Linux
-start index.html       # Windows
-```
-
-### Option 3 — Deploy your own fork
-
-```bash
-# Fork this repo on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/linux-command-explainer.git
-
-# Make changes, push
-git add . && git commit -m "my changes" && git push
-
-# Enable GitHub Pages:
-# Settings → Pages → Branch: main → Folder: / (root) → Save
-```
-
-Your site will be live at `https://YOUR_USERNAME.github.io/linux-command-explainer/`
-
----
-
-## 🏗️ How It Works
-
-This is a **single `index.html` file** — no framework, no build tool, no dependencies except Google Fonts.
-
-```
-index.html
-├── <style>          Terminal-dark CSS (JetBrains Mono + Syne fonts)
-├── <body>           Header, input, chips, result area, footer
-└── <script>
-    ├── KB {}        Offline knowledge base — 50+ commands
-    ├── tokenize()   Smart command tokenizer (flags, paths, operators)
-    ├── lookup()     Base-command matcher with sudo stripping
-    ├── renderKnown()   Renders full card for known commands
-    ├── renderUnknown() Fallback with man/tldr/--help suggestions
-    └── countapi     Live visitor counter (countapi.xyz)
-```
 
 ### Knowledge Base Structure
 
@@ -209,16 +163,6 @@ Contributions are welcome! The most impactful way to help is adding new commands
 - [ ] Improve mobile layout for long commands
 - [ ] Add keyboard shortcut hints (Ctrl+K to focus input)
 
----
-
-## 📁 Project Structure
-
-```
-linux-command-explainer/
-├── index.html      # The entire app — single file
-├── README.md       # This file
-└── LICENSE         # MIT License
-```
 
 ---
 
@@ -226,7 +170,7 @@ linux-command-explainer/
 
 | Project | Description |
 |---|---|
-| 🔍 [GitHub Profile Analyzer](https://eknatha.github.io/github-profile-analyzer) | 100-point hirability score, contribution calendar, head-to-head comparison |
+| 🔍 [GitHub Profile Analyzer](https://github-profile-analyzer.eknathalabs.com/) | 100-point hirability score, contribution calendar, head-to-head comparison |
 | ⚡ Linux Command Explainer | You are here |
 
 ---
