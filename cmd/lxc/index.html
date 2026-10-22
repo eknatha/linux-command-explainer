@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>lxc command: LXD/LXC container tool — examples, flags &amp; risks | Linux Command Explainer</title>
+<meta name="description" content="LXD/LXC container tool. MEDIUM risk: Manages system containers with privileged options." />
+<link rel="canonical" href="https://linux-command-explainer.eknathalabs.com/cmd/lxc/" />
+<meta property="og:title" content="lxc command: LXD/LXC container tool — examples, flags &amp; risks | Linux Command Explainer" />
+<meta property="og:description" content="LXD/LXC container tool. MEDIUM risk: Manages system containers with privileged options." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://linux-command-explainer.eknathalabs.com/cmd/lxc/" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://linux-command-explainer.eknathalabs.com/"},{"@type":"ListItem","position":2,"name":"Docker & Containers","item":"https://linux-command-explainer.eknathalabs.com/category/containers/"},{"@type":"ListItem","position":3,"name":"lxc","item":"https://linux-command-explainer.eknathalabs.com/cmd/lxc/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does lxc do?","acceptedAnswer":{"@type":"Answer","text":"LXD/LXC container tool lxc commands manage LXD instances. See the flags and examples below, and run `man lxc` for the full reference."}},{"@type":"Question","name":"Is lxc dangerous?","acceptedAnswer":{"@type":"Answer","text":"MEDIUM risk. Manages system containers with privileged options. Privileged containers and device passthrough weaken isolation."}}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/style.css?v=87baa079" />
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Home</a> &rsaquo; <a href="../../category/containers/">Docker &amp; Containers</a> &rsaquo; lxc</nav><header><h1 class="headline" style="font-size:clamp(28px,5vw,44px)"><span>lxc</span></h1><p class="sub">LXD/LXC container tool</p><p><span class="risk-badge risk-medium">medium risk</span></p></header><div class="terminal-box"><div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">interactive breakdown — edit the command and press Explain</span></div><div class="input-row"><span class="prompt">$&nbsp;</span><input id="cmdInput" type="text" list="cmdList" value="lxc list" autocomplete="off" spellcheck="false" /><datalist id="cmdList"></datalist><button class="go-btn" id="goExplain">Explain &#8629;</button></div></div><div id="result"></div><div class="banner sev-medium"><span class="sev">medium risk</span>Manages system containers with privileged options.</div><div class="card"><div class="card-title">&#9888; Risks &amp; cautions</div><ul class="caution-list"><li>Privileged containers and device passthrough weaken isolation.</li></ul></div><div class="card"><div class="card-title">What it does</div><p>lxc commands manage LXD instances. See the flags and examples below, and run `man lxc` for the full reference.</p></div><div class="card"><div class="card-title">Examples</div><div class="safer-item"><code>lxc list</code><span class="why">List instances &middot; <a class="ex-explain" data-cmd="lxc list" href="../../?cmd=lxc%20list">explain &amp; risk-check &rarr;</a></span></div><div class="safer-item"><code>lxc launch ubuntu:24.04 c1</code><span class="why">Create one &middot; <a class="ex-explain" data-cmd="lxc launch ubuntu:24.04 c1" href="../../?cmd=lxc%20launch%20ubuntu%3A24.04%20c1">explain &amp; risk-check &rarr;</a></span></div></div><div class="card"><div class="card-title">Related</div><div><a class="sugg-chip" href="../docker/">docker</a></div></div><div class="actions"><a class="btn" href="../../">Open the full explainer &rarr;</a><a class="btn" href="../../category/containers/">More in Docker &amp; Containers</a></div><p class="disclaimer">Reference text is hand-written and may be incomplete — check <code>man lxc</code> for your version. Test destructive commands on a non-production system first.</p>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="../../">Explainer</a> &nbsp;&middot;&nbsp; <a href="../../cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');if(location.protocol==='file:')[].forEach.call(document.querySelectorAll('a[href]'),function(a){var h=a.getAttribute('href');if(/\/$/.test(h)&&!/^[a-z]+:/i.test(h))a.setAttribute('href',h+'index.html')});window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+<script>window.LCE_BASE="/";window.LCE_PAGE={cmd:"lxc list"};</script>
+<script src="../../assets/data.js?v=87baa079"></script>
+<script src="../../assets/engine.js?v=87baa079"></script>
+<script src="../../assets/app.js?v=87baa079"></script>
+</body>
+</html>

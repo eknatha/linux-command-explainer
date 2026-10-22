@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ip6tables command: IPv6 firewall rules — examples, flags &amp; risks | Linux Command Explainer</title>
+<meta name="description" content="IPv6 firewall rules. HIGH risk: Wrong rules drop IPv6 traffic or your SSH session." />
+<link rel="canonical" href="https://linux-command-explainer.eknathalabs.com/cmd/ip6tables/" />
+<meta property="og:title" content="ip6tables command: IPv6 firewall rules — examples, flags &amp; risks | Linux Command Explainer" />
+<meta property="og:description" content="IPv6 firewall rules. HIGH risk: Wrong rules drop IPv6 traffic or your SSH session." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://linux-command-explainer.eknathalabs.com/cmd/ip6tables/" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://linux-command-explainer.eknathalabs.com/"},{"@type":"ListItem","position":2,"name":"Networking","item":"https://linux-command-explainer.eknathalabs.com/category/networking/"},{"@type":"ListItem","position":3,"name":"ip6tables","item":"https://linux-command-explainer.eknathalabs.com/cmd/ip6tables/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does ip6tables do?","acceptedAnswer":{"@type":"Answer","text":"IPv6 firewall rules IPv6 counterpart of iptables. See the flags and examples below, and run `man ip6tables` for the full reference."}},{"@type":"Question","name":"Is ip6tables dangerous?","acceptedAnswer":{"@type":"Answer","text":"HIGH risk. Wrong rules drop IPv6 traffic or your SSH session. Forgetting IPv6 leaves services exposed even if IPv4 is locked down. Same lockout risks as iptables."}},{"@type":"Question","name":"How can I use ip6tables more safely?","acceptedAnswer":{"@type":"Answer","text":"ip6tables-save > /root/ip6tables.backup — Back up first"}}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/style.css?v=87baa079" />
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Home</a> &rsaquo; <a href="../../category/networking/">Networking</a> &rsaquo; ip6tables</nav><header><h1 class="headline" style="font-size:clamp(28px,5vw,44px)"><span>ip6tables</span></h1><p class="sub">IPv6 firewall rules</p><p><span class="risk-badge risk-high">high risk</span></p></header><div class="terminal-box"><div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">interactive breakdown — edit the command and press Explain</span></div><div class="input-row"><span class="prompt">$&nbsp;</span><input id="cmdInput" type="text" list="cmdList" value="ip6tables -L -n -v" autocomplete="off" spellcheck="false" /><datalist id="cmdList"></datalist><button class="go-btn" id="goExplain">Explain &#8629;</button></div></div><div id="result"></div><div class="banner sev-high"><span class="sev">high risk</span>Wrong rules drop IPv6 traffic or your SSH session.</div><div class="card"><div class="card-title">&#9888; Risks &amp; cautions</div><ul class="caution-list"><li>Forgetting IPv6 leaves services exposed even if IPv4 is locked down.</li><li>Same lockout risks as iptables.</li></ul></div><div class="card"><div class="card-title">Safer / dry-run alternatives</div><div class="safer-item"><code>ip6tables-save &gt; /root/ip6tables.backup</code><span class="why">Back up first</span></div></div><div class="card"><div class="card-title">What it does</div><p>IPv6 counterpart of iptables. See the flags and examples below, and run `man ip6tables` for the full reference.</p></div><div class="card"><div class="card-title">Examples</div><div class="safer-item"><code>ip6tables -L -n -v</code><span class="why">List rules &middot; <a class="ex-explain" data-cmd="ip6tables -L -n -v" href="../../?cmd=ip6tables%20-L%20-n%20-v">explain &amp; risk-check &rarr;</a></span></div></div><div class="card"><div class="card-title">Related</div><div><a class="sugg-chip" href="../iptables/">iptables</a></div></div><div class="actions"><a class="btn" href="../../">Open the full explainer &rarr;</a><a class="btn" href="../../category/networking/">More in Networking</a></div><p class="disclaimer">Reference text is hand-written and may be incomplete — check <code>man ip6tables</code> for your version. Test destructive commands on a non-production system first.</p>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="../../">Explainer</a> &nbsp;&middot;&nbsp; <a href="../../cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');if(location.protocol==='file:')[].forEach.call(document.querySelectorAll('a[href]'),function(a){var h=a.getAttribute('href');if(/\/$/.test(h)&&!/^[a-z]+:/i.test(h))a.setAttribute('href',h+'index.html')});window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+<script>window.LCE_BASE="/";window.LCE_PAGE={cmd:"ip6tables -L -n -v"};</script>
+<script src="../../assets/data.js?v=87baa079"></script>
+<script src="../../assets/engine.js?v=87baa079"></script>
+<script src="../../assets/app.js?v=87baa079"></script>
+</body>
+</html>

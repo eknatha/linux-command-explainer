@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ed command: Line editor — examples, flags &amp; risks | Linux Command Explainer</title>
+<meta name="description" content="Line editor. LOW risk: Edits files non-interactively when scripted." />
+<link rel="canonical" href="https://linux-command-explainer.eknathalabs.com/cmd/ed/" />
+<meta property="og:title" content="ed command: Line editor — examples, flags &amp; risks | Linux Command Explainer" />
+<meta property="og:description" content="Line editor. LOW risk: Edits files non-interactively when scripted." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://linux-command-explainer.eknathalabs.com/cmd/ed/" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://linux-command-explainer.eknathalabs.com/"},{"@type":"ListItem","position":2,"name":"Text Processing","item":"https://linux-command-explainer.eknathalabs.com/category/linux-text/"},{"@type":"ListItem","position":3,"name":"ed","item":"https://linux-command-explainer.eknathalabs.com/cmd/ed/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does ed do?","acceptedAnswer":{"@type":"Answer","text":"Line editor Classic line editor; useful in scripts for in-place edits. `ed` commands are read from stdin."}},{"@type":"Question","name":"Is ed dangerous?","acceptedAnswer":{"@type":"Answer","text":"LOW risk. Edits files non-interactively when scripted. Edits in place with no backup — copy the file first."}}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/style.css?v=87baa079" />
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Home</a> &rsaquo; <a href="../../category/linux-text/">Text Processing</a> &rsaquo; ed</nav><header><h1 class="headline" style="font-size:clamp(28px,5vw,44px)"><span>ed</span></h1><p class="sub">Line editor</p><p><span class="risk-badge risk-low">low risk</span></p></header><div class="terminal-box"><div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">interactive breakdown — edit the command and press Explain</span></div><div class="input-row"><span class="prompt">$&nbsp;</span><input id="cmdInput" type="text" list="cmdList" value="printf &#39;%s\n&#39; &#39;,s/old/new/g&#39; w q | ed -s file" autocomplete="off" spellcheck="false" /><datalist id="cmdList"></datalist><button class="go-btn" id="goExplain">Explain &#8629;</button></div></div><div id="result"></div><div class="banner sev-low"><span class="sev">low risk</span>Edits files non-interactively when scripted.</div><div class="card"><div class="card-title">&#9888; Risks &amp; cautions</div><ul class="caution-list"><li>Edits in place with no backup — copy the file first.</li></ul></div><div class="card"><div class="card-title">What it does</div><p>Classic line editor; useful in scripts for in-place edits. `ed` commands are read from stdin.</p></div><div class="card"><div class="card-title">Examples</div><div class="safer-item"><code>printf &#39;%s\n&#39; &#39;,s/old/new/g&#39; w q | ed -s file</code><span class="why">Replace text in a file &middot; <a class="ex-explain" data-cmd="printf &#39;%s\n&#39; &#39;,s/old/new/g&#39; w q | ed -s file" href="../../?cmd=printf%20&#39;%25s%5Cn&#39;%20&#39;%2Cs%2Fold%2Fnew%2Fg&#39;%20w%20q%20%7C%20ed%20-s%20file">explain &amp; risk-check &rarr;</a></span></div></div><div class="card"><div class="card-title">Related</div><div><a class="sugg-chip" href="../sed/">sed</a> <a class="sugg-chip" href="../vim/">vim</a></div></div><div class="actions"><a class="btn" href="../../">Open the full explainer &rarr;</a><a class="btn" href="../../category/linux-text/">More in Text Processing</a></div><p class="disclaimer">Reference text is hand-written and may be incomplete — check <code>man ed</code> for your version. Test destructive commands on a non-production system first.</p>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="../../">Explainer</a> &nbsp;&middot;&nbsp; <a href="../../cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');if(location.protocol==='file:')[].forEach.call(document.querySelectorAll('a[href]'),function(a){var h=a.getAttribute('href');if(/\/$/.test(h)&&!/^[a-z]+:/i.test(h))a.setAttribute('href',h+'index.html')});window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+<script>window.LCE_BASE="/";window.LCE_PAGE={cmd:"printf '%s\\n' ',s/old/new/g' w q | ed -s file"};</script>
+<script src="../../assets/data.js?v=87baa079"></script>
+<script src="../../assets/engine.js?v=87baa079"></script>
+<script src="../../assets/app.js?v=87baa079"></script>
+</body>
+</html>
