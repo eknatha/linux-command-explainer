@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>helm repo command: Manage chart repositories — examples, flags &amp; risks | Linux Command Explainer</title>
+<meta name="description" content="Manage chart repositories. LOW risk: Adds third-party sources." />
+<link rel="canonical" href="https://linux-command-explainer.eknathalabs.com/cmd/helm-repo/" />
+<meta property="og:title" content="helm repo command: Manage chart repositories — examples, flags &amp; risks | Linux Command Explainer" />
+<meta property="og:description" content="Manage chart repositories. LOW risk: Adds third-party sources." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://linux-command-explainer.eknathalabs.com/cmd/helm-repo/" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://linux-command-explainer.eknathalabs.com/"},{"@type":"ListItem","position":2,"name":"Kubernetes & Helm","item":"https://linux-command-explainer.eknathalabs.com/category/kubernetes/"},{"@type":"ListItem","position":3,"name":"helm repo","item":"https://linux-command-explainer.eknathalabs.com/cmd/helm-repo/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does helm repo do?","acceptedAnswer":{"@type":"Answer","text":"Manage chart repositories Add/update chart repos. See the flags and examples below, and run `man helm` for the full reference."}},{"@type":"Question","name":"Is helm repo dangerous?","acceptedAnswer":{"@type":"Answer","text":"LOW risk. Adds third-party sources. Only add repositories you trust; charts run with cluster privileges."}}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/style.css?v=87baa079" />
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Home</a> &rsaquo; <a href="../../category/kubernetes/">Kubernetes &amp; Helm</a> &rsaquo; helm repo</nav><header><h1 class="headline" style="font-size:clamp(28px,5vw,44px)"><span>helm repo</span></h1><p class="sub">Manage chart repositories</p><p><span class="risk-badge risk-low">low risk</span></p></header><div class="terminal-box"><div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">interactive breakdown — edit the command and press Explain</span></div><div class="input-row"><span class="prompt">$&nbsp;</span><input id="cmdInput" type="text" list="cmdList" value="helm repo add bitnami https://charts.bitnami.com/bitnami" autocomplete="off" spellcheck="false" /><datalist id="cmdList"></datalist><button class="go-btn" id="goExplain">Explain &#8629;</button></div></div><div id="result"></div><div class="banner sev-low"><span class="sev">low risk</span>Adds third-party sources.</div><div class="card"><div class="card-title">&#9888; Risks &amp; cautions</div><ul class="caution-list"><li>Only add repositories you trust; charts run with cluster privileges.</li></ul></div><div class="card"><div class="card-title">What it does</div><p>Add/update chart repos. See the flags and examples below, and run `man helm` for the full reference.</p></div><div class="card"><div class="card-title">Examples</div><div class="safer-item"><code>helm repo add bitnami https://charts.bitnami.com/bitnami</code><span class="why">Add &middot; <a class="ex-explain" data-cmd="helm repo add bitnami https://charts.bitnami.com/bitnami" href="../../?cmd=helm%20repo%20add%20bitnami%20https%3A%2F%2Fcharts.bitnami.com%2Fbitnami">explain &amp; risk-check &rarr;</a></span></div><div class="safer-item"><code>helm repo update</code><span class="why">Refresh &middot; <a class="ex-explain" data-cmd="helm repo update" href="../../?cmd=helm%20repo%20update">explain &amp; risk-check &rarr;</a></span></div></div><div class="card"><div class="card-title">Related</div><div><a class="sugg-chip" href="../helm/">helm</a></div></div><div class="actions"><a class="btn" href="../../">Open the full explainer &rarr;</a><a class="btn" href="../../category/kubernetes/">More in Kubernetes &amp; Helm</a></div><p class="disclaimer">Reference text is hand-written and may be incomplete — check <code>man helm</code> for your version. Test destructive commands on a non-production system first.</p>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="../../">Explainer</a> &nbsp;&middot;&nbsp; <a href="../../cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');if(location.protocol==='file:')[].forEach.call(document.querySelectorAll('a[href]'),function(a){var h=a.getAttribute('href');if(/\/$/.test(h)&&!/^[a-z]+:/i.test(h))a.setAttribute('href',h+'index.html')});window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+<script>window.LCE_BASE="/";window.LCE_PAGE={cmd:"helm repo add bitnami https://charts.bitnami.com/bitnami"};</script>
+<script src="../../assets/data.js?v=87baa079"></script>
+<script src="../../assets/engine.js?v=87baa079"></script>
+<script src="../../assets/app.js?v=87baa079"></script>
+</body>
+</html>
