@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary" />
 
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/assets/style.css?v=f8d6fe42" />
+<link rel="stylesheet" href="/assets/style.css?v=87baa079" />
 </head>
 <body>
 <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
@@ -21,7 +21,7 @@
 <header><h1 class="headline"><span>404</span></h1><p class="sub">That page does not exist. Try the <a href="/">explainer</a> or the <a href="/cmd/">command directory</a>.</p></header>
 </div>
 <footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="/">Explainer</a> &nbsp;&middot;&nbsp; <a href="/cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
-<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');if(location.protocol==='file:')[].forEach.call(document.querySelectorAll('a[href]'),function(a){var h=a.getAttribute('href');if(/\/$/.test(h)&&!/^[a-z]+:/i.test(h))a.setAttribute('href',h+'index.html')});window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
 
 </body>
 </html>

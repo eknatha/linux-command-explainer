@@ -7,6 +7,10 @@
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var BASE = (window.LCE_BASE || '/');
   var mode = 'explain';
+  var FILE = location.protocol === 'file:';
+  // links relative to the current page, so the site works at any base path and from file://
+  function cmdHref(id) { return (PAGE ? '../../' : '') + 'cmd/' + id + '/' + (FILE ? 'index.html' : ''); }
+  if (FILE) Array.prototype.forEach.call(document.querySelectorAll('a[href]'), function (a) { var h = a.getAttribute('href'); if (/\/$/.test(h) && !/^[a-z]+:/i.test(h)) a.setAttribute('href', h + 'index.html'); });
   var last = null;
 
   /* ── theme ── */
@@ -37,7 +41,7 @@
       h += '<div class="token"><span class="tok-part">' + esc(t.part) + '</span> <span class="tok-type">' + esc(t.type) + '</span><div class="tok-desc">' + esc(t.desc) + (t.caution ? '<span class="tok-caution">&#9888; ' + esc(t.caution) + '</span>' : '') + '</div></div>';
     });
     h += '</div>';
-    if (s.entryId) h += '<div class="actions"><a class="btn" href="' + BASE + 'cmd/' + esc(s.entryId) + '/">Full reference for ' + esc(s.entryName || s.base) + ' &rarr;</a></div>';
+    if (s.entryId) h += '<div class="actions"><a class="btn" href="' + cmdHref(s.entryId) + '">Full reference for ' + esc(s.entryName || s.base) + ' &rarr;</a></div>';
     h += '</div>';
     (s.inner || []).forEach(function (a) { a.segments.forEach(function (x) { h += renderSegment(Object.assign({ via: a.via }, x), (depth || 0) + 1); }); });
     return h;
