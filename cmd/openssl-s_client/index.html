@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>openssl s_client command: Test TLS connections — examples, flags &amp; risks | Linux Command Explainer</title>
+<meta name="description" content="Test TLS connections. LOW risk: Network probe." />
+<link rel="canonical" href="https://linux-command-explainer.eknathalabs.com/cmd/openssl-s_client/" />
+<meta property="og:title" content="openssl s_client command: Test TLS connections — examples, flags &amp; risks | Linux Command Explainer" />
+<meta property="og:description" content="Test TLS connections. LOW risk: Network probe." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://linux-command-explainer.eknathalabs.com/cmd/openssl-s_client/" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://linux-command-explainer.eknathalabs.com/"},{"@type":"ListItem","position":2,"name":"Users, Permissions & Security","item":"https://linux-command-explainer.eknathalabs.com/category/users-security/"},{"@type":"ListItem","position":3,"name":"openssl s_client","item":"https://linux-command-explainer.eknathalabs.com/cmd/openssl-s_client/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does openssl s_client do?","acceptedAnswer":{"@type":"Answer","text":"Test TLS connections Connects to a TLS server and shows the chain."}},{"@type":"Question","name":"Is openssl s_client dangerous?","acceptedAnswer":{"@type":"Answer","text":"LOW risk. Network probe. -verify_return_error makes failures explicit."}}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/style.css?v=87baa079" />
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Home</a> &rsaquo; <a href="../../category/users-security/">Users, Permissions &amp; Security</a> &rsaquo; openssl s_client</nav><header><h1 class="headline" style="font-size:clamp(28px,5vw,44px)"><span>openssl s_client</span></h1><p class="sub">Test TLS connections</p><p><span class="risk-badge risk-low">low risk</span></p></header><div class="terminal-box"><div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">interactive breakdown — edit the command and press Explain</span></div><div class="input-row"><span class="prompt">$&nbsp;</span><input id="cmdInput" type="text" list="cmdList" value="openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null" autocomplete="off" spellcheck="false" /><datalist id="cmdList"></datalist><button class="go-btn" id="goExplain">Explain &#8629;</button></div></div><div id="result"></div><div class="banner sev-low"><span class="sev">low risk</span>Network probe.</div><div class="card"><div class="card-title">&#9888; Risks &amp; cautions</div><ul class="caution-list"><li>-verify_return_error makes failures explicit.</li></ul></div><div class="card"><div class="card-title">What it does</div><p>Connects to a TLS server and shows the chain.</p></div><div class="card"><div class="card-title">Examples</div><div class="safer-item"><code>openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null</code><span class="why">Show chain &middot; <a class="ex-explain" data-cmd="openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null" href="../../?cmd=openssl%20s_client%20-connect%20example.com%3A443%20-servername%20example.com%20%3C%2Fdev%2Fnull">explain &amp; risk-check &rarr;</a></span></div></div><div class="card"><div class="card-title">Related</div><div><a class="sugg-chip" href="../openssl-x509/">openssl x509</a></div></div><div class="actions"><a class="btn" href="../../">Open the full explainer &rarr;</a><a class="btn" href="../../category/users-security/">More in Users, Permissions &amp; Security</a></div><p class="disclaimer">Reference text is hand-written and may be incomplete — check <code>man openssl</code> for your version. Test destructive commands on a non-production system first.</p>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="../../">Explainer</a> &nbsp;&middot;&nbsp; <a href="../../cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');if(location.protocol==='file:')[].forEach.call(document.querySelectorAll('a[href]'),function(a){var h=a.getAttribute('href');if(/\/$/.test(h)&&!/^[a-z]+:/i.test(h))a.setAttribute('href',h+'index.html')});window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+<script>window.LCE_BASE="/";window.LCE_PAGE={cmd:"openssl s_client -connect example.com:443 -servername example.com \u003c/dev/null"};</script>
+<script src="../../assets/data.js?v=87baa079"></script>
+<script src="../../assets/engine.js?v=87baa079"></script>
+<script src="../../assets/app.js?v=87baa079"></script>
+</body>
+</html>
