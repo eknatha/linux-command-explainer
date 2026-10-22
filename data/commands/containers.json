@@ -1,0 +1,1161 @@
+{
+  "category": "containers",
+  "commands": [
+    {
+      "name": "docker",
+      "summary": "Build, run, and manage Linux containers and container images.",
+      "risk": "medium",
+      "risk_reason": "Containers run as root by default; misconfigured mounts can expose the host filesystem.",
+      "cautions": [
+        "Anyone who can run docker commands is effectively root on the host (the docker group is root-equivalent).",
+        "Mounting /var/run/docker.sock or / into a container hands that container control of the host.",
+        "Pin image tags or digests instead of :latest, and avoid running containers as root."
+      ],
+      "explanation": "docker manages the full container lifecycle. The daemon runs as root — use rootless Docker or podman for better security in production. Containers share the host kernel, so namespace escapes are a real risk on unpatched kernels.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "docker ps -a --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'",
+          "desc": "List all containers with name, status, and ports in a clean table"
+        },
+        {
+          "cmd": "docker logs -f --tail=100 container_name",
+          "desc": "Follow last 100 lines of container output"
+        },
+        {
+          "cmd": "docker exec -it container_name /bin/sh",
+          "desc": "Open an interactive shell inside a running container"
+        }
+      ],
+      "suggestions": [
+        "docker-compose",
+        "podman",
+        "kubectl",
+        "buildah"
+      ],
+      "pro_tip": "Use `docker system prune -af` to remove all unused images, containers, and volumes — reclaims gigabytes on busy CI servers.",
+      "low_when": [
+        "\\b(ps|images|logs|inspect|info|version|stats|top|history|search|network ls|volume ls|system df|port|diff|events)\\b"
+      ],
+      "low_unless": [
+        "rm\\b|rmi|prune|kill|stop|run|exec|--privileged"
+      ]
+    },
+    {
+      "name": "docker ps",
+      "summary": "List running (or all) Docker containers.",
+      "risk": "low",
+      "risk_reason": "Read-only listing.",
+      "explanation": "docker ps lists containers with their ID, image, command, status, and ports. The -a flag includes stopped containers. Combined with format strings, it produces machine-parseable output for automation.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Show all containers (not just running)"
+        },
+        {
+          "flag": "-q",
+          "long": "--quiet",
+          "desc": "Only show container IDs"
+        },
+        {
+          "flag": "--format",
+          "desc": "Custom output format template"
+        },
+        {
+          "flag": "-f",
+          "long": "--filter",
+          "desc": "Filter by condition (e.g., status=exited)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker ps",
+          "desc": "Show running containers"
+        },
+        {
+          "cmd": "docker ps -a --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'",
+          "desc": "Custom table format"
+        },
+        {
+          "cmd": "docker ps -q -f status=exited | xargs docker rm",
+          "desc": "Remove all stopped containers"
+        },
+        {
+          "cmd": "docker ps --filter name=nginx",
+          "desc": "Filter containers by name"
+        }
+      ],
+      "suggestions": [
+        "docker logs",
+        "docker exec",
+        "docker build"
+      ],
+      "pro_tip": "Use `docker ps --format '{{.Names}}'` to get container names for scripting — far cleaner than parsing default tabular output with awk."
+    },
+    {
+      "name": "docker logs",
+      "summary": "Fetch and stream logs from a Docker container.",
+      "risk": "low",
+      "risk_reason": "Read-only log access.",
+      "explanation": "docker logs retrieves the stdout/stderr output of a container. The -f flag follows live output, --since filters by time, and --tail limits lines. For containers using json-file or local log drivers; doesn't work with syslog/journald drivers.",
+      "flags": [
+        {
+          "flag": "-f",
+          "long": "--follow",
+          "desc": "Stream logs in real time"
+        },
+        {
+          "flag": "--tail",
+          "desc": "Number of lines to show from end"
+        },
+        {
+          "flag": "--since",
+          "desc": "Show logs since timestamp or duration"
+        },
+        {
+          "flag": "--timestamps",
+          "desc": "Show timestamps"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker logs -f --tail 100 mycontainer",
+          "desc": "Follow last 100 lines of container logs"
+        },
+        {
+          "cmd": "docker logs --since 30m mycontainer",
+          "desc": "Logs from last 30 minutes"
+        },
+        {
+          "cmd": "docker logs --timestamps mycontainer 2>&1 | grep ERROR",
+          "desc": "Filter errors with timestamps"
+        }
+      ],
+      "suggestions": [
+        "docker ps",
+        "journalctl",
+        "tail"
+      ],
+      "pro_tip": "Use `docker logs --since $(date -d '1 hour ago' -u +%Y-%m-%dT%H:%M:%SZ)` to get exactly one hour of logs aligned to UTC — useful for incident correlation."
+    },
+    {
+      "name": "docker exec",
+      "summary": "Execute commands inside a running Docker container.",
+      "risk": "medium",
+      "risk_reason": "Can modify container state; production containers should be treated as immutable.",
+      "cautions": [
+        "Changes made inside a running container are lost on restart and are not tracked in Git.",
+        "In production, exec bypasses your deployment pipeline’s audit trail — prefer logs/metrics or a dedicated debug container.",
+        "Secrets passed with -e are visible in `docker inspect` and the process list."
+      ],
+      "explanation": "docker exec runs commands in running containers. The -it flags attach an interactive terminal. Used for debugging — checking configs, inspecting the filesystem, testing connectivity — without rebuilding the image.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--interactive",
+          "desc": "Keep STDIN open"
+        },
+        {
+          "flag": "-t",
+          "long": "--tty",
+          "desc": "Allocate a pseudo-TTY"
+        },
+        {
+          "flag": "-e",
+          "long": "--env",
+          "desc": "Set environment variables"
+        },
+        {
+          "flag": "-u",
+          "long": "--user",
+          "desc": "Run as specified user"
+        },
+        {
+          "flag": "-w",
+          "long": "--workdir",
+          "desc": "Set working directory"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker exec -it mycontainer bash",
+          "desc": "Open interactive bash shell"
+        },
+        {
+          "cmd": "docker exec mycontainer cat /etc/nginx/nginx.conf",
+          "desc": "Read config without interactive shell"
+        },
+        {
+          "cmd": "docker exec -it -u root mycontainer bash",
+          "desc": "Shell as root user"
+        },
+        {
+          "cmd": "docker exec mycontainer env | grep DB",
+          "desc": "Check environment variables"
+        }
+      ],
+      "suggestions": [
+        "docker logs",
+        "docker ps",
+        "kubectl"
+      ],
+      "pro_tip": "If bash isn't available, try `docker exec -it container sh` — Alpine-based images don't include bash. Also try `docker exec -it container /bin/ash`."
+    },
+    {
+      "name": "docker build",
+      "summary": "Build a Docker image from a Dockerfile.",
+      "risk": "low",
+      "risk_reason": "Network access during build; large images consume disk space.",
+      "explanation": "docker build creates images from a Dockerfile. The -t flag tags the image. Build context (the path argument) is sent to the Docker daemon — use .dockerignore to exclude unnecessary files and speed up builds.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--tag",
+          "desc": "Name and optionally tag the image"
+        },
+        {
+          "flag": "-f",
+          "long": "--file",
+          "desc": "Path to Dockerfile"
+        },
+        {
+          "flag": "--no-cache",
+          "desc": "Build without using cache"
+        },
+        {
+          "flag": "--build-arg",
+          "desc": "Set build-time variables"
+        },
+        {
+          "flag": "--platform",
+          "desc": "Target platform (e.g., linux/amd64,linux/arm64)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker build -t myapp:v1.2.3 .",
+          "desc": "Build and tag image from current directory"
+        },
+        {
+          "cmd": "docker build --no-cache -t myapp:latest .",
+          "desc": "Force clean build ignoring cache"
+        },
+        {
+          "cmd": "docker build --platform linux/amd64,linux/arm64 -t myapp:latest .",
+          "desc": "Multi-platform build"
+        },
+        {
+          "cmd": "docker build --build-arg ENV=production -t myapp:prod .",
+          "desc": "Pass build argument"
+        }
+      ],
+      "suggestions": [
+        "docker ps",
+        "docker logs",
+        "docker exec"
+      ],
+      "pro_tip": "Order Dockerfile instructions from least to most frequently changing — COPY requirements.txt and RUN pip install before COPY . . — to maximize cache layer reuse and reduce build times."
+    },
+    {
+      "name": "podman",
+      "summary": "Daemonless container runtime compatible with Docker CLI.",
+      "risk": "medium",
+      "risk_reason": "Rootless by default; some Docker behaviors differ.",
+      "cautions": [
+        "Rootless mode limits privileges, but --privileged or mounting host paths still gives broad access.",
+        "Docker-compatible flags can behave differently (networking, volume ownership, systemd integration) — test before production use."
+      ],
+      "explanation": "Podman is a daemonless container engine that's fully OCI-compatible and largely drop-in compatible with Docker commands. It runs rootless by default (more secure), supports pods natively (like Kubernetes pods), and generates Kubernetes YAML from running containers.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "podman ps -a",
+          "desc": "List all containers (same syntax as docker ps)"
+        },
+        {
+          "cmd": "podman run -it --rm ubuntu bash",
+          "desc": "Run Ubuntu container interactively"
+        },
+        {
+          "cmd": "podman generate kube mypod > pod.yaml",
+          "desc": "Generate Kubernetes YAML from running container"
+        },
+        {
+          "cmd": "podman play kube pod.yaml",
+          "desc": "Run Kubernetes YAML with podman"
+        },
+        {
+          "cmd": "podman system df",
+          "desc": "Show disk usage by containers, images, volumes"
+        }
+      ],
+      "suggestions": [
+        "docker ps",
+        "kubectl apply",
+        "nsenter"
+      ],
+      "pro_tip": "Use `podman generate kube container_name` to convert a working local container to Kubernetes YAML — faster than writing manifests from scratch when prototyping.",
+      "low_when": [
+        "\\b(ps|images|logs|inspect|info|version|stats|top|history|search)\\b"
+      ],
+      "low_unless": [
+        "rm\\b|rmi|prune|kill|stop|run|exec|--privileged"
+      ]
+    },
+    {
+      "name": "skopeo",
+      "summary": "Inspect, copy, and sync container images without a runtime.",
+      "risk": "low",
+      "risk_reason": "Read-only inspection; copy operations require write access.",
+      "explanation": "skopeo operates on container images in registries without needing a container runtime or root. It inspects images (tags, layers, config), copies images between registries, and syncs registry contents. Essential for registry migrations and air-gapped environments.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "skopeo inspect docker://nginx:latest",
+          "desc": "Inspect nginx image metadata without pulling"
+        },
+        {
+          "cmd": "skopeo list-tags docker://registry.hub.docker.com/library/nginx",
+          "desc": "List all available tags for an image"
+        },
+        {
+          "cmd": "skopeo copy docker://source-registry/image:tag docker://dest-registry/image:tag",
+          "desc": "Copy image between registries"
+        },
+        {
+          "cmd": "skopeo copy docker://nginx:latest oci:/tmp/nginx-local",
+          "desc": "Copy image to local OCI directory"
+        }
+      ],
+      "suggestions": [
+        "docker build",
+        "podman",
+        "crictl"
+      ],
+      "pro_tip": "Use `skopeo list-tags` in CI to check if a specific image tag exists before pulling — prevents misleading 'image not found' errors mid-pipeline."
+    },
+    {
+      "name": "docker-compose",
+      "match": [
+        "docker-compose"
+      ],
+      "summary": "Define multi-container apps (v1)",
+      "risk": "high",
+      "risk_reason": "`down -v` deletes volumes; the wrong project/directory affects the wrong stack.",
+      "cautions": [
+        "`down -v` or `rm -v` deletes named volumes — data loss.",
+        "Check the directory and project name (-p); the same service names exist in many stacks.",
+        "`up` recreates containers when images or config changed."
+      ],
+      "explanation": "Compose v1 binary; use `docker compose` (v2) today. Reads docker-compose.yml.",
+      "flags": [
+        {
+          "flag": "up -d",
+          "desc": "Create/start in the background"
+        },
+        {
+          "flag": "down",
+          "desc": "Stop and remove containers/networks"
+        },
+        {
+          "flag": "down -v",
+          "desc": "Also remove volumes",
+          "caution": "Deletes database data."
+        },
+        {
+          "flag": "logs -f",
+          "desc": "Follow logs"
+        },
+        {
+          "flag": "pull",
+          "desc": "Update images"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker-compose ps",
+          "desc": "Status"
+        },
+        {
+          "cmd": "docker-compose up -d",
+          "desc": "Start the stack"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "docker-compose config",
+          "why": "Validate and view the resolved config"
+        },
+        {
+          "cmd": "docker-compose down",
+          "why": "Without -v to keep data"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker compose"
+      ],
+      "low_when": [
+        "\\b(ps|logs|config|images|top|version)\\b"
+      ],
+      "low_unless": [
+        "down|rm|up|restart|stop|kill"
+      ]
+    },
+    {
+      "name": "docker compose",
+      "match": [
+        "docker compose"
+      ],
+      "summary": "Define multi-container apps (v2)",
+      "risk": "high",
+      "risk_reason": "`down -v` deletes volumes; the wrong project/directory affects the wrong stack.",
+      "cautions": [
+        "Volumes survive `down` but not `down -v`.",
+        "Verify the project (docker compose ls) before destructive commands.",
+        "`up` recreates containers when config/image changed — expect a brief outage."
+      ],
+      "explanation": "Compose v2 plugin: manages the services in compose.yaml.",
+      "flags": [
+        {
+          "flag": "up -d",
+          "desc": "Create/start"
+        },
+        {
+          "flag": "down",
+          "desc": "Stop and remove"
+        },
+        {
+          "flag": "down -v",
+          "desc": "Remove volumes too",
+          "caution": "Deletes data."
+        },
+        {
+          "flag": "logs -f",
+          "desc": "Follow logs"
+        },
+        {
+          "flag": "config",
+          "desc": "Validate/show merged config"
+        },
+        {
+          "flag": "pull",
+          "desc": "Pull images"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker compose ps",
+          "desc": "Status"
+        },
+        {
+          "cmd": "docker compose up -d --build",
+          "desc": "Rebuild and start"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "docker compose config",
+          "why": "Review the effective config"
+        },
+        {
+          "cmd": "docker compose down",
+          "why": "Keep volumes"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker-compose"
+      ],
+      "low_when": [
+        "\\b(ps|logs|config|images|top|version|ls)\\b"
+      ],
+      "low_unless": [
+        "down|rm|up|restart|stop|kill"
+      ],
+      "id": "docker-compose-v2"
+    },
+    {
+      "name": "docker run",
+      "match": [
+        "docker run"
+      ],
+      "summary": "Run a container",
+      "risk": "high",
+      "risk_reason": "Containers can mount host paths, use host networking or run privileged.",
+      "cautions": [
+        "--privileged, -v /:/host and -v /var/run/docker.sock grant host-level control.",
+        "Pin image tags/digests; avoid :latest.",
+        "Don’t pass secrets with -e — use secrets or env files with strict permissions.",
+        "Run as non-root (--user) and drop capabilities (--cap-drop ALL)."
+      ],
+      "explanation": "Creates and starts a container from an image.",
+      "flags": [
+        {
+          "flag": "-d",
+          "desc": "Detached"
+        },
+        {
+          "flag": "-p",
+          "desc": "Publish port host:container"
+        },
+        {
+          "flag": "-v",
+          "desc": "Mount volume or host path",
+          "caution": "Mounting / or the Docker socket gives host control."
+        },
+        {
+          "flag": "--rm",
+          "desc": "Remove container on exit"
+        },
+        {
+          "flag": "--privileged",
+          "long": "--privileged",
+          "desc": "Full host access",
+          "caution": "Disables isolation."
+        },
+        {
+          "flag": "-e",
+          "desc": "Environment variable",
+          "caution": "Visible in docker inspect."
+        },
+        {
+          "flag": "--network host",
+          "desc": "Host networking",
+          "caution": "Bypasses network isolation."
+        },
+        {
+          "flag": "--user",
+          "desc": "Run as user"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker run --rm -it alpine sh",
+          "desc": "Throwaway shell"
+        },
+        {
+          "cmd": "docker run -d --name web -p 8080:80 nginx:1.27",
+          "desc": "Run nginx"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges <image>",
+          "why": "Hardened run options"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker exec"
+      ]
+    },
+    {
+      "name": "docker rm",
+      "match": [
+        "docker rm"
+      ],
+      "summary": "Remove containers",
+      "risk": "high",
+      "risk_reason": "Deletes containers and, with -v, their anonymous volumes.",
+      "cautions": [
+        "-v deletes anonymous volumes (often databases).",
+        "`docker rm -f $(docker ps -aq)` removes every container on the host."
+      ],
+      "explanation": "Removes stopped containers; -f kills running ones.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "Force remove a running container",
+          "caution": "Kills it immediately."
+        },
+        {
+          "flag": "-v",
+          "desc": "Also remove anonymous volumes",
+          "caution": "Deletes data."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker rm web",
+          "desc": "Remove a stopped container"
+        },
+        {
+          "cmd": "docker container prune",
+          "desc": "Remove all stopped containers"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "docker ps -a",
+          "why": "Review containers first"
+        },
+        {
+          "cmd": "docker stop <c> && docker rm <c>",
+          "why": "Stop gracefully, then remove"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker stop"
+      ]
+    },
+    {
+      "name": "docker rmi",
+      "match": [
+        "docker rmi",
+        "docker image rm"
+      ],
+      "summary": "Remove images",
+      "risk": "medium",
+      "risk_reason": "Removes images; running containers may need them to restart.",
+      "cautions": [
+        "Images referenced by stopped containers stop those containers from being recreated."
+      ],
+      "explanation": "Deletes local images. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "Force"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker rmi nginx:1.25",
+          "desc": "Remove an image"
+        }
+      ],
+      "suggestions": [
+        "docker image prune"
+      ]
+    },
+    {
+      "name": "docker stop",
+      "match": [
+        "docker stop"
+      ],
+      "summary": "Stop containers",
+      "risk": "medium",
+      "risk_reason": "Stops services; sends SIGTERM then SIGKILL after the timeout.",
+      "cautions": [
+        "`docker stop $(docker ps -q)` stops every container on the host.",
+        "Databases may need a longer -t to flush data."
+      ],
+      "explanation": "Gracefully stops containers; default timeout 10 s.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Seconds to wait before SIGKILL"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker stop web",
+          "desc": "Stop a container"
+        },
+        {
+          "cmd": "docker stop -t 30 db",
+          "desc": "Allow 30 s for shutdown"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker rm"
+      ]
+    },
+    {
+      "name": "docker system prune",
+      "match": [
+        "docker system prune"
+      ],
+      "summary": "Remove unused Docker data",
+      "risk": "high",
+      "risk_reason": "Deletes stopped containers, unused networks, dangling images; with -a --volumes also unused images and volumes.",
+      "cautions": [
+        "\"Unused\" means not referenced by a running container — stopped databases’ volumes can be deleted with --volumes.",
+        "-f skips the confirmation prompt."
+      ],
+      "explanation": "Cleans up disk space used by Docker. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [
+        {
+          "flag": "-a",
+          "desc": "Remove all unused images",
+          "caution": "Forces re-pulls."
+        },
+        {
+          "flag": "--volumes",
+          "long": "--volumes",
+          "desc": "Also prune volumes",
+          "caution": "Deletes data in unused volumes."
+        },
+        {
+          "flag": "-f",
+          "desc": "Do not ask"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker system df",
+          "desc": "See what uses space"
+        },
+        {
+          "cmd": "docker system prune",
+          "desc": "Remove dangling data"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "docker system df",
+          "why": "Check usage first"
+        },
+        {
+          "cmd": "docker image prune",
+          "why": "Dangling images only"
+        },
+        {
+          "cmd": "docker container prune",
+          "why": "Stopped containers only"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker volume"
+      ]
+    },
+    {
+      "name": "docker volume",
+      "match": [
+        "docker volume"
+      ],
+      "summary": "Manage Docker volumes",
+      "risk": "high",
+      "risk_reason": "`rm`/`prune` permanently delete data.",
+      "cautions": [
+        "Volume data is not backed up by default.",
+        "prune deletes volumes not currently used by a container — including those of stopped databases."
+      ],
+      "explanation": "Create, list and remove volumes. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [
+        {
+          "flag": "ls",
+          "desc": "List volumes"
+        },
+        {
+          "flag": "inspect",
+          "desc": "Details"
+        },
+        {
+          "flag": "rm",
+          "desc": "Remove volumes",
+          "caution": "Permanent data loss."
+        },
+        {
+          "flag": "prune",
+          "desc": "Remove unused volumes",
+          "caution": "Deletes data."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker volume ls",
+          "desc": "List"
+        },
+        {
+          "cmd": "docker volume inspect pgdata",
+          "desc": "Where is it stored?"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "docker run --rm -v <vol>:/data -v $PWD:/backup alpine tar czf /backup/vol.tgz /data",
+          "why": "Back up a volume first"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "docker system prune"
+      ],
+      "low_when": [
+        "\\b(ls|inspect)\\b"
+      ],
+      "low_unless": [
+        "rm|prune"
+      ]
+    },
+    {
+      "name": "docker network",
+      "match": [
+        "docker network"
+      ],
+      "summary": "Manage Docker networks",
+      "risk": "medium",
+      "risk_reason": "Removing/disconnecting networks breaks container connectivity.",
+      "cautions": [
+        "Removing a network used by services breaks them."
+      ],
+      "explanation": "Create, inspect and remove networks. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [
+        {
+          "flag": "ls",
+          "desc": "List"
+        },
+        {
+          "flag": "inspect",
+          "desc": "Details"
+        },
+        {
+          "flag": "create",
+          "desc": "Create"
+        },
+        {
+          "flag": "rm",
+          "desc": "Remove"
+        },
+        {
+          "flag": "connect",
+          "desc": "Attach a container"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker network ls",
+          "desc": "List networks"
+        },
+        {
+          "cmd": "docker network inspect bridge",
+          "desc": "Details"
+        }
+      ],
+      "suggestions": [
+        "docker"
+      ],
+      "low_when": [
+        "\\b(ls|inspect)\\b"
+      ],
+      "low_unless": [
+        "rm|prune|disconnect"
+      ]
+    },
+    {
+      "name": "docker pull",
+      "match": [
+        "docker pull"
+      ],
+      "summary": "Download images",
+      "risk": "low",
+      "risk_reason": "Downloads images from a registry — untrusted images may be malicious.",
+      "cautions": [
+        "Only pull from trusted registries; verify digests/signatures.",
+        "Avoid :latest in production."
+      ],
+      "explanation": "Fetches an image. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "docker pull nginx:1.27",
+          "desc": "Pull a pinned version"
+        }
+      ],
+      "suggestions": [
+        "docker run",
+        "skopeo"
+      ]
+    },
+    {
+      "name": "docker push",
+      "match": [
+        "docker push"
+      ],
+      "summary": "Upload images",
+      "risk": "medium",
+      "risk_reason": "Publishes images; may expose code or secrets baked into layers.",
+      "cautions": [
+        "Images can contain secrets in layers — scan before pushing.",
+        "Pushing to the wrong registry or tag (e.g. overwriting :prod) affects deployments."
+      ],
+      "explanation": "Pushes an image to a registry. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "docker push registry.example.com/app:1.0",
+          "desc": "Push"
+        }
+      ],
+      "suggestions": [
+        "docker build"
+      ]
+    },
+    {
+      "name": "docker inspect",
+      "match": [
+        "docker inspect"
+      ],
+      "summary": "Show low-level info",
+      "risk": "low",
+      "risk_reason": "Read-only; output may include secrets (env vars).",
+      "cautions": [
+        "Environment variables (passwords, tokens) are visible — don’t paste output into tickets."
+      ],
+      "explanation": "Returns JSON details of containers, images, networks and volumes.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "Go template filter"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker inspect -f \"{{.State.Status}}\" web",
+          "desc": "Container status"
+        }
+      ],
+      "suggestions": [
+        "docker ps"
+      ]
+    },
+    {
+      "name": "docker stats",
+      "match": [
+        "docker stats"
+      ],
+      "summary": "Live container resource usage",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Streams CPU, memory, network and I/O per container.",
+      "flags": [
+        {
+          "flag": "--no-stream",
+          "long": "--no-stream",
+          "desc": "One snapshot"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "docker stats --no-stream",
+          "desc": "Snapshot"
+        }
+      ],
+      "suggestions": [
+        "docker ps",
+        "top"
+      ]
+    },
+    {
+      "name": "docker cp",
+      "match": [
+        "docker cp"
+      ],
+      "summary": "Copy files to/from containers",
+      "risk": "medium",
+      "risk_reason": "Overwrites files inside containers/host.",
+      "cautions": [
+        "Copying into running containers changes state outside your deployment pipeline."
+      ],
+      "explanation": "Copies between a container and the host.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "docker cp web:/etc/nginx/nginx.conf .",
+          "desc": "Copy a file out"
+        },
+        {
+          "cmd": "docker cp ./app.conf web:/etc/app.conf",
+          "desc": "Copy a file in"
+        }
+      ],
+      "suggestions": [
+        "docker exec"
+      ]
+    },
+    {
+      "name": "docker login",
+      "match": [
+        "docker login"
+      ],
+      "summary": "Authenticate to a registry",
+      "risk": "medium",
+      "risk_reason": "Stores credentials in ~/.docker/config.json.",
+      "cautions": [
+        "Use --password-stdin; avoid -p on the command line.",
+        "Credentials stored in config.json are base64 only — use a credential helper."
+      ],
+      "explanation": "Saves registry credentials. See the flags and examples below, and run `man docker` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "docker login registry.example.com",
+          "desc": "Login"
+        }
+      ],
+      "suggestions": [
+        "docker push"
+      ]
+    },
+    {
+      "name": "buildah",
+      "summary": "Build OCI images without a daemon",
+      "risk": "medium",
+      "risk_reason": "Builds run commands as the invoking user; rootless recommended.",
+      "cautions": [
+        "Builds execute arbitrary RUN steps — only build trusted Dockerfiles."
+      ],
+      "explanation": "Daemonless image builder from Red Hat. See the flags and examples below, and run `man buildah` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "buildah bud -t app:1.0 .",
+          "desc": "Build from a Dockerfile"
+        }
+      ],
+      "suggestions": [
+        "podman",
+        "skopeo"
+      ]
+    },
+    {
+      "name": "ctr",
+      "summary": "containerd client",
+      "risk": "high",
+      "risk_reason": "Operates below Kubernetes; can delete containers/images used by the kubelet.",
+      "cautions": [
+        "Changes made with ctr are invisible to Kubernetes and can leave nodes inconsistent."
+      ],
+      "explanation": "Low-level client for containerd. See the flags and examples below, and run `man ctr` for the full reference.",
+      "flags": [
+        {
+          "flag": "-n k8s.io",
+          "desc": "Kubernetes namespace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ctr -n k8s.io containers ls",
+          "desc": "List Kubernetes containers"
+        },
+        {
+          "cmd": "ctr -n k8s.io images ls",
+          "desc": "List images"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "crictl ps",
+          "why": "Prefer crictl for CRI-level inspection"
+        }
+      ],
+      "suggestions": [
+        "crictl"
+      ],
+      "low_when": [
+        "\\b(ls|list|info|version)\\b"
+      ],
+      "low_unless": [
+        "rm|delete|kill|stop|prune"
+      ]
+    },
+    {
+      "name": "nerdctl",
+      "summary": "Docker-compatible CLI for containerd",
+      "risk": "medium",
+      "risk_reason": "Mirrors Docker risks.",
+      "cautions": [
+        "Same risks as docker run --privileged and host mounts."
+      ],
+      "explanation": "Docker-like CLI for containerd. See the flags and examples below, and run `man nerdctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nerdctl ps",
+          "desc": "List containers"
+        }
+      ],
+      "suggestions": [
+        "docker"
+      ]
+    },
+    {
+      "name": "trivy",
+      "summary": "Vulnerability scanner",
+      "risk": "low",
+      "risk_reason": "Read-only scan; downloads vulnerability DBs.",
+      "cautions": [
+        "Findings need triage — a clean scan is not a guarantee."
+      ],
+      "explanation": "Scans images, filesystems and IaC for CVEs and misconfigurations.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "trivy image nginx:1.27",
+          "desc": "Scan an image"
+        },
+        {
+          "cmd": "trivy fs .",
+          "desc": "Scan a project"
+        }
+      ],
+      "suggestions": [
+        "docker",
+        "grype"
+      ]
+    },
+    {
+      "name": "hadolint",
+      "summary": "Dockerfile linter",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Checks Dockerfiles for best practices. See the flags and examples below, and run `man hadolint` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "hadolint Dockerfile",
+          "desc": "Lint"
+        }
+      ],
+      "suggestions": [
+        "docker build"
+      ]
+    },
+    {
+      "name": "dive",
+      "summary": "Explore image layers",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "TUI showing image layers and wasted space.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "dive nginx:1.27",
+          "desc": "Inspect an image"
+        }
+      ],
+      "suggestions": [
+        "docker"
+      ]
+    },
+    {
+      "name": "lxc",
+      "summary": "LXD/LXC container tool",
+      "risk": "medium",
+      "risk_reason": "Manages system containers with privileged options.",
+      "cautions": [
+        "Privileged containers and device passthrough weaken isolation."
+      ],
+      "explanation": "lxc commands manage LXD instances. See the flags and examples below, and run `man lxc` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lxc list",
+          "desc": "List instances"
+        },
+        {
+          "cmd": "lxc launch ubuntu:24.04 c1",
+          "desc": "Create one"
+        }
+      ],
+      "suggestions": [
+        "docker"
+      ]
+    }
+  ]
+}

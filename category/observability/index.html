@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Debugging &amp; Performance commands explained (22) | Linux Command Explainer</title>
+<meta name="description" content="strace, perf, eBPF, profilers, load generators and monitoring helpers. 22 entries with risks and examples." />
+<link rel="canonical" href="https://linux-command-explainer.eknathalabs.com/category/observability/" />
+<meta property="og:title" content="Debugging &amp; Performance commands explained (22) | Linux Command Explainer" />
+<meta property="og:description" content="strace, perf, eBPF, profilers, load generators and monitoring helpers. 22 entries with risks and examples." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://linux-command-explainer.eknathalabs.com/category/observability/" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://linux-command-explainer.eknathalabs.com/"},{"@type":"ListItem","position":2,"name":"Debugging & Performance","item":"https://linux-command-explainer.eknathalabs.com/category/observability/"}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/style.css?v=f8d6fe42" />
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()"><span id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Home</a> &rsaquo; Debugging &amp; Performance</nav><header><h1 class="headline" style="font-size:clamp(28px,5vw,44px)">🔬 <span>Debugging &amp; Performance</span></h1><p class="sub">strace, perf, eBPF, profilers, load generators and monitoring helpers.</p></header><ul class="dir-grid"><li><a href="../../cmd/atop/">atop<small>Advanced system monitor</small></a></li><li><a href="../../cmd/bpftool/">bpftool<small>Inspect eBPF programs</small></a></li><li><a href="../../cmd/bpftrace/">bpftrace<small>Dynamic tracing of Linux kernel and userspace using eBPF.</small></a></li><li><a href="../../cmd/btop/">btop<small>Resource monitor</small></a></li><li><a href="../../cmd/cat-proc/">cat /proc<small>The /proc filesystem</small></a></li><li><a href="../../cmd/coredumpctl/">coredumpctl<small>Access core dumps</small></a></li><li><a href="../../cmd/gdb/">gdb<small>GNU debugger</small></a></li><li><a href="../../cmd/glances/">glances<small>System monitor</small></a></li><li><a href="../../cmd/grafana-cli/">grafana-cli<small>Grafana admin CLI</small></a></li><li><a href="../../cmd/iotop/">iotop<small>Interactive real-time display of disk I/O per process.</small></a></li><li><a href="../../cmd/journald/">journald<small>journald control</small></a></li><li><a href="../../cmd/ltrace/">ltrace<small>Trace library calls</small></a></li><li><a href="../../cmd/nm/">nm<small>List symbols</small></a></li><li><a href="../../cmd/nmon/">nmon<small>Performance monitor</small></a></li><li><a href="../../cmd/objdump/">objdump<small>Disassemble binaries</small></a></li><li><a href="../../cmd/perf/">perf<small>Linux performance analysis and profiling tool.</small></a></li><li><a href="../../cmd/promtool/">promtool<small>Prometheus tool</small></a></li><li><a href="../../cmd/readelf/">readelf<small>Display ELF info</small></a></li><li><a href="../../cmd/strace/">strace<small>Trace system calls and signals made by a process.</small></a></li><li><a href="../../cmd/trace-cmd/">trace-cmd<small>Ftrace front-end</small></a></li><li><a href="../../cmd/tshark/">tshark<small>Packet analyzer (CLI Wireshark)</small></a></li><li><a href="../../cmd/valgrind/">valgrind<small>Memory error detector</small></a></li></ul>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="../../">Explainer</a> &nbsp;&middot;&nbsp; <a href="../../cmd/">All commands</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer">GitHub</a></footer>
+<script>(function(){var t=null;try{t=localStorage.getItem('lce-theme')}catch(e){}function a(t){document.body.classList.toggle('light',t==='light');document.getElementById('togIcon').innerHTML=t==='light'?'&#9728;':'&#9790;';document.getElementById('togLabel').textContent=t==='light'?'Dark':'Light'}a(t||'dark');window.toggleTheme=function(){var n=document.body.classList.contains('light')?'dark':'light';a(n);try{localStorage.setItem('lce-theme',n)}catch(e){}}})();</script>
+
+</body>
+</html>

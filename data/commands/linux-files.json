@@ -1,0 +1,2273 @@
+{
+  "category": "linux-files",
+  "commands": [
+    {
+      "name": "ls",
+      "summary": "List directory contents with optional detail and sorting.",
+      "risk": "low",
+      "risk_reason": "Read-only operation, no system changes.",
+      "explanation": "ls reads directory entries and displays them. With -l it shows permissions, ownership, size, and timestamps. -a reveals hidden dotfiles. Pipe to grep or awk for filtering. Colors are controlled by LS_COLORS.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "Long format: permissions, links, owner, size, date"
+        },
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Show hidden files (starting with .)"
+        },
+        {
+          "flag": "-h",
+          "long": "--human-readable",
+          "desc": "Print sizes as K, M, G instead of bytes"
+        },
+        {
+          "flag": "-t",
+          "desc": "Sort by modification time, newest first"
+        },
+        {
+          "flag": "-R",
+          "long": "--recursive",
+          "desc": "List subdirectories recursively"
+        },
+        {
+          "flag": "-S",
+          "desc": "Sort by file size, largest first"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ls -lah /var/log",
+          "desc": "Show all files including hidden with human-readable sizes in /var/log"
+        },
+        {
+          "cmd": "ls -lt /tmp | head -20",
+          "desc": "Show the 20 most recently modified files in /tmp"
+        },
+        {
+          "cmd": "ls -lS /usr/bin | tail -10",
+          "desc": "Show the 10 smallest binaries in /usr/bin"
+        }
+      ],
+      "suggestions": [
+        "find",
+        "tree",
+        "du",
+        "stat"
+      ],
+      "pro_tip": "Use `ls --color=always | less -R` to get colorized output inside less without losing terminal color codes."
+    },
+    {
+      "name": "cd",
+      "summary": "Change the current working directory.",
+      "risk": "low",
+      "risk_reason": "Navigation only, no file modifications.",
+      "explanation": "cd updates the shell's working directory. `cd -` returns to the previous directory. `cd ~` always goes home. In scripts, always pair cd with `|| exit 1` to catch failure before running destructive follow-up commands.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "cd /var/log/nginx",
+          "desc": "Navigate to nginx log directory"
+        },
+        {
+          "cmd": "cd -",
+          "desc": "Jump back to the previous directory"
+        },
+        {
+          "cmd": "cd ~",
+          "desc": "Go to your home directory from anywhere"
+        }
+      ],
+      "suggestions": [
+        "pwd",
+        "pushd",
+        "popd",
+        "ls"
+      ],
+      "pro_tip": "Use `pushd /path` and `popd` when you need a directory stack — navigate away and return without remembering the original path."
+    },
+    {
+      "name": "pwd",
+      "summary": "Print the full absolute path of the current working directory.",
+      "risk": "low",
+      "risk_reason": "Read-only, purely informational.",
+      "explanation": "pwd resolves and prints the absolute path. -P shows the physical path resolving symlinks, useful after cd-ing through symlinked directories. The $PWD variable is always available as an alternative.",
+      "flags": [
+        {
+          "flag": "-P",
+          "long": "--physical",
+          "desc": "Print real physical path, resolving all symlinks"
+        },
+        {
+          "flag": "-L",
+          "long": "--logical",
+          "desc": "Use shell logical path including symlinks (default)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pwd",
+          "desc": "Show current directory"
+        },
+        {
+          "cmd": "pwd -P",
+          "desc": "Show real path resolving any symlinks"
+        },
+        {
+          "cmd": "SCRIPT_DIR=$(pwd)",
+          "desc": "Capture current directory into a variable in a script"
+        }
+      ],
+      "suggestions": [
+        "cd",
+        "ls",
+        "dirs"
+      ],
+      "pro_tip": "In bash scripts use `$PWD` built-in variable instead of calling `$(pwd)` — it's faster since it avoids spawning a subshell."
+    },
+    {
+      "name": "cp",
+      "summary": "Copy files or directories from source to destination.",
+      "risk": "medium",
+      "risk_reason": "Can silently overwrite destination files without warning.",
+      "cautions": [
+        "Silently overwrites existing files — use -i (ask) or -n (never).",
+        "With -r, a trailing slash or an existing destination changes where things end up; check with ls afterwards.",
+        "Permissions, ownership and timestamps are only preserved with -a / -p."
+      ],
+      "explanation": "cp copies files and directories. Without -r it refuses to copy directories. -p preserves timestamps and permissions — critical for backups. -u only copies when source is newer. The -i flag adds interactive prompts before overwriting.",
+      "flags": [
+        {
+          "flag": "-r",
+          "long": "--recursive",
+          "desc": "Copy directories and all their contents recursively"
+        },
+        {
+          "flag": "-p",
+          "long": "--preserve",
+          "desc": "Preserve timestamps, permissions, and ownership"
+        },
+        {
+          "flag": "-i",
+          "long": "--interactive",
+          "desc": "Prompt before overwriting existing files"
+        },
+        {
+          "flag": "-u",
+          "long": "--update",
+          "desc": "Copy only when source is newer than destination"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Print each file as it is copied"
+        },
+        {
+          "flag": "-a",
+          "long": "--archive",
+          "desc": "Same as -dR --preserve=all — full archive copy"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "cp -rp /etc/nginx /etc/nginx.bak",
+          "desc": "Backup nginx config recursively with preserved permissions"
+        },
+        {
+          "cmd": "cp -i config.yml /etc/app/",
+          "desc": "Copy config with confirmation prompt if destination exists"
+        },
+        {
+          "cmd": "cp -av /src/* /dst/",
+          "desc": "Archive-copy all files verbosely showing each transfer"
+        }
+      ],
+      "suggestions": [
+        "mv",
+        "rsync",
+        "tar",
+        "scp"
+      ],
+      "pro_tip": "Prefer `rsync -a` over `cp -r` for large directories — rsync is resumable, shows progress, and handles edge cases better."
+    },
+    {
+      "name": "mv",
+      "summary": "Move or rename files and directories.",
+      "risk": "medium",
+      "risk_reason": "Overwrites destination without warning and cannot be undone.",
+      "cautions": [
+        "Overwrites the destination without asking (unless -i/-n).",
+        "Across filesystems mv is copy + delete — an interruption leaves partial data.",
+        "If the target directory does not exist, mv renames the source instead of moving it into a directory."
+      ],
+      "explanation": "mv moves or renames files. Cross-filesystem moves copy then delete. Use -i for safety in scripts. Unlike cp, the original is always removed after a successful move.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--interactive",
+          "desc": "Prompt before overwriting"
+        },
+        {
+          "flag": "-n",
+          "long": "--no-clobber",
+          "desc": "Do not overwrite existing files"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Show what is being moved"
+        },
+        {
+          "flag": "-b",
+          "long": "--backup",
+          "desc": "Create a backup of each overwritten file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mv config.yml config.yml.bak",
+          "desc": "Rename file as backup before editing"
+        },
+        {
+          "cmd": "mv -v /tmp/deploy/* /var/www/html/",
+          "desc": "Move all deploy files to web root verbosely"
+        },
+        {
+          "cmd": "mv -i *.log /archive/logs/",
+          "desc": "Move all log files to archive with overwrite confirmation"
+        }
+      ],
+      "suggestions": [
+        "cp",
+        "rm",
+        "rename",
+        "rsync"
+      ],
+      "pro_tip": "Use `mv -b` to auto-create tilde-suffixed backups (~) on overwrite — great for safe config file rotation."
+    },
+    {
+      "name": "rm",
+      "summary": "Remove files or directories permanently with no recycle bin.",
+      "risk": "high",
+      "risk_reason": "Permanently deletes files. No undo. No trash. Irreversible.",
+      "cautions": [
+        "No trash, no undo — deleted files are gone.",
+        "Preview with `ls` or `echo rm …` first, especially with globs and variables.",
+        "Never run `rm -rf` with a variable that might be empty or unquoted.",
+        "rm does not ask before deleting files you can write; use -i or -I to be prompted."
+      ],
+      "explanation": "rm deletes files immediately. There is no recycle bin on Linux. The -rf combination recursively forces deletion — extremely dangerous near / or $HOME. Always double-check paths in scripts and never use unquoted variables.",
+      "flags": [
+        {
+          "flag": "-r",
+          "long": "--recursive",
+          "desc": "Remove directories and all their contents"
+        },
+        {
+          "flag": "-f",
+          "long": "--force",
+          "desc": "Ignore nonexistent files, never prompt"
+        },
+        {
+          "flag": "-i",
+          "long": "--interactive",
+          "desc": "Prompt before every removal"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Show each file as it is removed"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rm -i file.txt",
+          "desc": "Delete file with confirmation prompt"
+        },
+        {
+          "cmd": "rm -rf /tmp/build_artifacts/",
+          "desc": "Force-delete a build directory recursively"
+        },
+        {
+          "cmd": "find . -name '*.tmp' -delete",
+          "desc": "Safer: find and delete tmp files without rm -rf"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ls -la <target>",
+          "why": "Preview what you are about to delete."
+        },
+        {
+          "cmd": "rm -rI <dir>",
+          "why": "Ask once before a recursive delete (-I); use -i to be asked for every file."
+        },
+        {
+          "cmd": "trash-put <path>",
+          "why": "Move to the trash (trash-cli) so it can be recovered."
+        }
+      ],
+      "suggestions": [
+        "find -delete",
+        "trash-cli",
+        "mv",
+        "shred"
+      ],
+      "pro_tip": "Never run `rm -rf $VAR/path` — if $VAR is empty it becomes `rm -rf /path`. Always validate and quote variables before destructive commands."
+    },
+    {
+      "name": "mkdir",
+      "summary": "Create one or more new directories.",
+      "risk": "low",
+      "risk_reason": "Creates directories only, no destructive action.",
+      "explanation": "mkdir creates directories. The -p flag creates all parent directories as needed and suppresses errors if already existing — ideal for idempotent scripts and CI pipelines.",
+      "flags": [
+        {
+          "flag": "-p",
+          "long": "--parents",
+          "desc": "Create parent dirs as needed, no error if existing"
+        },
+        {
+          "flag": "-m",
+          "long": "--mode",
+          "desc": "Set permissions for the new directory (like chmod)"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Print a message for each created directory"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mkdir -p /opt/app/{logs,config,data}",
+          "desc": "Create app directory with three subdirectories via brace expansion"
+        },
+        {
+          "cmd": "mkdir -m 700 /home/user/.ssh",
+          "desc": "Create .ssh directory with strict owner-only permissions"
+        },
+        {
+          "cmd": "mkdir -pv /var/www/html/static/css",
+          "desc": "Create full nested path verbosely"
+        }
+      ],
+      "suggestions": [
+        "rm",
+        "ls",
+        "chmod",
+        "touch"
+      ],
+      "pro_tip": "Use brace expansion `mkdir -p project/{src,tests,docs,bin}` to scaffold entire project structures in one command."
+    },
+    {
+      "name": "find",
+      "summary": "Recursively search for files by name, type, size, time, and more.",
+      "risk": "medium",
+      "risk_reason": "Combined with -exec rm, can delete files at scale.",
+      "cautions": [
+        "Always run with -print first; only add -delete or -exec rm once the list is right.",
+        "-delete must be the LAST expression — tests placed after it do not limit what is deleted.",
+        "Searching / is slow and loads production disks; scope the path and add -xdev."
+      ],
+      "explanation": "find is the most powerful file search tool on Linux. It supports filtering by name, type, permissions, size, modification time, and more — and can execute arbitrary commands on matches with -exec. Essential for cleanup, auditing, and automation.",
+      "flags": [
+        {
+          "flag": "-name",
+          "desc": "Match by filename (case-sensitive)"
+        },
+        {
+          "flag": "-iname",
+          "desc": "Match by filename (case-insensitive)"
+        },
+        {
+          "flag": "-type",
+          "desc": "Filter by type: f (file), d (dir), l (symlink)"
+        },
+        {
+          "flag": "-mtime",
+          "desc": "Match by modification time in days"
+        },
+        {
+          "flag": "-size",
+          "desc": "Match by size (e.g., +100M)"
+        },
+        {
+          "flag": "-exec",
+          "desc": "Execute command on each match"
+        },
+        {
+          "flag": "-maxdepth",
+          "desc": "Limit recursion depth"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "find /var/log -name '*.log' -mtime +30 -delete",
+          "desc": "Delete log files older than 30 days"
+        },
+        {
+          "cmd": "find / -perm /4000 -type f 2>/dev/null",
+          "desc": "Find all SUID binaries (security audit)"
+        },
+        {
+          "cmd": "find . -name '*.tf' -exec grep -l 'aws_s3_bucket' {} \\;",
+          "desc": "Find Terraform files referencing S3"
+        },
+        {
+          "cmd": "find /home -size +100M -type f",
+          "desc": "Find large files in home directories"
+        },
+        {
+          "cmd": "find . -type f -newer reference.txt",
+          "desc": "Files newer than a reference file"
+        }
+      ],
+      "suggestions": [
+        "xargs",
+        "grep",
+        "ls"
+      ],
+      "pro_tip": "Use `-exec cmd {} +` instead of `-exec cmd {} \\;` — the `+` variant batches arguments (like xargs), dramatically faster for large result sets.",
+      "low_when": [
+        ".*"
+      ],
+      "low_unless": [
+        "-delete",
+        "-exec(dir)?\\s+(rm|mv|chmod|chown|sh|bash|shred|truncate|dd|cp)\\b",
+        "-ok",
+        "-fprint"
+      ]
+    },
+    {
+      "name": "tar",
+      "summary": "Archive and compress files — the standard Linux backup and packaging tool.",
+      "risk": "medium",
+      "risk_reason": "Extraction can overwrite existing files; archives may contain absolute paths.",
+      "cautions": [
+        "Extraction overwrites existing files silently — list first with `tar -tf`.",
+        "Archives can contain absolute paths or ../ entries; inspect before extracting as root.",
+        "Use -C <dir> to control where files are extracted."
+      ],
+      "explanation": "tar bundles files into an archive. Combined with gzip (-z), bzip2 (-j), or xz (-J) it compresses too. The -C flag changes extraction directory. Always inspect archives with -t before extracting to avoid surprises.",
+      "flags": [
+        {
+          "flag": "-c",
+          "long": "--create",
+          "desc": "Create a new archive"
+        },
+        {
+          "flag": "-x",
+          "long": "--extract",
+          "desc": "Extract files from an archive"
+        },
+        {
+          "flag": "-t",
+          "long": "--list",
+          "desc": "List archive contents without extracting"
+        },
+        {
+          "flag": "-z",
+          "long": "--gzip",
+          "desc": "Compress/decompress with gzip (.tar.gz)"
+        },
+        {
+          "flag": "-j",
+          "long": "--bzip2",
+          "desc": "Compress/decompress with bzip2 (.tar.bz2)"
+        },
+        {
+          "flag": "-J",
+          "long": "--xz",
+          "desc": "Compress/decompress with xz (.tar.xz) — best compression ratio"
+        },
+        {
+          "flag": "-f",
+          "long": "--file",
+          "desc": "Specify archive filename"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Verbosely list files processed"
+        },
+        {
+          "flag": "-C",
+          "long": "--directory",
+          "desc": "Change to directory before extracting"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tar -czf backup-$(date +%F).tar.gz /var/www/html",
+          "desc": "Create date-stamped compressed backup of web root"
+        },
+        {
+          "cmd": "tar -xzf archive.tar.gz -C /opt/app/",
+          "desc": "Extract archive into /opt/app/"
+        },
+        {
+          "cmd": "tar -tzf archive.tar.gz | head -20",
+          "desc": "Preview compressed archive contents before extracting"
+        }
+      ],
+      "suggestions": [
+        "gzip",
+        "zip",
+        "rsync",
+        "scp",
+        "find"
+      ],
+      "pro_tip": "Exclude directories on archive: `tar --exclude='./logs' --exclude='./.git' -czf archive.tar.gz .`",
+      "low_when": [
+        "\\s-?[a-zA-Z]*t[a-zA-Z]*f|--list|-t\\b"
+      ],
+      "low_unless": [
+        "\\s-?[a-zA-Z]*[xc][a-zA-Z]*f|--delete|--remove-files"
+      ]
+    },
+    {
+      "name": "rsync",
+      "summary": "Fast, resumable file synchronization tool — local or over SSH.",
+      "risk": "medium",
+      "risk_reason": "--delete removes destination files not in source — use with caution.",
+      "cautions": [
+        "A trailing slash matters: `src/` copies the contents, `src` copies the directory itself.",
+        "--delete removes destination files that are not in the source — always run with -n (dry run) first.",
+        "Use -a to preserve attributes; -c (checksums) is expensive on big trees."
+      ],
+      "explanation": "rsync transfers only changed file blocks (delta transfer) making it extremely efficient. -a preserves permissions, timestamps, symlinks, and ownership. --delete mirrors the source exactly. Always test with -n (dry-run) first.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--archive",
+          "desc": "Archive: recursive + preserve perms, times, symlinks, owner"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Show transferred files"
+        },
+        {
+          "flag": "-z",
+          "long": "--compress",
+          "desc": "Compress data during transfer"
+        },
+        {
+          "flag": "--progress",
+          "desc": "Show per-file progress during transfer"
+        },
+        {
+          "flag": "--delete",
+          "desc": "Delete destination files not in source (mirror mode)"
+        },
+        {
+          "flag": "--exclude",
+          "desc": "Exclude files matching a pattern"
+        },
+        {
+          "flag": "-n",
+          "long": "--dry-run",
+          "desc": "Simulate without actually transferring"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rsync -avz --progress /var/www/ user@host:/var/www/",
+          "desc": "Sync web root to remote server with progress display"
+        },
+        {
+          "cmd": "rsync -av --delete --exclude='.git' /project/ /backup/",
+          "desc": "Mirror project directory excluding .git"
+        },
+        {
+          "cmd": "rsync -avn /src/ /dst/",
+          "desc": "Dry-run to preview what would sync before committing"
+        }
+      ],
+      "suggestions": [
+        "scp",
+        "tar",
+        "rclone",
+        "ssh"
+      ],
+      "pro_tip": "Always test with `rsync -avn` (dry run) before using `--delete`. One typo in the source path could wipe your entire destination."
+    },
+    {
+      "name": "df",
+      "summary": "Report disk space usage of mounted filesystems.",
+      "risk": "low",
+      "risk_reason": "Read-only filesystem inspection.",
+      "explanation": "df shows disk space for each filesystem. -h makes sizes human-readable. -T shows the filesystem type (ext4, xfs, tmpfs). Filter with grep to exclude tmpfs mounts in containers which can clutter output.",
+      "flags": [
+        {
+          "flag": "-h",
+          "long": "--human-readable",
+          "desc": "Show sizes in K, M, G, T"
+        },
+        {
+          "flag": "-T",
+          "long": "--print-type",
+          "desc": "Show filesystem type"
+        },
+        {
+          "flag": "-i",
+          "long": "--inodes",
+          "desc": "Show inode usage instead of block usage"
+        },
+        {
+          "flag": "--total",
+          "desc": "Show a grand total row"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "df -hT | grep -v tmpfs",
+          "desc": "Show real disk usage excluding temporary filesystems"
+        },
+        {
+          "cmd": "df -i /",
+          "desc": "Check inode usage on root — exhaustion prevents new files even with free space"
+        },
+        {
+          "cmd": "df -h --total",
+          "desc": "All filesystem usage with a total summary line"
+        }
+      ],
+      "suggestions": [
+        "du",
+        "lsblk",
+        "mount",
+        "fdisk"
+      ],
+      "pro_tip": "A disk can show free space but give 'No space left on device' — always check inodes with `df -i` too."
+    },
+    {
+      "name": "du",
+      "summary": "Estimate disk usage of files and directories.",
+      "risk": "low",
+      "risk_reason": "Read-only — scans disk usage without modifications.",
+      "cautions": [
+        "Scanning huge trees (e.g. / or network mounts) causes heavy I/O — scope the path and use -x to stay on one filesystem."
+      ],
+      "explanation": "du walks the directory tree summing file sizes. -s gives a total for each argument. --max-depth limits recursion depth. Piping to `sort -rh` reveals the biggest disk consumers — essential for tracking down space hogs.",
+      "flags": [
+        {
+          "flag": "-h",
+          "long": "--human-readable",
+          "desc": "Print sizes in human-readable format"
+        },
+        {
+          "flag": "-s",
+          "long": "--summarize",
+          "desc": "Display only a total for each argument"
+        },
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Include all files, not just directories"
+        },
+        {
+          "flag": "--max-depth",
+          "desc": "Limit directory recursion depth"
+        },
+        {
+          "flag": "--exclude",
+          "desc": "Exclude files matching a pattern"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "du -sh /var/log/*",
+          "desc": "Show size of each item in /var/log"
+        },
+        {
+          "cmd": "du -h --max-depth=2 / | sort -rh | head -20",
+          "desc": "Find top 20 largest directories from root"
+        },
+        {
+          "cmd": "du -sh --exclude='.git' .",
+          "desc": "Get total size of current directory excluding .git"
+        }
+      ],
+      "suggestions": [
+        "df",
+        "ncdu",
+        "find",
+        "ls"
+      ],
+      "pro_tip": "Install `ncdu` for an interactive disk usage explorer: `sudo apt install ncdu && ncdu /`"
+    },
+    {
+      "name": "scp",
+      "summary": "Securely copy files between local and remote hosts over SSH.",
+      "risk": "medium",
+      "risk_reason": "Can overwrite remote files silently; key misuse is a risk.",
+      "cautions": [
+        "Overwrites remote files silently; the legacy SCP protocol is deprecated — prefer rsync or sftp.",
+        "Wildcards are also expanded on the remote side; quote them.",
+        "Verify the host key fingerprint on first connection."
+      ],
+      "explanation": "scp uses SSH to transfer files. -r copies directories. Note: -P (capital) sets the port for scp, unlike ssh which uses lowercase -p. For large or resumable transfers prefer rsync.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Recursively copy entire directories"
+        },
+        {
+          "flag": "-i",
+          "desc": "Specify private key"
+        },
+        {
+          "flag": "-P",
+          "desc": "Specify SSH port (capital P)"
+        },
+        {
+          "flag": "-p",
+          "desc": "Preserve modification times and permissions"
+        },
+        {
+          "flag": "-C",
+          "desc": "Enable compression during transfer"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "scp -i key.pem app.jar ubuntu@10.0.1.5:/opt/app/",
+          "desc": "Upload JAR to remote server"
+        },
+        {
+          "cmd": "scp -rp user@host:/etc/nginx ./nginx-backup/",
+          "desc": "Download nginx config directory preserving timestamps"
+        },
+        {
+          "cmd": "scp -P 2222 -C bigfile.tar.gz user@host:/tmp/",
+          "desc": "Upload large file over non-standard port with compression"
+        }
+      ],
+      "suggestions": [
+        "rsync",
+        "ssh",
+        "sftp",
+        "curl"
+      ],
+      "pro_tip": "For anything over a few MB, use `rsync -avz --progress` instead — it resumes interrupted transfers automatically."
+    },
+    {
+      "name": "gzip",
+      "summary": "Compress or decompress files using the GNU zip DEFLATE algorithm.",
+      "risk": "low",
+      "risk_reason": "Replaces the original file by default — original is deleted after compression.",
+      "explanation": "gzip compresses a single file and replaces it with a .gz version. -k keeps the original. -d decompresses (same as gunzip). Compression level -1 (fastest) through -9 (best ratio). Combine with tar for multi-file archives.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--decompress",
+          "desc": "Decompress a .gz file (same as running gunzip)"
+        },
+        {
+          "flag": "-k",
+          "long": "--keep",
+          "desc": "Keep the original file after compressing"
+        },
+        {
+          "flag": "-c",
+          "long": "--stdout",
+          "desc": "Write output to stdout, don't replace file"
+        },
+        {
+          "flag": "-r",
+          "long": "--recursive",
+          "desc": "Recursively compress all files in a directory"
+        },
+        {
+          "flag": "-l",
+          "long": "--list",
+          "desc": "Show compression ratio and sizes for .gz files"
+        },
+        {
+          "flag": "-1",
+          "long": "--fast",
+          "desc": "Fastest compression, lowest ratio"
+        },
+        {
+          "flag": "-9",
+          "long": "--best",
+          "desc": "Best compression ratio, slowest speed"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Show compression ratio for each file processed"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "gzip -k -9 large_dump.sql",
+          "desc": "Compress SQL dump with best ratio, keeping the original file"
+        },
+        {
+          "cmd": "gzip -d archive.gz",
+          "desc": "Decompress a .gz file back to its original form"
+        },
+        {
+          "cmd": "gzip -l *.gz",
+          "desc": "Show compression stats (ratio, original vs compressed size) for all .gz files"
+        }
+      ],
+      "suggestions": [
+        "gunzip",
+        "tar",
+        "bzip2",
+        "xz",
+        "zcat"
+      ],
+      "pro_tip": "Use `zcat file.gz | grep pattern` to search inside a compressed file without decompressing it to disk first."
+    },
+    {
+      "name": "stat",
+      "summary": "Display detailed metadata about files and filesystems.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "stat shows comprehensive file metadata: inode number, permissions in both octal and symbolic form, link count, ownership, file size, and all three timestamps (access, modify, change). Far more informative than ls -l for debugging permission and timing issues.",
+      "flags": [
+        {
+          "flag": "-c",
+          "long": "--format",
+          "desc": "Use a custom output format"
+        },
+        {
+          "flag": "-f",
+          "long": "--file-system",
+          "desc": "Show filesystem status instead"
+        },
+        {
+          "flag": "-L",
+          "long": "--dereference",
+          "desc": "Follow symlinks"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "stat /etc/passwd",
+          "desc": "Show full metadata including timestamps and permissions"
+        },
+        {
+          "cmd": "stat -c '%a %n' /etc/ssh/sshd_config",
+          "desc": "Print octal permissions and filename only"
+        },
+        {
+          "cmd": "stat -f /",
+          "desc": "Show root filesystem statistics"
+        },
+        {
+          "cmd": "stat -c '%U:%G' /opt/app",
+          "desc": "Show owner:group only"
+        }
+      ],
+      "suggestions": [
+        "chmod",
+        "chown",
+        "ls"
+      ],
+      "pro_tip": "Use `stat -c '%a'` in scripts to check exact octal permissions — more reliable than parsing `ls -l` output which varies by implementation."
+    },
+    {
+      "name": "ln",
+      "summary": "Create hard or symbolic links between files.",
+      "risk": "medium",
+      "risk_reason": "Dangling symlinks and circular links can cause confusion.",
+      "cautions": [
+        "`ln -sf` replaces an existing link/file at the target without asking.",
+        "Relative symlinks are resolved from the link’s directory, not your current directory.",
+        "Hard links cannot cross filesystems or point to directories."
+      ],
+      "explanation": "ln creates links — hard links share the same inode (same data, different name), while symbolic links (-s) are pointers to a path. Symlinks are the standard choice: they work across filesystems, can link directories, and make the relationship explicit.",
+      "flags": [
+        {
+          "flag": "-s",
+          "long": "--symbolic",
+          "desc": "Create a symbolic link"
+        },
+        {
+          "flag": "-f",
+          "long": "--force",
+          "desc": "Remove existing destination before linking"
+        },
+        {
+          "flag": "-n",
+          "long": "--no-dereference",
+          "desc": "Treat symlink destination as normal file"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Print link names"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ln -s /opt/app/current /opt/app/active",
+          "desc": "Create symlink for zero-downtime deploys"
+        },
+        {
+          "cmd": "ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/app",
+          "desc": "Enable nginx site via symlink"
+        },
+        {
+          "cmd": "ln -s $(which python3) /usr/local/bin/python",
+          "desc": "Create python → python3 alias"
+        }
+      ],
+      "suggestions": [
+        "readlink",
+        "ls",
+        "cp"
+      ],
+      "pro_tip": "Use symlinks for version-managed deployments: keep versioned dirs (/opt/app/v1.2.3) and update a single symlink (/opt/app/current) for instant, reversible deploys."
+    },
+    {
+      "name": "readlink",
+      "summary": "Resolve and display the target of a symbolic link.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "readlink prints the target of a symlink. The -f flag canonicalizes the entire path, resolving all nested symlinks and relative components — essential for finding the true absolute path of any file.",
+      "flags": [
+        {
+          "flag": "-f",
+          "long": "--canonicalize",
+          "desc": "Resolve all symlinks to absolute path"
+        },
+        {
+          "flag": "-e",
+          "long": "--canonicalize-existing",
+          "desc": "Canonicalize, fail if path doesn't exist"
+        },
+        {
+          "flag": "-m",
+          "long": "--canonicalize-missing",
+          "desc": "Canonicalize even if path doesn't exist"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "readlink /usr/bin/python3",
+          "desc": "Show where python3 symlink points"
+        },
+        {
+          "cmd": "readlink -f /etc/nginx/sites-enabled/app",
+          "desc": "Resolve full canonical path"
+        },
+        {
+          "cmd": "readlink -f $0",
+          "desc": "Get absolute path of current script"
+        }
+      ],
+      "suggestions": [
+        "ln",
+        "which",
+        "find"
+      ],
+      "pro_tip": "Use `readlink -f $0` at the top of shell scripts to get the script's actual directory regardless of how it was invoked — essential for portable scripts."
+    },
+    {
+      "name": "file",
+      "summary": "Determine file type by inspecting content (not extension).",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "file tests files and reports their type based on magic bytes in the content, not the filename extension. Crucial for identifying mislabeled files, checking if a binary is ELF/ARM/x86, verifying compressed archives, and examining unknown files safely.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--mime",
+          "desc": "Output MIME type"
+        },
+        {
+          "flag": "-b",
+          "long": "--brief",
+          "desc": "Don't prepend filename"
+        },
+        {
+          "flag": "-L",
+          "long": "--dereference",
+          "desc": "Follow symlinks"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "file /usr/bin/kubectl",
+          "desc": "Show ELF architecture of a binary"
+        },
+        {
+          "cmd": "file *.tar.gz",
+          "desc": "Verify archive types"
+        },
+        {
+          "cmd": "file -i document.pdf",
+          "desc": "Get MIME type"
+        },
+        {
+          "cmd": "file image.png",
+          "desc": "Verify actual file type regardless of extension"
+        }
+      ],
+      "suggestions": [
+        "xxd",
+        "strings",
+        "stat"
+      ],
+      "pro_tip": "Use `file` before executing or extracting unknown files — it reveals if a '.jpg' is actually a shell script or if a binary was compiled for the wrong architecture."
+    },
+    {
+      "name": "xz",
+      "summary": "High-ratio compression using the XZ/LZMA algorithm.",
+      "risk": "low",
+      "risk_reason": "Deletes source file by default; use -k to keep it.",
+      "explanation": "xz provides high compression ratios using the LZMA2 algorithm — better compression than gzip at the cost of more CPU and memory. Widely used for distributing Linux kernel tarballs and large datasets. Works like gzip in its pipeline behavior.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--decompress",
+          "desc": "Decompress"
+        },
+        {
+          "flag": "-k",
+          "long": "--keep",
+          "desc": "Keep input file after compression"
+        },
+        {
+          "flag": "-9",
+          "desc": "Maximum compression level"
+        },
+        {
+          "long": "--threads",
+          "desc": "Number of threads (0 = all CPUs)",
+          "flag": "--threads"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "xz -k large-dataset.tar",
+          "desc": "Compress keeping original file"
+        },
+        {
+          "cmd": "xz -d archive.tar.xz",
+          "desc": "Decompress xz archive"
+        },
+        {
+          "cmd": "tar -cJf archive.tar.xz /data/",
+          "desc": "Create xz-compressed tar archive"
+        },
+        {
+          "cmd": "xz -T 0 -k bigfile",
+          "desc": "Compress using all CPU cores"
+        }
+      ],
+      "suggestions": [
+        "tar",
+        "gzip",
+        "zstd"
+      ],
+      "pro_tip": "Use `xz -T 0` to enable multi-threaded compression on large files — xz is single-threaded by default and can be extremely slow without this flag."
+    },
+    {
+      "name": "zstd",
+      "summary": "Fast, modern compression with excellent speed/ratio trade-off.",
+      "risk": "low",
+      "risk_reason": "Deletes source by default; use -k to keep.",
+      "explanation": "zstd (Zstandard) offers near-gzip speed with compression ratios approaching xz. The --fast flag prioritizes speed; higher -N levels improve ratio. Now the default compression for Linux kernel packages and increasingly common in DevOps tooling.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--decompress",
+          "desc": "Decompress"
+        },
+        {
+          "flag": "-k",
+          "long": "--keep",
+          "desc": "Keep source file"
+        },
+        {
+          "flag": "-N",
+          "desc": "Compression level 1-19 (default: 3)"
+        },
+        {
+          "flag": "--fast",
+          "desc": "Ultra-fast compression (sacrifices ratio)"
+        },
+        {
+          "flag": "-T",
+          "long": "--threads",
+          "desc": "Number of threads"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "zstd -k file.tar",
+          "desc": "Compress keeping original"
+        },
+        {
+          "cmd": "zstd -d file.tar.zst",
+          "desc": "Decompress"
+        },
+        {
+          "cmd": "tar -I zstd -cf archive.tar.zst /data/",
+          "desc": "Create zstd-compressed tar archive"
+        },
+        {
+          "cmd": "zstd --fast -T 0 -k large.tar",
+          "desc": "Fastest compression using all cores"
+        }
+      ],
+      "suggestions": [
+        "xz",
+        "gzip",
+        "tar"
+      ],
+      "pro_tip": "For backup pipelines, zstd is the modern choice: `tar c /data | zstd -T 0 -9 -o backup.tar.zst` — 3-4x faster than xz with only slightly worse compression."
+    },
+    {
+      "name": "tree",
+      "summary": "Show a directory tree",
+      "risk": "low",
+      "risk_reason": "Read-only listing; large trees can be slow and noisy.",
+      "explanation": "Prints directories and files as an indented tree. Useful for understanding project layouts.",
+      "flags": [
+        {
+          "flag": "-L",
+          "desc": "Limit depth to N levels"
+        },
+        {
+          "flag": "-a",
+          "desc": "Include hidden files"
+        },
+        {
+          "flag": "-d",
+          "desc": "Directories only"
+        },
+        {
+          "flag": "-I",
+          "desc": "Exclude entries matching a pattern"
+        },
+        {
+          "flag": "-h",
+          "desc": "Human-readable sizes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tree -L 2",
+          "desc": "Two levels deep"
+        },
+        {
+          "cmd": "tree -a -I \".git|node_modules\"",
+          "desc": "Include dotfiles but skip noise"
+        }
+      ],
+      "suggestions": [
+        "ls",
+        "find",
+        "du"
+      ],
+      "pro_tip": "Use -L on large trees — an unbounded tree of / floods the terminal."
+    },
+    {
+      "name": "touch",
+      "summary": "Create an empty file or update timestamps",
+      "risk": "low",
+      "risk_reason": "Only creates files or changes timestamps.",
+      "cautions": [
+        "Changing mtimes can confuse backups, rsync and build systems that rely on timestamps."
+      ],
+      "explanation": "Creates the file if it does not exist, otherwise updates its modification time. Often used to create placeholders or reset mtime for make/rsync.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Do not create missing files"
+        },
+        {
+          "flag": "-t",
+          "desc": "Set a specific timestamp [[CC]YY]MMDDhhmm"
+        },
+        {
+          "flag": "-r",
+          "desc": "Copy timestamps from another file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "touch notes.txt",
+          "desc": "Create an empty file"
+        },
+        {
+          "cmd": "touch -r a.txt b.txt",
+          "desc": "Give b.txt the same mtime as a.txt"
+        }
+      ],
+      "suggestions": [
+        "stat",
+        "mkdir"
+      ]
+    },
+    {
+      "name": "rmdir",
+      "summary": "Remove empty directories",
+      "risk": "low",
+      "risk_reason": "Refuses to delete non-empty directories, so it is safe by design.",
+      "explanation": "Deletes directories only if they are empty — a safer alternative to rm -r when you expect nothing to be inside.",
+      "flags": [
+        {
+          "flag": "-p",
+          "desc": "Remove parent directories too if they become empty"
+        },
+        {
+          "flag": "--ignore-fail-on-non-empty",
+          "long": "--ignore-fail-on-non-empty",
+          "desc": "Do not complain about non-empty directories"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rmdir build",
+          "desc": "Remove an empty directory"
+        },
+        {
+          "cmd": "rmdir -p a/b/c",
+          "desc": "Remove c, then b and a if empty"
+        }
+      ],
+      "suggestions": [
+        "rm",
+        "mkdir",
+        "find"
+      ],
+      "pro_tip": "Prefer rmdir over rm -r when the directory should be empty — it fails loudly if it is not."
+    },
+    {
+      "name": "cat",
+      "summary": "Print or concatenate files",
+      "risk": "low",
+      "risk_reason": "Read-only, but can dump secrets or binary data to the terminal.",
+      "cautions": [
+        "`cat > file` and `cat file > file` overwrite or truncate files — `cat a b > a` destroys a.",
+        "Avoid cat on binary files; it can corrupt your terminal (use `reset` to recover). Use less or strings instead.",
+        "Do not cat files containing secrets in shared terminals or recorded sessions."
+      ],
+      "explanation": "Concatenates files to standard output. Also used to create small files with redirection.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Number all lines"
+        },
+        {
+          "flag": "-A",
+          "desc": "Show non-printing characters, tabs and line ends"
+        },
+        {
+          "flag": "-s",
+          "desc": "Squeeze repeated blank lines"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "cat /etc/os-release",
+          "desc": "Show a file"
+        },
+        {
+          "cmd": "cat a.txt b.txt > all.txt",
+          "desc": "Concatenate into a new file"
+        }
+      ],
+      "suggestions": [
+        "less",
+        "head",
+        "tail",
+        "tee"
+      ],
+      "pro_tip": "Useless use of cat: prefer `grep pattern file` over `cat file | grep pattern`."
+    },
+    {
+      "name": "basename",
+      "summary": "Strip directory from a path",
+      "risk": "low",
+      "risk_reason": "Pure string manipulation.",
+      "explanation": "Prints the final component of a path and optionally strips a suffix.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "basename /var/log/syslog",
+          "desc": "prints syslog"
+        },
+        {
+          "cmd": "basename archive.tar.gz .tar.gz",
+          "desc": "prints archive"
+        }
+      ],
+      "suggestions": [
+        "dirname",
+        "realpath"
+      ]
+    },
+    {
+      "name": "dirname",
+      "summary": "Strip last component from a path",
+      "risk": "low",
+      "risk_reason": "Pure string manipulation.",
+      "explanation": "Prints the directory portion of a path (everything before the last slash); handy in scripts to locate sibling files.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "dirname /var/log/syslog",
+          "desc": "prints /var/log"
+        }
+      ],
+      "suggestions": [
+        "basename",
+        "realpath"
+      ]
+    },
+    {
+      "name": "realpath",
+      "summary": "Resolve a path to its absolute form",
+      "risk": "low",
+      "risk_reason": "Read-only path resolution.",
+      "explanation": "Prints the absolute canonical path, resolving symlinks and .. components.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Do not resolve symlinks"
+        },
+        {
+          "flag": "-m",
+          "desc": "Allow missing path components"
+        },
+        {
+          "flag": "--relative-to",
+          "long": "--relative-to",
+          "desc": "Print path relative to a directory"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "realpath ./script.sh",
+          "desc": "Absolute path of a file"
+        },
+        {
+          "cmd": "realpath --relative-to=/etc /etc/ssh/sshd_config",
+          "desc": "ssh/sshd_config"
+        }
+      ],
+      "suggestions": [
+        "readlink",
+        "basename"
+      ]
+    },
+    {
+      "name": "locate",
+      "summary": "Find files by name using an index",
+      "risk": "low",
+      "risk_reason": "Reads a prebuilt database; results may be stale or reveal paths you did not expect to see.",
+      "cautions": [
+        "The index may list files that were deleted, or hide new ones, until updatedb runs."
+      ],
+      "explanation": "Searches an index of filenames built by updatedb — much faster than find but only as fresh as the last index run.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Case-insensitive match"
+        },
+        {
+          "flag": "-c",
+          "desc": "Count matches only"
+        },
+        {
+          "flag": "-n",
+          "desc": "Limit the number of results"
+        },
+        {
+          "flag": "-b",
+          "desc": "Match the basename only"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "locate -i nginx.conf",
+          "desc": "Case-insensitive search"
+        },
+        {
+          "cmd": "locate -c \"*.log\"",
+          "desc": "Count log files in the index"
+        }
+      ],
+      "suggestions": [
+        "find",
+        "updatedb",
+        "which"
+      ]
+    },
+    {
+      "name": "updatedb",
+      "summary": "Rebuild the locate database",
+      "risk": "medium",
+      "risk_reason": "Scans the entire filesystem and causes noticeable disk I/O.",
+      "cautions": [
+        "Heavy I/O on large or network filesystems — avoid during peak hours on production hosts.",
+        "The database may expose the names of files other users cannot read on some systems; check mlocate/plocate permissions."
+      ],
+      "explanation": "Walks the filesystem and rewrites the database used by locate. Normally run from cron daily.",
+      "flags": [
+        {
+          "flag": "--prunepaths",
+          "desc": "Directories to skip"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sudo updatedb",
+          "desc": "Refresh the locate index"
+        }
+      ],
+      "suggestions": [
+        "locate",
+        "find"
+      ]
+    },
+    {
+      "name": "split",
+      "summary": "Split a file into pieces",
+      "risk": "low",
+      "risk_reason": "Creates many new files in the current directory.",
+      "cautions": [
+        "Output files go to the current directory — run it in an empty one.",
+        "Reassemble with `cat part_* > file` and verify with a checksum."
+      ],
+      "explanation": "Splits a file by size or line count into numbered chunks.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "Lines per output file"
+        },
+        {
+          "flag": "-b",
+          "desc": "Bytes per output file (e.g. 100M)"
+        },
+        {
+          "flag": "-d",
+          "desc": "Use numeric suffixes"
+        },
+        {
+          "flag": "--additional-suffix",
+          "long": "--additional-suffix",
+          "desc": "Append a suffix to chunk names"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "split -b 100M -d big.iso part_",
+          "desc": "Split into 100 MB parts"
+        },
+        {
+          "cmd": "split -l 10000 data.csv chunk_",
+          "desc": "10k lines per file"
+        }
+      ],
+      "suggestions": [
+        "cat",
+        "sha256sum"
+      ]
+    },
+    {
+      "name": "cmp",
+      "summary": "Compare two files byte by byte",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Reports the first byte where two files differ — fast for binary files.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Silent; only the exit status"
+        },
+        {
+          "flag": "-l",
+          "desc": "List all differing bytes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "cmp a.bin b.bin",
+          "desc": "First difference"
+        }
+      ],
+      "suggestions": [
+        "diff",
+        "sha256sum"
+      ]
+    },
+    {
+      "name": "sha256sum",
+      "summary": "Compute or verify SHA-256 checksums",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "cautions": [
+        "A checksum only proves integrity relative to the checksum you compare against — fetch it from a trusted channel over HTTPS (or verify a GPG signature).",
+        "Do not use md5sum/sha1sum for security decisions."
+      ],
+      "explanation": "Prints or verifies SHA-256 digests; use to confirm downloads and backups are intact.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Verify against a checksum file"
+        },
+        {
+          "flag": "--ignore-missing",
+          "long": "--ignore-missing",
+          "desc": "Skip files that are not present"
+        },
+        {
+          "flag": "--quiet",
+          "long": "--quiet",
+          "desc": "Only print failures"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sha256sum ubuntu.iso",
+          "desc": "Print the digest"
+        },
+        {
+          "cmd": "sha256sum -c SHA256SUMS",
+          "desc": "Verify files listed in a checksum file"
+        }
+      ],
+      "suggestions": [
+        "md5sum",
+        "gpg",
+        "openssl"
+      ]
+    },
+    {
+      "name": "md5sum",
+      "summary": "Compute or verify MD5 checksums",
+      "risk": "low",
+      "risk_reason": "Read-only, but MD5 is cryptographically broken.",
+      "cautions": [
+        "MD5 collisions can be forged — never rely on it to authenticate downloads; use sha256sum."
+      ],
+      "explanation": "Prints MD5 digests. Fine for accidental corruption checks, not for security.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Verify against a checksum file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "md5sum file.iso",
+          "desc": "Print the digest"
+        }
+      ],
+      "suggestions": [
+        "sha256sum"
+      ]
+    },
+    {
+      "name": "truncate",
+      "summary": "Shrink or extend a file to a size",
+      "risk": "high",
+      "risk_reason": "Cutting a file shorter permanently discards data beyond the new size.",
+      "cautions": [
+        "Data past the new size is gone — there is no undo.",
+        "Truncating a log that a process holds open is usually fine, but truncating a database or data file corrupts it.",
+        "Check the filename carefully; this runs without confirmation."
+      ],
+      "explanation": "Sets a file to an exact size. `truncate -s 0 file` empties it without deleting it; extending creates a sparse file.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "New size, e.g. 0, 100M, +1G"
+        },
+        {
+          "flag": "-c",
+          "desc": "Do not create missing files"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "truncate -s 0 app.log",
+          "desc": "Empty a log file in place (keeps inode)"
+        },
+        {
+          "cmd": "truncate -s 1G swapfile",
+          "desc": "Create a sparse 1 GB file"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "cp app.log app.log.bak && truncate -s 0 app.log",
+          "why": "Keep a copy before emptying"
+        },
+        {
+          "cmd": "logrotate -f /etc/logrotate.d/<app>",
+          "why": "Let logrotate manage log files"
+        }
+      ],
+      "suggestions": [
+        "logrotate",
+        "dd"
+      ]
+    },
+    {
+      "name": "install",
+      "summary": "Copy files and set mode/owner",
+      "risk": "medium",
+      "risk_reason": "Overwrites the destination and sets permissions/ownership in one step.",
+      "cautions": [
+        "Overwrites an existing destination without asking.",
+        "Wrong -m/-o on files under /usr or /etc can open security holes or break services."
+      ],
+      "explanation": "Copies files like cp but sets mode (-m), owner (-o) and group (-g) and can create parent directories (-D).",
+      "flags": [
+        {
+          "flag": "-m",
+          "desc": "Set permission mode"
+        },
+        {
+          "flag": "-o",
+          "desc": "Set owner"
+        },
+        {
+          "flag": "-g",
+          "desc": "Set group"
+        },
+        {
+          "flag": "-D",
+          "desc": "Create leading directories"
+        },
+        {
+          "flag": "-d",
+          "desc": "Create directories"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "install -m 0755 myapp /usr/local/bin/",
+          "desc": "Install an executable"
+        },
+        {
+          "cmd": "install -d -m 0750 -o app -g app /var/lib/app",
+          "desc": "Create a directory with ownership"
+        }
+      ],
+      "suggestions": [
+        "cp",
+        "chmod",
+        "chown"
+      ]
+    },
+    {
+      "name": "lsattr",
+      "summary": "List file attributes",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows extended attributes such as immutable (i) and append-only (a) flags on ext filesystems.",
+      "flags": [
+        {
+          "flag": "-R",
+          "desc": "Recurse"
+        },
+        {
+          "flag": "-a",
+          "desc": "Include hidden files"
+        },
+        {
+          "flag": "-d",
+          "desc": "List directories themselves"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lsattr /etc/passwd",
+          "desc": "Show attributes"
+        }
+      ],
+      "suggestions": [
+        "chattr"
+      ]
+    },
+    {
+      "name": "chattr",
+      "summary": "Change file attributes (immutable, append-only)",
+      "risk": "high",
+      "risk_reason": "Immutable files cannot be changed or deleted even by root until the flag is removed; mistakes cause confusing failures.",
+      "cautions": [
+        "An immutable /etc file makes package upgrades and config management fail with “Operation not permitted”.",
+        "Applying +i recursively to system directories can prevent boot, updates and logging.",
+        "Document every immutable file — future admins will not expect it."
+      ],
+      "explanation": "Sets ext2/3/4 attributes. +i makes a file immutable, +a append-only.",
+      "flags": [
+        {
+          "flag": "+i",
+          "desc": "Make immutable"
+        },
+        {
+          "flag": "-i",
+          "desc": "Remove immutable"
+        },
+        {
+          "flag": "+a",
+          "desc": "Append-only"
+        },
+        {
+          "flag": "-R",
+          "desc": "Recurse"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "chattr +i /etc/resolv.conf",
+          "desc": "Prevent changes"
+        },
+        {
+          "cmd": "chattr -i /etc/resolv.conf",
+          "desc": "Allow changes again"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "lsattr <file>",
+          "why": "Check current attributes first"
+        },
+        {
+          "cmd": "chattr -i <file>",
+          "why": "Undo immutability if things stop working"
+        }
+      ],
+      "suggestions": [
+        "lsattr",
+        "chmod"
+      ]
+    },
+    {
+      "name": "getfacl",
+      "summary": "Show file access control lists",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Displays ACL entries beyond the basic owner/group/other permissions.",
+      "flags": [
+        {
+          "flag": "-R",
+          "desc": "Recurse"
+        },
+        {
+          "flag": "-p",
+          "desc": "Keep leading slashes"
+        },
+        {
+          "flag": "-t",
+          "desc": "Tabular output"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "getfacl /srv/shared",
+          "desc": "Show ACL"
+        },
+        {
+          "cmd": "getfacl -R /srv > acl.bak",
+          "desc": "Back up ACLs before changing them"
+        }
+      ],
+      "suggestions": [
+        "setfacl",
+        "chmod",
+        "chown"
+      ]
+    },
+    {
+      "name": "setfacl",
+      "summary": "Set file access control lists",
+      "risk": "high",
+      "risk_reason": "Changes who can read/write files; recursive mistakes expose data or lock users out.",
+      "cautions": [
+        "Back up first: getfacl -R path > acl.bak (restore with setfacl --restore=acl.bak).",
+        "-b -R removes every ACL under the tree.",
+        "ACLs are easy to forget — review with getfacl during audits."
+      ],
+      "explanation": "Adds, modifies or removes ACL entries. Use for fine-grained sharing without changing groups.",
+      "flags": [
+        {
+          "flag": "-m",
+          "desc": "Modify ACL entries"
+        },
+        {
+          "flag": "-x",
+          "desc": "Remove entries"
+        },
+        {
+          "flag": "-b",
+          "desc": "Remove all ACLs"
+        },
+        {
+          "flag": "-R",
+          "desc": "Recurse"
+        },
+        {
+          "flag": "-d",
+          "desc": "Set default ACL for new files"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "setfacl -m u:alice:rwX /srv/shared",
+          "desc": "Grant alice access"
+        },
+        {
+          "cmd": "setfacl -R -m g:dev:rX /srv/app",
+          "desc": "Recursive read access for a group"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "getfacl -R <path> > acl.bak",
+          "why": "Back up current ACLs"
+        },
+        {
+          "cmd": "setfacl --restore=acl.bak",
+          "why": "Restore them if needed"
+        }
+      ],
+      "suggestions": [
+        "getfacl",
+        "chmod",
+        "chown"
+      ]
+    },
+    {
+      "name": "zip",
+      "summary": "Create ZIP archives",
+      "risk": "low",
+      "risk_reason": "Creates a new file; can overwrite an existing archive name.",
+      "cautions": [
+        "`zip -e` uses weak encryption and the password is easy to leak via shell history — use gpg or age for sensitive data.",
+        "Existing archives are updated, not replaced — delete the old zip first if you want a clean archive."
+      ],
+      "explanation": "Packs files into a .zip archive (portable to Windows/macOS).",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Recurse into directories"
+        },
+        {
+          "flag": "-e",
+          "desc": "Encrypt with a password (weak legacy encryption)"
+        },
+        {
+          "flag": "-x",
+          "desc": "Exclude patterns"
+        },
+        {
+          "flag": "-9",
+          "desc": "Best compression"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "zip -r site.zip public/",
+          "desc": "Zip a directory"
+        },
+        {
+          "cmd": "zip -r backup.zip . -x \"*.git*\"",
+          "desc": "Zip while excluding .git"
+        }
+      ],
+      "suggestions": [
+        "unzip",
+        "tar",
+        "gzip"
+      ]
+    },
+    {
+      "name": "unzip",
+      "summary": "Extract ZIP archives",
+      "risk": "medium",
+      "risk_reason": "Silently overwrites existing files and may write outside the target (zip-slip) with malicious archives.",
+      "cautions": [
+        "-o overwrites existing files with no prompt.",
+        "Inspect untrusted archives with `unzip -l` first; extract into an empty directory."
+      ],
+      "explanation": "Extracts .zip files; -l lists contents without extracting.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List contents"
+        },
+        {
+          "flag": "-d",
+          "desc": "Extract into a directory"
+        },
+        {
+          "flag": "-o",
+          "desc": "Overwrite without prompting"
+        },
+        {
+          "flag": "-n",
+          "desc": "Never overwrite"
+        },
+        {
+          "flag": "-t",
+          "desc": "Test archive integrity"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "unzip -l a.zip",
+          "desc": "List first"
+        },
+        {
+          "cmd": "unzip a.zip -d /tmp/out",
+          "desc": "Extract into a separate directory"
+        }
+      ],
+      "suggestions": [
+        "zip",
+        "tar"
+      ]
+    },
+    {
+      "name": "gunzip",
+      "summary": "Decompress gzip files",
+      "risk": "low",
+      "risk_reason": "Replaces the .gz file with the decompressed file by default.",
+      "cautions": [
+        "Without -k the original .gz is deleted — keep it if the source copy is your only backup."
+      ],
+      "explanation": "Equivalent to gzip -d; removes the .gz after decompressing unless -k is used.",
+      "flags": [
+        {
+          "flag": "-k",
+          "desc": "Keep the compressed file"
+        },
+        {
+          "flag": "-c",
+          "desc": "Write to stdout"
+        },
+        {
+          "flag": "-t",
+          "desc": "Test integrity"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "gunzip -k file.gz",
+          "desc": "Decompress and keep the original"
+        },
+        {
+          "cmd": "gunzip -c file.gz | head",
+          "desc": "Peek without writing a file"
+        }
+      ],
+      "suggestions": [
+        "gzip",
+        "zcat",
+        "tar"
+      ]
+    },
+    {
+      "name": "zcat",
+      "summary": "Print compressed file contents",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Decompresses gzip files to stdout without touching the file — great for rotated logs.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "zcat /var/log/syslog.2.gz | grep -i error",
+          "desc": "Search a rotated log"
+        },
+        {
+          "cmd": "zcat -f file.gz file.txt",
+          "desc": "Works with plain files too"
+        }
+      ],
+      "suggestions": [
+        "gunzip",
+        "zgrep",
+        "less"
+      ]
+    },
+    {
+      "name": "zgrep",
+      "summary": "Search inside gzip files",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "grep for compressed files; ideal for rotated logs.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "zgrep -i \"error\" /var/log/nginx/error.log*.gz",
+          "desc": "Search all rotated logs"
+        }
+      ],
+      "suggestions": [
+        "grep",
+        "zcat"
+      ]
+    },
+    {
+      "name": "bzip2",
+      "summary": "Compress files with bzip2",
+      "risk": "low",
+      "risk_reason": "Replaces the original file with the .bz2 version unless -k is used.",
+      "cautions": [
+        "Without -k the original is deleted."
+      ],
+      "explanation": "Better compression than gzip at lower speed.",
+      "flags": [
+        {
+          "flag": "-k",
+          "desc": "Keep input file"
+        },
+        {
+          "flag": "-d",
+          "desc": "Decompress"
+        },
+        {
+          "flag": "-9",
+          "desc": "Best compression"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "bzip2 -k big.log",
+          "desc": "Compress and keep the original"
+        }
+      ],
+      "suggestions": [
+        "gzip",
+        "xz",
+        "tar"
+      ]
+    },
+    {
+      "name": "ncdu",
+      "summary": "Interactive disk usage browser",
+      "risk": "low",
+      "risk_reason": "Scans disk (I/O heavy) but only deletes if you press d and confirm.",
+      "cautions": [
+        "Pressing d deletes files — confirm carefully, especially as root.",
+        "Scanning large filesystems at peak time can slow production disks; use -x and run off-hours."
+      ],
+      "explanation": "A curses disk-usage analyzer. Navigate with arrows, press d to delete the selected item.",
+      "flags": [
+        {
+          "flag": "-x",
+          "desc": "Stay on one filesystem"
+        },
+        {
+          "flag": "--exclude",
+          "long": "--exclude",
+          "desc": "Skip paths"
+        },
+        {
+          "flag": "-o",
+          "desc": "Export scan to a file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ncdu -x /",
+          "desc": "Scan the root filesystem only"
+        },
+        {
+          "cmd": "ncdu -o scan.json /var",
+          "desc": "Save a scan for later"
+        }
+      ],
+      "suggestions": [
+        "du",
+        "df",
+        "lsof"
+      ]
+    },
+    {
+      "name": "pushd",
+      "kind": "command",
+      "summary": "Push a directory onto the stack and cd",
+      "risk": "low",
+      "risk_reason": "Only changes the shell’s working directory.",
+      "explanation": "Remember the current directory and switch to another; popd returns.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pushd /var/log",
+          "desc": "Go to /var/log and remember where you were"
+        },
+        {
+          "cmd": "popd",
+          "desc": "Return to the previous directory"
+        }
+      ],
+      "suggestions": [
+        "popd",
+        "dirs",
+        "cd"
+      ]
+    },
+    {
+      "name": "popd",
+      "summary": "Return to the previous directory on the stack",
+      "risk": "low",
+      "risk_reason": "Shell builtin; only changes directory.",
+      "explanation": "Pops the directory stack and cds to the new top.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "popd",
+          "desc": "Return after pushd"
+        }
+      ],
+      "suggestions": [
+        "pushd",
+        "dirs"
+      ]
+    },
+    {
+      "name": "dirs",
+      "summary": "Show the directory stack",
+      "risk": "low",
+      "risk_reason": "Shell builtin; read-only.",
+      "explanation": "Prints the directory stack maintained by pushd and popd; -v numbers the entries so you can jump with cd ~N.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "dirs -v",
+          "desc": "Numbered list"
+        }
+      ],
+      "suggestions": [
+        "pushd",
+        "popd"
+      ]
+    },
+    {
+      "name": "rename",
+      "summary": "Rename multiple files with a pattern",
+      "risk": "high",
+      "risk_reason": "Batch renames can overwrite or scramble many files at once.",
+      "cautions": [
+        "Always run with -n first (Perl rename).",
+        "Two source files mapping to the same name overwrite each other with -f.",
+        "The Perl and util-linux versions have different syntax — check `rename --version`."
+      ],
+      "explanation": "Renames files using a Perl regex (Debian/Ubuntu) or a simple string substitution (util-linux). Syntax differs between implementations.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Dry run: show what would be renamed (Perl rename)"
+        },
+        {
+          "flag": "-v",
+          "desc": "Verbose"
+        },
+        {
+          "flag": "-f",
+          "desc": "Force overwriting existing files"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rename -n 's/\\.jpeg$/.jpg/' *.jpeg",
+          "desc": "Preview renaming .jpeg to .jpg"
+        },
+        {
+          "cmd": "rename 's/ /_/g' *",
+          "desc": "Replace spaces with underscores"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "rename -n 's/old/new/' *.txt",
+          "why": "Dry run first"
+        }
+      ],
+      "suggestions": [
+        "mv",
+        "find"
+      ]
+    },
+    {
+      "name": "shred",
+      "summary": "Overwrite a file to make recovery harder",
+      "risk": "high",
+      "risk_reason": "Destroys data irrecoverably; ineffective on journaling, SSD and copy-on-write filesystems.",
+      "cautions": [
+        "Irreversible — there is no undo and no trash.",
+        "Does NOT reliably wipe data on SSDs, RAID, snapshots, btrfs/ZFS or journaled data — use full-disk encryption and secure erase.",
+        "Double-check the filename; a wrong target is lost for good."
+      ],
+      "explanation": "Overwrites a file multiple times, optionally deleting it (-u).",
+      "flags": [
+        {
+          "flag": "-u",
+          "desc": "Remove the file afterwards"
+        },
+        {
+          "flag": "-n",
+          "desc": "Number of overwrite passes"
+        },
+        {
+          "flag": "-z",
+          "desc": "Add a final pass of zeros"
+        },
+        {
+          "flag": "-v",
+          "desc": "Show progress"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "shred -vzu secret.txt",
+          "desc": "Overwrite and delete"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ls -l <file>",
+          "why": "Confirm the target first"
+        },
+        {
+          "cmd": "cryptsetup luksErase <device>",
+          "why": "For disks: use encryption + crypto-erase"
+        }
+      ],
+      "suggestions": [
+        "rm",
+        "dd"
+      ]
+    },
+    {
+      "name": "mkfifo",
+      "summary": "Create a named pipe",
+      "risk": "low",
+      "risk_reason": "Creates a special file; blocks readers/writers until both ends are open.",
+      "explanation": "Makes a FIFO that processes can use for inter-process communication.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mkfifo /tmp/pipe",
+          "desc": "Create a pipe"
+        },
+        {
+          "cmd": "cat /tmp/pipe",
+          "desc": "Read from it (blocks until a writer appears)"
+        }
+      ],
+      "suggestions": [
+        "tee",
+        "mknod"
+      ]
+    }
+  ]
+}

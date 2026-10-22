@@ -1,0 +1,1712 @@
+{
+  "category": "users-security",
+  "commands": [
+    {
+      "name": "chmod",
+      "summary": "Change file or directory permissions.",
+      "risk": "high",
+      "risk_reason": "Incorrect permissions can expose files or break applications.",
+      "cautions": [
+        "Avoid `chmod -R 777` — it makes everything world-writable and is almost never the real fix.",
+        "Recursive changes treat files and directories alike; use capital X or `find -type d`/`-type f` separately.",
+        "Find the real cause of “permission denied” with `namei -l <path>`."
+      ],
+      "explanation": "chmod modifies read/write/execute permissions for owner, group, and others. Accepts symbolic (u+x) or octal (755) notation. Octal is precise and unambiguous — 755 means owner rwx, group r-x, others r-x. The -R flag applies changes recursively.",
+      "flags": [
+        {
+          "flag": "-R",
+          "long": "--recursive",
+          "desc": "Apply changes recursively to directories"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Print a message for each changed file"
+        },
+        {
+          "flag": "-c",
+          "long": "--changes",
+          "desc": "Report only files that are changed"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "chmod 600 ~/.ssh/id_ed25519",
+          "desc": "Restrict private key to owner-read only (SSH requirement)"
+        },
+        {
+          "cmd": "chmod 644 /etc/nginx/nginx.conf",
+          "desc": "Readable by all, writable only by owner"
+        },
+        {
+          "cmd": "chmod +x deploy.sh",
+          "desc": "Make a script executable"
+        },
+        {
+          "cmd": "chmod -R 750 /opt/app",
+          "desc": "Set app directory: owner rwx, group r-x, others none"
+        },
+        {
+          "cmd": "chmod u+s /usr/bin/binary",
+          "desc": "Set SUID bit — runs as file owner"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "stat -c '%a %U:%G %n' <path>",
+          "why": "Record the current mode/owner."
+        },
+        {
+          "cmd": "chmod -R u=rwX,g=rX,o= <dir>",
+          "why": "Capital X sets execute only on directories and already-executable files."
+        }
+      ],
+      "suggestions": [
+        "chown",
+        "umask",
+        "stat"
+      ],
+      "pro_tip": "Remember '7=rwx, 6=rw-, 5=r-x, 4=r--'. Use 644 for files, 755 for directories as baseline public defaults — and 600/700 for anything private."
+    },
+    {
+      "name": "chown",
+      "summary": "Change file or directory ownership (user and/or group).",
+      "risk": "high",
+      "risk_reason": "Changing ownership of system files can break services.",
+      "cautions": [
+        "Recursive chown on system directories breaks services that rely on their own UID.",
+        "-R does not follow symlinks by default; -L follows them and can reach outside the tree.",
+        "Record ownership first: getfacl -R <path> > acl.backup."
+      ],
+      "explanation": "chown changes the owner and/or group of files. Format is user:group. Either can be omitted — chown user: changes owner and group to user's primary group; chown :group changes only the group.",
+      "flags": [
+        {
+          "flag": "-R",
+          "long": "--recursive",
+          "desc": "Change ownership recursively"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Print a message for each changed file"
+        },
+        {
+          "flag": "--reference",
+          "desc": "Use a reference file's ownership"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "chown nginx:nginx /var/www/html",
+          "desc": "Set web root to nginx user and group"
+        },
+        {
+          "cmd": "chown -R deploy:deploy /opt/app",
+          "desc": "Recursively set ownership for app directory"
+        },
+        {
+          "cmd": "chown root:root /usr/local/bin/myscript",
+          "desc": "Set ownership to root"
+        },
+        {
+          "cmd": "chown --reference=/etc/passwd /etc/shadow",
+          "desc": "Match ownership from reference file"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "getfacl -R <path> > /tmp/acl.backup",
+          "why": "Back up ownership and ACLs."
+        },
+        {
+          "cmd": "find <path> -user <old> -exec chown <new> {} +",
+          "why": "Change only files owned by a specific user."
+        }
+      ],
+      "suggestions": [
+        "chmod",
+        "stat",
+        "ls"
+      ],
+      "pro_tip": "Use `chown user:` (trailing colon, no group) to change the user and automatically set group to that user's primary group — saves a lookup step."
+    },
+    {
+      "name": "useradd",
+      "summary": "Create a new user account on the Linux system.",
+      "risk": "medium",
+      "risk_reason": "Creates system access; poor configuration can introduce security vulnerabilities.",
+      "cautions": [
+        "Without -m no home directory is created; without -s the login shell may default to /bin/sh.",
+        "Adding users to sudo/wheel/docker groups grants root-equivalent access.",
+        "For service accounts use -r and -s /usr/sbin/nologin."
+      ],
+      "explanation": "useradd creates user accounts in /etc/passwd. -m creates a home directory, -s sets the login shell, -G adds to supplementary groups, -r creates a service account without login. On Debian/Ubuntu, `adduser` is the friendlier interactive wrapper.",
+      "flags": [
+        {
+          "flag": "-m",
+          "long": "--create-home",
+          "desc": "Create a home directory for the new user"
+        },
+        {
+          "flag": "-s",
+          "long": "--shell",
+          "desc": "Set login shell (e.g. /bin/bash or /usr/sbin/nologin)"
+        },
+        {
+          "flag": "-G",
+          "long": "--groups",
+          "desc": "Add to supplementary groups (comma-separated)"
+        },
+        {
+          "flag": "-u",
+          "long": "--uid",
+          "desc": "Specify a numeric user ID"
+        },
+        {
+          "flag": "-r",
+          "long": "--system",
+          "desc": "Create a system account (no home, no interactive login)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "useradd -m -s /bin/bash -G sudo,docker deploy",
+          "desc": "Create deploy user with home, bash, and sudo+docker access"
+        },
+        {
+          "cmd": "useradd -r -s /usr/sbin/nologin prometheus",
+          "desc": "Create a service account with no login shell for Prometheus"
+        },
+        {
+          "cmd": "useradd -m -u 1500 -G developers alice",
+          "desc": "Create alice with a specific UID and developers group"
+        }
+      ],
+      "suggestions": [
+        "passwd",
+        "usermod",
+        "userdel",
+        "groupadd",
+        "id"
+      ],
+      "pro_tip": "For service accounts always use `-r -s /usr/sbin/nologin` — prevents interactive login while still allowing the service to run as that user."
+    },
+    {
+      "name": "passwd",
+      "summary": "Change or set a user account password.",
+      "risk": "medium",
+      "risk_reason": "Locking or changing passwords affects user access.",
+      "cautions": [
+        "`passwd -l` on the only admin or root account can lock everybody out.",
+        "`passwd -d` removes the password (an empty password).",
+        "Prefer SSH keys and enforce policy with chage."
+      ],
+      "explanation": "passwd updates /etc/shadow. Root can change any user's password. -l locks an account, -u unlocks, -e forces a password change on next login.",
+      "flags": [
+        {
+          "flag": "-l",
+          "long": "--lock",
+          "desc": "Lock the account (prefix ! in shadow)"
+        },
+        {
+          "flag": "-u",
+          "long": "--unlock",
+          "desc": "Unlock a locked account"
+        },
+        {
+          "flag": "-e",
+          "long": "--expire",
+          "desc": "Force password change on next login"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "passwd alice",
+          "desc": "Interactively change alice's password (as root)"
+        },
+        {
+          "cmd": "passwd -e deploy",
+          "desc": "Force deploy user to set a new password on next login"
+        },
+        {
+          "cmd": "passwd -l tempuser",
+          "desc": "Lock tempuser account during an investigation"
+        }
+      ],
+      "suggestions": [
+        "useradd",
+        "usermod",
+        "chage",
+        "sudo"
+      ],
+      "pro_tip": "Use `chage -l username` to view password expiry info including last changed date and warning period.",
+      "low_when": [
+        "\\s-S\\b"
+      ]
+    },
+    {
+      "name": "openssl",
+      "summary": "Cryptography toolkit — TLS testing, key/certificate generation, and data encoding.",
+      "risk": "medium",
+      "risk_reason": "Weak key sizes or mishandled private keys create serious security vulnerabilities.",
+      "cautions": [
+        "Never share private keys; protect them with chmod 600 and a passphrase.",
+        "Use RSA ≥ 3072 or ECDSA/Ed25519 and SHA-256+; avoid SHA-1/MD5.",
+        "-nodes / -noenc writes the private key unencrypted."
+      ],
+      "explanation": "openssl is a comprehensive crypto toolkit. It generates RSA/EC keys, creates CSRs, signs certificates, tests TLS handshakes, encodes/decodes base64, and computes hashes. Essential for PKI management, HTTPS setup, and debugging TLS certificate issues.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "openssl s_client -connect example.com:443 -servername example.com",
+          "desc": "Test a TLS connection and inspect the full certificate chain for a remote host"
+        },
+        {
+          "cmd": "openssl req -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj '/CN=example.com'",
+          "desc": "Generate a 4096-bit RSA private key and certificate signing request in one step"
+        },
+        {
+          "cmd": "openssl x509 -in cert.pem -noout -text | grep -A2 'Validity'",
+          "desc": "Check expiry dates of a certificate from a PEM file"
+        }
+      ],
+      "suggestions": [
+        "ssh-keygen",
+        "cfssl",
+        "certbot",
+        "curl -k",
+        "mkcert"
+      ],
+      "pro_tip": "Check remote cert expiry without downloading a file: `echo | openssl s_client -connect host:443 2>/dev/null | openssl x509 -noout -dates`",
+      "low_when": [
+        "\\b(x509|s_client|verify|version|dgst|req -text|crl)\\b|-noout"
+      ],
+      "low_unless": [
+        "genrsa|genpkey|-out|-new|-sign|enc\\b"
+      ]
+    },
+    {
+      "name": "ssh-keygen",
+      "summary": "Generate, inspect, and manage SSH public/private key pairs.",
+      "risk": "low",
+      "risk_reason": "Private keys must be protected — exposure grants unauthorized SSH access.",
+      "cautions": [
+        "Do not overwrite an existing key — check the target path first.",
+        "Protect private keys with a passphrase and chmod 600; `ssh-keygen -R` only edits known_hosts."
+      ],
+      "explanation": "ssh-keygen creates key pairs for passwordless SSH authentication. Ed25519 is the modern standard — shorter, faster, and more secure than RSA. -C adds an identifying comment. -f sets the filename. -R removes stale entries from known_hosts.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Key type: ed25519 (recommended), ecdsa, rsa"
+        },
+        {
+          "flag": "-b",
+          "desc": "Key bits — for RSA: minimum 2048, prefer 4096"
+        },
+        {
+          "flag": "-C",
+          "desc": "Comment to identify the key (typically email or hostname)"
+        },
+        {
+          "flag": "-f",
+          "desc": "Output filename for the key pair"
+        },
+        {
+          "flag": "-N",
+          "desc": "Passphrase for the private key ('' for none)"
+        },
+        {
+          "flag": "-p",
+          "desc": "Change the passphrase of an existing private key"
+        },
+        {
+          "flag": "-l",
+          "desc": "Show fingerprint of a public key file"
+        },
+        {
+          "flag": "-R",
+          "desc": "Remove a host entry from ~/.ssh/known_hosts"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ssh-keygen -t ed25519 -C 'deploy@prod' -f ~/.ssh/prod_ed25519",
+          "desc": "Generate a named Ed25519 key pair for production deployment"
+        },
+        {
+          "cmd": "ssh-keygen -t rsa -b 4096 -C 'user@example.com'",
+          "desc": "Generate a 4096-bit RSA key for legacy system compatibility"
+        },
+        {
+          "cmd": "ssh-keygen -l -f ~/.ssh/id_ed25519.pub",
+          "desc": "Display the fingerprint of a public key for verification"
+        }
+      ],
+      "suggestions": [
+        "ssh-copy-id",
+        "ssh",
+        "openssl",
+        "gpg",
+        "age"
+      ],
+      "pro_tip": "Always prefer Ed25519: `ssh-keygen -t ed25519` — the public key is 68 characters vs 800+ for RSA-4096, with stronger security properties."
+    },
+    {
+      "name": "umask",
+      "summary": "Set default permissions mask for newly created files and directories.",
+      "risk": "low",
+      "risk_reason": "Affects only new files; doesn't change existing ones.",
+      "explanation": "umask defines which permission bits are removed from new files/directories. The default umask 022 means files are created 644 (666-022) and directories 755 (777-022). A stricter umask 027 gives 640/750 — better for multi-user servers.",
+      "flags": [
+        {
+          "flag": "-S",
+          "long": "--symbolic",
+          "desc": "Display mask in symbolic notation"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "umask",
+          "desc": "Display current umask in octal"
+        },
+        {
+          "cmd": "umask -S",
+          "desc": "Display current umask symbolically"
+        },
+        {
+          "cmd": "umask 027",
+          "desc": "New files: owner rw, group r, others none"
+        },
+        {
+          "cmd": "umask 077",
+          "desc": "New files: owner rw only — maximum privacy"
+        }
+      ],
+      "suggestions": [
+        "chmod",
+        "chown",
+        "stat"
+      ],
+      "pro_tip": "Set umask 027 in /etc/profile.d/ for service accounts on production servers — prevents world-readable files from being created accidentally."
+    },
+    {
+      "name": "gpg",
+      "summary": "GNU Privacy Guard: encrypt, decrypt, sign, and verify files.",
+      "risk": "medium",
+      "risk_reason": "Losing private keys permanently locks encrypted data.",
+      "cautions": [
+        "If you lose the private key (or its passphrase) the encrypted data is gone for good — back up keys and the revocation certificate.",
+        "`--export-secret-keys` output must stay offline and protected.",
+        "Verify fingerprints out-of-band before trusting a key."
+      ],
+      "explanation": "gpg implements the OpenPGP standard for encryption, signing, and key management. Used for encrypting secrets, signing releases and commits, verifying software authenticity, and secure file transfer without shared passwords.",
+      "flags": [
+        {
+          "flag": "-e",
+          "long": "--encrypt",
+          "desc": "Encrypt data"
+        },
+        {
+          "flag": "-d",
+          "long": "--decrypt",
+          "desc": "Decrypt data"
+        },
+        {
+          "flag": "-s",
+          "long": "--sign",
+          "desc": "Sign data"
+        },
+        {
+          "flag": "--verify",
+          "desc": "Verify a signature"
+        },
+        {
+          "flag": "-r",
+          "long": "--recipient",
+          "desc": "Specify recipient key"
+        },
+        {
+          "flag": "--armor",
+          "desc": "Output ASCII armored format"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "gpg --gen-key",
+          "desc": "Generate a new GPG key pair"
+        },
+        {
+          "cmd": "gpg --encrypt --armor -r user@example.com secret.txt",
+          "desc": "Encrypt file for a recipient"
+        },
+        {
+          "cmd": "gpg --decrypt secret.txt.gpg",
+          "desc": "Decrypt a GPG-encrypted file"
+        },
+        {
+          "cmd": "gpg --verify release.tar.gz.sig release.tar.gz",
+          "desc": "Verify a signed release"
+        },
+        {
+          "cmd": "gpg --list-keys",
+          "desc": "List public keys in keyring"
+        }
+      ],
+      "suggestions": [
+        "openssl",
+        "ssh-keygen",
+        "base64"
+      ],
+      "pro_tip": "Always back up your private key: `gpg --export-secret-keys --armor user@email.com > private-key.asc`. Store it encrypted offline — key loss = permanent data loss.",
+      "low_when": [
+        "--list|-k\\b|--verify|--fingerprint"
+      ],
+      "low_unless": [
+        "--delete|--export-secret|--gen-key|--decrypt|--encrypt|--sign"
+      ]
+    },
+    {
+      "name": "selinux",
+      "kind": "topic",
+      "match": [
+        "getenforce",
+        "setenforce",
+        "selinux"
+      ],
+      "summary": "Manage SELinux mandatory access control policies.",
+      "risk": "high",
+      "risk_reason": "Setting to permissive/disabled removes security enforcement.",
+      "cautions": [
+        "Setting permissive/disabled removes mandatory access control — fix the denial instead.",
+        "chcon changes do not survive a relabel; use semanage fcontext + restorecon.",
+        "Going from disabled to enforcing needs a full relabel (touch /.autorelabel) and a reboot."
+      ],
+      "explanation": "SELinux (Security-Enhanced Linux) enforces mandatory access control policies beyond traditional file permissions. When applications fail silently, SELinux denials are often the cause. Use getenforce/setenforce to check and toggle mode, and audit2why to understand denials.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "getenforce",
+          "desc": "Check current SELinux mode (Enforcing/Permissive/Disabled)"
+        },
+        {
+          "cmd": "setenforce 0",
+          "desc": "Set to Permissive (logs denials, doesn't enforce)"
+        },
+        {
+          "cmd": "setenforce 1",
+          "desc": "Set back to Enforcing"
+        },
+        {
+          "cmd": "ausearch -m avc -ts recent | audit2why",
+          "desc": "Explain recent SELinux denials in plain English"
+        },
+        {
+          "cmd": "ausearch -m avc -ts recent | audit2allow -M mypolicy && semodule -i mypolicy.pp",
+          "desc": "Generate and install a policy to fix a denial"
+        },
+        {
+          "cmd": "ls -Z /var/www/html",
+          "desc": "Show SELinux context of files"
+        },
+        {
+          "cmd": "restorecon -Rv /var/www/html",
+          "desc": "Restore default SELinux file contexts"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ausearch -m avc -ts recent | audit2why",
+          "why": "Find out what is being denied."
+        },
+        {
+          "cmd": "semanage fcontext -a -t <type> '<path>(/.*)?' && restorecon -Rv <path>",
+          "why": "Fix the label permanently."
+        }
+      ],
+      "suggestions": [
+        "firewalld",
+        "chmod",
+        "journalctl"
+      ],
+      "pro_tip": "Before permanently disabling SELinux, try `setenforce 0` and test — if the issue resolves, use `audit2allow` to create a proper policy instead of leaving enforcement disabled.",
+      "low_when": [
+        "getenforce|sestatus|ausearch|-Z\\b|semanage .* -l\\b|getsebool"
+      ],
+      "low_unless": [
+        "setenforce|setsebool|chcon|restorecon|semanage .*-(a|d|m)\\b"
+      ]
+    },
+    {
+      "name": "apparmor",
+      "kind": "topic",
+      "match": [
+        "aa-status",
+        "apparmor"
+      ],
+      "summary": "Manage AppArmor mandatory access control profiles.",
+      "risk": "medium",
+      "risk_reason": "Disabling profiles removes security enforcement.",
+      "cautions": [
+        "Disabling a profile removes confinement — use aa-complain while debugging instead.",
+        "Profile syntax errors can stop services from starting; validate with apparmor_parser -p."
+      ],
+      "explanation": "AppArmor confines processes to defined sets of files, capabilities, and network access using profiles. Default on Ubuntu/Debian. Profiles are stored in /etc/apparmor.d/. aa-status shows which processes are confined, aa-complain sets a profile to log-only mode for debugging.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aa-status",
+          "desc": "Show all AppArmor profiles and their modes"
+        },
+        {
+          "cmd": "aa-complain /etc/apparmor.d/usr.sbin.nginx",
+          "desc": "Set nginx profile to complain/log mode for debugging"
+        },
+        {
+          "cmd": "aa-enforce /etc/apparmor.d/usr.sbin.nginx",
+          "desc": "Set nginx profile back to enforce mode"
+        },
+        {
+          "cmd": "apparmor_parser -r /etc/apparmor.d/usr.sbin.nginx",
+          "desc": "Reload a modified AppArmor profile"
+        },
+        {
+          "cmd": "dmesg | grep apparmor",
+          "desc": "View AppArmor kernel messages and denials"
+        }
+      ],
+      "suggestions": [
+        "selinux",
+        "journalctl",
+        "chmod"
+      ],
+      "pro_tip": "Use `aa-complain` on a problematic profile, reproduce the issue, then check `dmesg | grep apparmor` to see exactly what was denied — build the policy fix from real denials, not guessing.",
+      "low_when": [
+        "aa-status|status"
+      ],
+      "low_unless": [
+        "disable|complain|enforce|remove|teardown"
+      ]
+    },
+    {
+      "name": "openssl advanced",
+      "kind": "topic",
+      "parent": "openssl",
+      "summary": "Advanced OpenSSL: TLS debugging, certificate inspection, and PKI operations.",
+      "risk": "medium",
+      "risk_reason": "Generating weak keys or exposing private keys has security implications.",
+      "cautions": [
+        "Self-signed certificates and -k in clients disable trust — use a proper CA for production.",
+        "Never paste private keys into tickets or chat tools.",
+        "Check expiry before renewals: openssl x509 -noout -enddate."
+      ],
+      "explanation": "Beyond s_client, OpenSSL handles the full certificate lifecycle: inspecting cert details, verifying chains, checking expiry, generating CSRs, and testing specific TLS ciphers and protocol versions. Essential for TLS troubleshooting.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "openssl s_client -connect host:443 -servername host 2>/dev/null | openssl x509 -noout -dates",
+          "desc": "Check TLS certificate expiry date"
+        },
+        {
+          "cmd": "openssl x509 -in cert.pem -noout -text",
+          "desc": "Full certificate details (SANs, issuer, validity)"
+        },
+        {
+          "cmd": "openssl verify -CAfile ca.pem cert.pem",
+          "desc": "Verify certificate against CA chain"
+        },
+        {
+          "cmd": "openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr",
+          "desc": "Generate private key and CSR"
+        },
+        {
+          "cmd": "openssl s_client -connect host:443 -tls1_2 2>/dev/null | grep -i cipher",
+          "desc": "Test specific TLS version and cipher negotiation"
+        }
+      ],
+      "suggestions": [
+        "gpg",
+        "ssh-keygen",
+        "curl"
+      ],
+      "pro_tip": "Use `openssl s_client -connect host:443 2>/dev/null | openssl x509 -noout -enddate` in monitoring scripts to alert on certificate expiry — check daily and alert when < 30 days remain.",
+      "low_when": [
+        "-noout|s_client|x509|verify"
+      ],
+      "low_unless": [
+        "genrsa|-out|-new|-sign"
+      ]
+    },
+    {
+      "name": "sudo",
+      "summary": "Run commands as another user (usually root)",
+      "risk": "high",
+      "risk_reason": "Runs with elevated privileges; one typo can damage the whole system.",
+      "cautions": [
+        "Re-read the whole command before pressing Enter — especially paths and globs.",
+        "Avoid `sudo -i`/`sudo su` for routine work; they hide actions from the audit trail.",
+        "Never edit /etc/sudoers directly — use visudo.",
+        "Redirections run as YOU, not root: `sudo echo x > /etc/f` fails; use `| sudo tee`."
+      ],
+      "explanation": "Executes a command as root or another user according to /etc/sudoers.",
+      "flags": [
+        {
+          "flag": "-u",
+          "desc": "Run as another user"
+        },
+        {
+          "flag": "-i",
+          "desc": "Login shell as root"
+        },
+        {
+          "flag": "-s",
+          "desc": "Run a shell"
+        },
+        {
+          "flag": "-l",
+          "desc": "List allowed commands"
+        },
+        {
+          "flag": "-k",
+          "desc": "Forget cached credentials"
+        },
+        {
+          "flag": "-E",
+          "desc": "Preserve environment",
+          "caution": "May leak your environment into a privileged context."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sudo -l",
+          "desc": "What can I run?"
+        },
+        {
+          "cmd": "sudo systemctl restart nginx",
+          "desc": "Single privileged command"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "sudo -l",
+          "why": "Check what you may run"
+        },
+        {
+          "cmd": "sudoedit <file>",
+          "why": "Edit root files safely"
+        },
+        {
+          "cmd": "sudo -k",
+          "why": "Drop cached credentials when finished"
+        }
+      ],
+      "suggestions": [
+        "visudo",
+        "su",
+        "sudoedit"
+      ]
+    },
+    {
+      "name": "su",
+      "summary": "Switch user",
+      "risk": "high",
+      "risk_reason": "Opens a shell with another identity (often root).",
+      "cautions": [
+        "Using su to become root bypasses per-command sudo logging.",
+        "Leave the elevated shell as soon as you are done."
+      ],
+      "explanation": "`su -` starts a login shell as the target user.",
+      "flags": [
+        {
+          "flag": "-",
+          "desc": "Login shell"
+        },
+        {
+          "flag": "-c",
+          "desc": "Run one command"
+        },
+        {
+          "flag": "-s",
+          "desc": "Shell to use"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "su - appuser",
+          "desc": "Become appuser"
+        },
+        {
+          "cmd": "su -c \"id\" appuser",
+          "desc": "One command as appuser"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "sudo -u appuser <command>",
+          "why": "Prefer sudo for auditability"
+        }
+      ],
+      "suggestions": [
+        "sudo",
+        "whoami"
+      ]
+    },
+    {
+      "name": "visudo",
+      "summary": "Safely edit sudoers",
+      "risk": "high",
+      "risk_reason": "Mistakes can remove everyone’s sudo access.",
+      "cautions": [
+        "Always keep a second root session open while editing.",
+        "NOPASSWD: ALL entries grant unrestricted root without a password — limit to specific commands.",
+        "A syntax error can disable sudo entirely if edited with a normal editor."
+      ],
+      "explanation": "Locks and syntax-checks /etc/sudoers before saving.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Check syntax only"
+        },
+        {
+          "flag": "-f",
+          "desc": "Edit a specific file (e.g. /etc/sudoers.d/x)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "visudo -c",
+          "desc": "Validate sudoers"
+        },
+        {
+          "cmd": "visudo -f /etc/sudoers.d/deploy",
+          "desc": "Edit a drop-in"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "visudo -c",
+          "why": "Validate after editing"
+        },
+        {
+          "cmd": "visudo -f /etc/sudoers.d/<name>",
+          "why": "Use drop-in files"
+        }
+      ],
+      "suggestions": [
+        "sudo"
+      ]
+    },
+    {
+      "name": "usermod",
+      "summary": "Modify a user account",
+      "risk": "high",
+      "risk_reason": "Changing UID/group/home incorrectly breaks logins and file ownership.",
+      "cautions": [
+        "`usermod -G group user` without -a replaces ALL supplementary groups — you can remove sudo access or lock someone out.",
+        "Adding users to sudo, wheel or docker grants root-equivalent access.",
+        "Don’t change a logged-in user’s UID/home without planning the migration."
+      ],
+      "explanation": "Edits account attributes: groups, shell, home, login name, lock state.",
+      "flags": [
+        {
+          "flag": "-aG",
+          "desc": "Append to groups (always use -a with -G)",
+          "caution": "Without -a the user is REMOVED from all other groups."
+        },
+        {
+          "flag": "-L",
+          "desc": "Lock account"
+        },
+        {
+          "flag": "-U",
+          "desc": "Unlock account"
+        },
+        {
+          "flag": "-s",
+          "desc": "Login shell"
+        },
+        {
+          "flag": "-d",
+          "desc": "Home directory (use -m to move)"
+        },
+        {
+          "flag": "-l",
+          "desc": "Change login name"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "usermod -aG docker alice",
+          "desc": "Add alice to a group"
+        },
+        {
+          "cmd": "usermod -L alice",
+          "desc": "Lock alice"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "id <user>",
+          "why": "Record current groups first"
+        },
+        {
+          "cmd": "usermod -aG <group> <user>",
+          "why": "Always use -a with -G"
+        }
+      ],
+      "suggestions": [
+        "useradd",
+        "userdel",
+        "id"
+      ]
+    },
+    {
+      "name": "userdel",
+      "summary": "Delete a user account",
+      "risk": "high",
+      "risk_reason": "Removes the account; with -r also its home directory and mail.",
+      "cautions": [
+        "Back up the home directory first: tar -czf alice-home.tgz /home/alice.",
+        "Files owned by the old UID remain and could be re-assigned to a new user with the same UID.",
+        "Check running processes and crontabs of the user first."
+      ],
+      "explanation": "Deletes a user from /etc/passwd and /etc/shadow.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Remove home directory and mail spool",
+          "caution": "Permanently deletes the user’s files."
+        },
+        {
+          "flag": "-f",
+          "desc": "Force removal",
+          "caution": "Even if the user is logged in."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "userdel alice",
+          "desc": "Remove account, keep home"
+        },
+        {
+          "cmd": "userdel -r alice",
+          "desc": "Remove account and home"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "passwd -l <user> && chage -E0 <user>",
+          "why": "Lock instead of delete"
+        },
+        {
+          "cmd": "tar -czf <user>-home.tgz /home/<user>",
+          "why": "Back up before deleting"
+        },
+        {
+          "cmd": "find / -user <user> -ls 2>/dev/null",
+          "why": "Find files owned by the user"
+        }
+      ],
+      "suggestions": [
+        "usermod",
+        "useradd"
+      ]
+    },
+    {
+      "name": "groupadd",
+      "summary": "Create a group",
+      "risk": "low",
+      "risk_reason": "Adds a group; a duplicate GID could cause permission confusion.",
+      "explanation": "Creates a new group in /etc/group. See the flags and examples below, and run `man groupadd` for the full reference.",
+      "flags": [
+        {
+          "flag": "-g",
+          "desc": "Specify GID"
+        },
+        {
+          "flag": "-r",
+          "desc": "System group"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "groupadd developers",
+          "desc": "Create a group"
+        }
+      ],
+      "suggestions": [
+        "usermod",
+        "groupdel"
+      ]
+    },
+    {
+      "name": "groupdel",
+      "summary": "Delete a group",
+      "risk": "medium",
+      "risk_reason": "Files owned by the group keep the numeric GID.",
+      "cautions": [
+        "Files with that GID become ownerless and may be reused by a future group.",
+        "Cannot delete a user’s primary group."
+      ],
+      "explanation": "Removes a group. See the flags and examples below, and run `man groupdel` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "groupdel olduser",
+          "desc": "Delete a group"
+        }
+      ],
+      "suggestions": [
+        "groupadd"
+      ]
+    },
+    {
+      "name": "chage",
+      "summary": "Manage password aging",
+      "risk": "medium",
+      "risk_reason": "Wrong expiry values can lock accounts.",
+      "cautions": [
+        "-E0 expires the account immediately — useful for locking, but easy to do by accident.",
+        "Service accounts with max age set can fail unexpectedly."
+      ],
+      "explanation": "Shows or changes password expiry policy per user.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List aging info"
+        },
+        {
+          "flag": "-E",
+          "desc": "Account expiry date (-E0 expires now)"
+        },
+        {
+          "flag": "-M",
+          "desc": "Maximum password age"
+        },
+        {
+          "flag": "-d",
+          "desc": "Set last password change date"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "chage -l alice",
+          "desc": "Show policy"
+        },
+        {
+          "cmd": "chage -E0 alice",
+          "desc": "Expire the account now"
+        }
+      ],
+      "suggestions": [
+        "passwd",
+        "usermod"
+      ]
+    },
+    {
+      "name": "ssh-copy-id",
+      "summary": "Install your public key on a server",
+      "risk": "medium",
+      "risk_reason": "Modifies authorized_keys on the remote host.",
+      "cautions": [
+        "Verify the host fingerprint before first login.",
+        "Remove old keys when people leave; review authorized_keys regularly."
+      ],
+      "explanation": "Appends your public key to ~/.ssh/authorized_keys remotely.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Use a specific public key"
+        },
+        {
+          "flag": "-p",
+          "desc": "SSH port"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ssh-copy-id -i ~/.ssh/id_ed25519.pub user@host",
+          "desc": "Install a key"
+        }
+      ],
+      "suggestions": [
+        "ssh-keygen",
+        "ssh"
+      ]
+    },
+    {
+      "name": "ssh-add",
+      "summary": "Add keys to the SSH agent",
+      "risk": "low",
+      "risk_reason": "Keeps decrypted keys in memory.",
+      "cautions": [
+        "Forwarding the agent (-A) lets remote root use your keys — prefer ProxyJump.",
+        "Use -t to limit key lifetime."
+      ],
+      "explanation": "Loads private keys into ssh-agent. See the flags and examples below, and run `man ssh-add` for the full reference.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List loaded keys"
+        },
+        {
+          "flag": "-D",
+          "desc": "Delete all keys"
+        },
+        {
+          "flag": "-t",
+          "desc": "Lifetime in seconds"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ssh-add -t 3600 ~/.ssh/id_ed25519",
+          "desc": "Load a key for one hour"
+        },
+        {
+          "cmd": "ssh-add -l",
+          "desc": "List"
+        }
+      ],
+      "suggestions": [
+        "ssh-keygen",
+        "ssh"
+      ]
+    },
+    {
+      "name": "fail2ban-client",
+      "summary": "Control fail2ban",
+      "risk": "medium",
+      "risk_reason": "Can unban attackers or ban legitimate IPs; misconfiguration can lock you out.",
+      "cautions": [
+        "Whitelist your own admin IPs (ignoreip) so you cannot ban yourself.",
+        "Test jail changes with fail2ban-regex before reloading."
+      ],
+      "explanation": "Queries and manages jails and banned IPs.",
+      "flags": [
+        {
+          "flag": "status",
+          "desc": "Overall status"
+        },
+        {
+          "flag": "set <jail> unbanip",
+          "desc": "Unban an IP"
+        },
+        {
+          "flag": "set <jail> banip",
+          "desc": "Ban an IP"
+        },
+        {
+          "flag": "reload",
+          "desc": "Reload configuration"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fail2ban-client status sshd",
+          "desc": "Show banned IPs"
+        },
+        {
+          "cmd": "fail2ban-client set sshd unbanip 203.0.113.9",
+          "desc": "Unban an address"
+        }
+      ],
+      "suggestions": [
+        "ufw",
+        "iptables",
+        "journalctl"
+      ]
+    },
+    {
+      "name": "certbot",
+      "summary": "Obtain and renew Let’s Encrypt certificates",
+      "risk": "medium",
+      "risk_reason": "Can modify web server config and hit rate limits.",
+      "cautions": [
+        "Rate limits: failed validations and force-renewals can block issuance for days.",
+        "The nginx/apache plugins edit configuration — back it up."
+      ],
+      "explanation": "ACME client that issues and renews TLS certificates.",
+      "flags": [
+        {
+          "flag": "certonly",
+          "desc": "Obtain only"
+        },
+        {
+          "flag": "renew",
+          "desc": "Renew all due certs"
+        },
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Test against the staging server"
+        },
+        {
+          "flag": "--force-renewal",
+          "long": "--force-renewal",
+          "desc": "Force renewal",
+          "caution": "Can trigger rate limits."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "certbot renew --dry-run",
+          "desc": "Test renewal"
+        },
+        {
+          "cmd": "certbot certonly --nginx -d example.com",
+          "desc": "Issue a certificate"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "certbot renew --dry-run",
+          "why": "Test with the staging server"
+        }
+      ],
+      "suggestions": [
+        "openssl",
+        "nginx"
+      ]
+    },
+    {
+      "name": "getenforce",
+      "summary": "Show SELinux mode",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints Enforcing, Permissive or Disabled.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "getenforce",
+          "desc": "Current mode"
+        }
+      ],
+      "suggestions": [
+        "setenforce",
+        "selinux"
+      ]
+    },
+    {
+      "name": "setenforce",
+      "summary": "Switch SELinux between enforcing and permissive",
+      "risk": "high",
+      "risk_reason": "Permissive mode disables enforcement until reboot, weakening protection.",
+      "cautions": [
+        "setenforce 0 is a diagnostic, not a fix — find the denial with ausearch and write policy instead.",
+        "Don’t forget to return to enforcing."
+      ],
+      "explanation": "Changes the runtime SELinux mode; does not survive reboot.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "setenforce 0",
+          "desc": "Permissive (temporary)"
+        },
+        {
+          "cmd": "setenforce 1",
+          "desc": "Back to enforcing"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ausearch -m avc -ts recent | audit2why",
+          "why": "Diagnose the denial"
+        },
+        {
+          "cmd": "semanage fcontext -a -t <type> \"<path>(/.*)?\" && restorecon -Rv <path>",
+          "why": "Fix the label"
+        }
+      ],
+      "suggestions": [
+        "selinux",
+        "ausearch"
+      ]
+    },
+    {
+      "name": "restorecon",
+      "summary": "Restore SELinux file contexts",
+      "risk": "medium",
+      "risk_reason": "Relabels files, possibly changing which services can access them.",
+      "cautions": [
+        "Run with -n first.",
+        "Relabelling / can take very long; scope paths."
+      ],
+      "explanation": "Resets file contexts to policy defaults.",
+      "flags": [
+        {
+          "flag": "-R",
+          "desc": "Recurse"
+        },
+        {
+          "flag": "-v",
+          "desc": "Verbose"
+        },
+        {
+          "flag": "-n",
+          "desc": "Dry run"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "restorecon -Rnv /var/www",
+          "desc": "Dry run"
+        },
+        {
+          "cmd": "restorecon -Rv /var/www",
+          "desc": "Apply"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "restorecon -Rnv <path>",
+          "why": "Dry run"
+        }
+      ],
+      "suggestions": [
+        "selinux",
+        "semanage"
+      ]
+    },
+    {
+      "name": "semanage",
+      "summary": "Manage SELinux policy",
+      "risk": "high",
+      "risk_reason": "Wrong rules weaken security or break services.",
+      "cautions": [
+        "Changes persist across reboots.",
+        "Avoid broad types such as unconfined_t or permissive domains."
+      ],
+      "explanation": "Persistent SELinux configuration: file contexts, ports, booleans, logins.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "semanage port -a -t http_port_t -p tcp 8080",
+          "desc": "Allow nginx on 8080"
+        },
+        {
+          "cmd": "semanage fcontext -l | grep httpd",
+          "desc": "List contexts"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "semanage port -l | grep <type>",
+          "why": "Review before adding"
+        }
+      ],
+      "suggestions": [
+        "restorecon",
+        "selinux"
+      ]
+    },
+    {
+      "name": "aide",
+      "summary": "File integrity checker",
+      "risk": "low",
+      "risk_reason": "Read-only checking; init overwrites the baseline.",
+      "cautions": [
+        "Store the baseline offline or read-only; an attacker with root can regenerate it."
+      ],
+      "explanation": "Compares the filesystem to a database of hashes to detect tampering.",
+      "flags": [
+        {
+          "flag": "--init",
+          "long": "--init",
+          "desc": "Build a new baseline",
+          "caution": "Overwrites the baseline you trust."
+        },
+        {
+          "flag": "--check",
+          "long": "--check",
+          "desc": "Compare against the baseline"
+        },
+        {
+          "flag": "--update",
+          "long": "--update",
+          "desc": "Create a new database"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "aide --check",
+          "desc": "Run an integrity check"
+        }
+      ],
+      "suggestions": [
+        "sha256sum",
+        "auditctl"
+      ]
+    },
+    {
+      "name": "lynis",
+      "summary": "Security auditing tool",
+      "risk": "low",
+      "risk_reason": "Read-only system scan.",
+      "cautions": [
+        "Treat suggestions as input, not gospel — test hardening changes on non-production first."
+      ],
+      "explanation": "Runs a hardening audit and prints suggestions.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lynis audit system",
+          "desc": "Full audit"
+        }
+      ],
+      "suggestions": [
+        "aide",
+        "openssl"
+      ]
+    },
+    {
+      "name": "ssh-keyscan",
+      "summary": "Collect SSH host keys",
+      "risk": "low",
+      "risk_reason": "Network probe of hosts.",
+      "cautions": [
+        "Blindly trusting scanned keys defeats host verification — compare fingerprints out-of-band."
+      ],
+      "explanation": "Fetches public host keys for known_hosts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ssh-keyscan -t ed25519 host >> ~/.ssh/known_hosts",
+          "desc": "Add a host key"
+        }
+      ],
+      "suggestions": [
+        "ssh",
+        "ssh-keygen"
+      ]
+    },
+    {
+      "name": "age",
+      "summary": "Modern file encryption",
+      "risk": "low",
+      "risk_reason": "Encrypts/decrypts files; losing the key loses the data.",
+      "cautions": [
+        "Back up your key file; there is no recovery.",
+        "Delete plaintext originals safely after encrypting."
+      ],
+      "explanation": "Simple file encryption with public keys or passphrases.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Recipient public key"
+        },
+        {
+          "flag": "-p",
+          "desc": "Passphrase mode"
+        },
+        {
+          "flag": "-d",
+          "desc": "Decrypt"
+        },
+        {
+          "flag": "-o",
+          "desc": "Output file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "age -r age1... -o secret.age secret.txt",
+          "desc": "Encrypt for a recipient"
+        },
+        {
+          "cmd": "age -d -i key.txt secret.age",
+          "desc": "Decrypt"
+        }
+      ],
+      "suggestions": [
+        "gpg",
+        "openssl"
+      ]
+    },
+    {
+      "name": "pass",
+      "summary": "Standard Unix password manager",
+      "risk": "low",
+      "risk_reason": "Stores secrets in GPG files; clipboard exposure.",
+      "cautions": [
+        "Passwords in the clipboard can be read by other apps.",
+        "Back up your GPG key."
+      ],
+      "explanation": "Password store backed by gpg and git. See the flags and examples below, and run `man pass` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pass show email/work",
+          "desc": "Show a password"
+        },
+        {
+          "cmd": "pass -c email/work",
+          "desc": "Copy to the clipboard (cleared after 45 s)"
+        }
+      ],
+      "suggestions": [
+        "gpg"
+      ]
+    },
+    {
+      "name": "adduser",
+      "match": [
+        "adduser"
+      ],
+      "summary": "Interactive user creation (Debian)",
+      "risk": "medium",
+      "risk_reason": "Creates accounts with home directories.",
+      "cautions": [
+        "Set a strong password or SSH key only access."
+      ],
+      "explanation": "Friendly wrapper around useradd. See the flags and examples below, and run `man adduser` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "adduser alice",
+          "desc": "Create alice"
+        },
+        {
+          "cmd": "adduser --system --no-create-home svc",
+          "desc": "Service account"
+        }
+      ],
+      "suggestions": [
+        "useradd"
+      ]
+    },
+    {
+      "name": "deluser",
+      "match": [
+        "deluser"
+      ],
+      "summary": "Delete a user (Debian)",
+      "risk": "high",
+      "risk_reason": "--remove-home deletes files.",
+      "cautions": [
+        "Back up /home/<user> first."
+      ],
+      "explanation": "Debian wrapper for userdel. See the flags and examples below, and run `man deluser` for the full reference.",
+      "flags": [
+        {
+          "flag": "--remove-home",
+          "long": "--remove-home",
+          "desc": "Delete home",
+          "caution": "Permanent."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "deluser alice",
+          "desc": "Remove account"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "tar -czf <user>-home.tgz /home/<user>",
+          "why": "Back up"
+        }
+      ],
+      "suggestions": [
+        "userdel"
+      ]
+    },
+    {
+      "name": "newgrp",
+      "match": [
+        "newgrp"
+      ],
+      "summary": "Switch primary group",
+      "risk": "low",
+      "risk_reason": "Changes group for a subshell.",
+      "explanation": "Starts a shell with another group. See the flags and examples below, and run `man newgrp` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "newgrp docker",
+          "desc": "Use docker group"
+        }
+      ],
+      "suggestions": [
+        "id"
+      ]
+    },
+    {
+      "name": "chsh",
+      "match": [
+        "chsh"
+      ],
+      "summary": "Change login shell",
+      "risk": "medium",
+      "risk_reason": "Wrong shell prevents login.",
+      "cautions": [
+        "Shell must be listed in /etc/shells and installed, otherwise login fails."
+      ],
+      "explanation": "Changes the login shell. See the flags and examples below, and run `man chsh` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "chsh -s /bin/zsh",
+          "desc": "Use zsh"
+        }
+      ],
+      "suggestions": [
+        "usermod"
+      ]
+    },
+    {
+      "name": "faillock",
+      "match": [
+        "faillock"
+      ],
+      "summary": "Show/reset failed-login locks",
+      "risk": "medium",
+      "risk_reason": "Resetting clears protection.",
+      "cautions": [
+        "Resetting hides brute-force attempts — check logs first."
+      ],
+      "explanation": "Manages PAM faillock counters. See the flags and examples below, and run `man faillock` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "faillock --user alice",
+          "desc": "Show"
+        },
+        {
+          "cmd": "faillock --user alice --reset",
+          "desc": "Reset"
+        }
+      ],
+      "suggestions": [
+        "lastb"
+      ],
+      "low_when": [
+        "--user \\S+$|--dir"
+      ]
+    },
+    {
+      "name": "pwck",
+      "match": [
+        "pwck"
+      ],
+      "summary": "Verify /etc/passwd",
+      "risk": "low",
+      "risk_reason": "Check only unless -r omitted.",
+      "explanation": "Verifies integrity of passwd/shadow. See the flags and examples below, and run `man pwck` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pwck -r",
+          "desc": "Read-only check"
+        }
+      ],
+      "suggestions": [
+        "grpck"
+      ]
+    },
+    {
+      "name": "openssl x509",
+      "match": [
+        "openssl x509"
+      ],
+      "summary": "Inspect certificates",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Print dates, subject, fingerprint of certificates.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "openssl x509 -in cert.pem -noout -dates -subject",
+          "desc": "Dates and subject"
+        },
+        {
+          "cmd": "openssl x509 -in cert.pem -noout -fingerprint -sha256",
+          "desc": "Fingerprint"
+        }
+      ],
+      "suggestions": [
+        "openssl"
+      ]
+    },
+    {
+      "name": "openssl s_client",
+      "match": [
+        "openssl s_client"
+      ],
+      "summary": "Test TLS connections",
+      "risk": "low",
+      "risk_reason": "Network probe.",
+      "cautions": [
+        "-verify_return_error makes failures explicit."
+      ],
+      "explanation": "Connects to a TLS server and shows the chain.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "openssl s_client -connect example.com:443 -servername example.com </dev/null",
+          "desc": "Show chain"
+        }
+      ],
+      "suggestions": [
+        "openssl x509"
+      ]
+    },
+    {
+      "name": "openssl req",
+      "match": [
+        "openssl req"
+      ],
+      "summary": "Create CSRs and certificates",
+      "risk": "medium",
+      "risk_reason": "Private keys must be protected.",
+      "cautions": [
+        "-nodes leaves the key unencrypted — protect with chmod 600.",
+        "Self-signed certs are not trusted by clients."
+      ],
+      "explanation": "Generates keys and certificate signing requests.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "openssl req -new -newkey rsa:3072 -nodes -keyout key.pem -out csr.pem",
+          "desc": "CSR + key"
+        }
+      ],
+      "suggestions": [
+        "openssl x509"
+      ]
+    },
+    {
+      "name": "ufw allow",
+      "match": [
+        "ufw allow"
+      ],
+      "summary": "Open a firewall port (ufw)",
+      "risk": "high",
+      "risk_reason": "Exposes a service.",
+      "cautions": [
+        "Avoid “allow 22” from anywhere on Internet-facing hosts when a VPN or allow-list is possible."
+      ],
+      "explanation": "Adds an allow rule. See the flags and examples below, and run `man ufw` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ufw allow from 10.0.0.0/8 to any port 22",
+          "desc": "Restrict by source"
+        },
+        {
+          "cmd": "ufw status numbered",
+          "desc": "Rules"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ufw allow from <cidr> to any port <port>",
+          "why": "Restrict by source"
+        }
+      ],
+      "suggestions": [
+        "ufw"
+      ]
+    }
+  ]
+}

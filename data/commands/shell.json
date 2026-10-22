@@ -1,0 +1,1519 @@
+{
+  "category": "shell",
+  "commands": [
+    {
+      "name": "alias",
+      "summary": "Create shorthand names for commands or command sequences.",
+      "risk": "low",
+      "risk_reason": "Non-persistent unless added to shell config; easy to undo.",
+      "cautions": [
+        "Aliasing destructive commands (e.g. rm → rm -i) gives a false sense of safety — aliases do not apply in scripts or other shells."
+      ],
+      "explanation": "alias lets you define custom shorthand for long or complex commands. Aliases defined in the terminal session are temporary — to make them permanent, add them to ~/.bashrc or ~/.bash_profile. alias without arguments lists all current aliases.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "alias ll='ls -lah --color=auto'",
+          "desc": "Create a human-readable long listing alias"
+        },
+        {
+          "cmd": "alias k=kubectl",
+          "desc": "Shorthand for kubectl (essential for K8s work)"
+        },
+        {
+          "cmd": "alias grep='grep --color=auto'",
+          "desc": "Always colorize grep output"
+        },
+        {
+          "cmd": "alias ..='cd ..'",
+          "desc": "Navigate up one directory quickly"
+        },
+        {
+          "cmd": "unalias ll",
+          "desc": "Remove the ll alias"
+        }
+      ],
+      "suggestions": [
+        "export",
+        "source",
+        "history"
+      ],
+      "pro_tip": "Add `alias tf=terraform` and `alias k=kubectl` to ~/.bashrc — saves thousands of keystrokes per week."
+    },
+    {
+      "name": "export",
+      "summary": "Set environment variables available to child processes.",
+      "risk": "low",
+      "risk_reason": "Scoped to current session unless written to shell config.",
+      "cautions": [
+        "Exporting secrets puts them in the environment of every child process and (if typed) into shell history — prefer reading them from a file or a secrets manager."
+      ],
+      "explanation": "export marks a shell variable for export to the environment of child processes. Without export, variables are local to the current shell only. Used extensively in CI/CD pipelines, Docker, and application configuration. export -p lists all exported variables.",
+      "flags": [
+        {
+          "flag": "-p",
+          "long": "--print",
+          "desc": "Print all exported variables"
+        },
+        {
+          "flag": "-n",
+          "long": "--unexport",
+          "desc": "Remove variable from export list (don't delete it)"
+        },
+        {
+          "flag": "-f",
+          "long": "--function",
+          "desc": "Export shell functions"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "export AWS_REGION=ap-south-1",
+          "desc": "Set AWS region for CLI commands"
+        },
+        {
+          "cmd": "export PATH=\"$HOME/.local/bin:$PATH\"",
+          "desc": "Prepend local bin to PATH"
+        },
+        {
+          "cmd": "export -p | grep AWS",
+          "desc": "List all exported AWS-related variables"
+        },
+        {
+          "cmd": "export KUBECONFIG=~/.kube/config:~/.kube/prod",
+          "desc": "Merge multiple kubeconfig files"
+        }
+      ],
+      "suggestions": [
+        "env",
+        "printenv",
+        "source"
+      ],
+      "pro_tip": "Use `export -p > session_vars.sh` to snapshot your current environment — useful before entering a complex debugging session."
+    },
+    {
+      "name": "env",
+      "summary": "Print environment variables or run a command with a modified environment.",
+      "risk": "low",
+      "risk_reason": "Read-only by default; modified-env execution is scoped.",
+      "cautions": [
+        "The environment often contains secrets (tokens, passwords) — do not paste the output into tickets or chats."
+      ],
+      "explanation": "env displays all current environment variables or runs a program with a temporarily modified environment. env -i runs a command in a completely clean environment — critical for reproducible builds and debugging environment contamination.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--ignore-environment",
+          "desc": "Start with empty environment"
+        },
+        {
+          "flag": "-u",
+          "long": "--unset",
+          "desc": "Remove a variable from environment"
+        },
+        {
+          "flag": "-0",
+          "long": "--null",
+          "desc": "Use null separator instead of newlines"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "env",
+          "desc": "Print all environment variables"
+        },
+        {
+          "cmd": "env | grep -i proxy",
+          "desc": "Check proxy settings"
+        },
+        {
+          "cmd": "env -i HOME=/tmp bash --norc",
+          "desc": "Launch bash with clean environment"
+        },
+        {
+          "cmd": "env NODE_ENV=production node app.js",
+          "desc": "Run node with overridden env var"
+        }
+      ],
+      "suggestions": [
+        "printenv",
+        "export",
+        "set"
+      ],
+      "pro_tip": "Use `env -i` in scripts to avoid inheriting unexpected variables from the user's shell — production deployments should always control their own environment."
+    },
+    {
+      "name": "printenv",
+      "summary": "Print the value of specific environment variables.",
+      "risk": "low",
+      "risk_reason": "Read-only operation.",
+      "cautions": [
+        "Variables may hold secrets — avoid printing everything in shared terminals, CI logs or screen shares."
+      ],
+      "explanation": "printenv prints the values of specified environment variables, or all variables if none are specified. Unlike env, it's purpose-built for querying — cleaner for scripting than parsing env output.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "printenv HOME",
+          "desc": "Print the home directory path"
+        },
+        {
+          "cmd": "printenv PATH",
+          "desc": "Print the current PATH"
+        },
+        {
+          "cmd": "printenv | sort",
+          "desc": "List all env vars alphabetically"
+        },
+        {
+          "cmd": "printenv KUBECONFIG 2>/dev/null || echo 'Not set'",
+          "desc": "Safely check if a var is set"
+        }
+      ],
+      "suggestions": [
+        "env",
+        "export",
+        "echo"
+      ],
+      "pro_tip": "In scripts, prefer `printenv VAR` over `echo $VAR` — the latter can be confusing if the variable contains special characters."
+    },
+    {
+      "name": "source",
+      "summary": "Execute a script in the current shell context (no subshell).",
+      "risk": "low",
+      "risk_reason": "Changes affect current shell; sourcing untrusted files is dangerous.",
+      "cautions": [
+        "Sourcing runs every command in the file in your current shell — only source files you trust and have read."
+      ],
+      "explanation": "source (or its synonym `.`) runs a script in the current shell rather than a subshell — so variables, functions, and aliases defined in the script persist after it finishes. Essential for applying changes to ~/.bashrc without restarting the terminal.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "source ~/.bashrc",
+          "desc": "Reload bash config without restarting terminal"
+        },
+        {
+          "cmd": "source .env",
+          "desc": "Load environment variables from a .env file"
+        },
+        {
+          "cmd": ". /etc/profile.d/custom.sh",
+          "desc": "Source using POSIX dot syntax"
+        },
+        {
+          "cmd": "source <(kubectl completion bash)",
+          "desc": "Load kubectl tab completion"
+        }
+      ],
+      "suggestions": [
+        "export",
+        "alias",
+        "bash"
+      ],
+      "pro_tip": "Use `source .env` in dev workflows — keep secrets in .env (gitignored) and load them on demand rather than exporting globally."
+    },
+    {
+      "name": "history",
+      "summary": "Display or manipulate the shell command history.",
+      "risk": "low",
+      "risk_reason": "Purely informational; editing history file requires care.",
+      "cautions": [
+        "History files can contain passwords and tokens typed on the command line; `history -c` hides your trail but may violate audit policy."
+      ],
+      "explanation": "history lists previously executed commands with line numbers. You can re-run commands with !N (by number) or !! (last command). Ctrl+R provides interactive reverse search. HISTSIZE controls in-memory lines; HISTFILESIZE controls the history file.",
+      "flags": [
+        {
+          "flag": "-c",
+          "long": "--clear",
+          "desc": "Clear all history (session)"
+        },
+        {
+          "flag": "-d",
+          "long": "--delete",
+          "desc": "Delete a specific history entry by number"
+        },
+        {
+          "flag": "-a",
+          "long": "--append",
+          "desc": "Append session history to history file"
+        },
+        {
+          "flag": "-n",
+          "long": "--read-new",
+          "desc": "Read new lines from history file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "history 50",
+          "desc": "Show last 50 commands"
+        },
+        {
+          "cmd": "history | grep kubectl",
+          "desc": "Search history for kubectl commands"
+        },
+        {
+          "cmd": "!42",
+          "desc": "Re-execute command number 42"
+        },
+        {
+          "cmd": "history -d 42",
+          "desc": "Delete command 42 from history"
+        },
+        {
+          "cmd": "export HISTCONTROL=ignoredups:ignorespace",
+          "desc": "Skip duplicates and space-prefixed commands"
+        }
+      ],
+      "suggestions": [
+        "alias",
+        "source",
+        "grep"
+      ],
+      "pro_tip": "Prefix any command with a space to exclude it from history — useful for commands containing passwords or tokens (requires HISTCONTROL=ignorespace)."
+    },
+    {
+      "name": "which",
+      "summary": "Locate the executable that would be run for a given command.",
+      "risk": "low",
+      "risk_reason": "Read-only lookup.",
+      "explanation": "which searches PATH directories for the specified command and prints the full path. Essential for diagnosing 'command not found' errors, verifying which version of a tool is active, and understanding PATH resolution order.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Print all matching paths, not just the first"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "which kubectl",
+          "desc": "Find where kubectl is installed"
+        },
+        {
+          "cmd": "which -a python3",
+          "desc": "Find all python3 installations in PATH"
+        },
+        {
+          "cmd": "which terraform && terraform version",
+          "desc": "Verify terraform exists then check version"
+        }
+      ],
+      "suggestions": [
+        "whereis",
+        "type",
+        "find"
+      ],
+      "pro_tip": "Use `which -a <cmd>` when debugging version conflicts — it reveals all installed copies so you know exactly which one your PATH resolves to first."
+    },
+    {
+      "name": "whereis",
+      "summary": "Locate binary, source, and man page for a command.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "whereis locates binary, source code, and manual page files for a given command, searching standard system directories (not just PATH). More comprehensive than which but less precise for custom installations.",
+      "flags": [
+        {
+          "flag": "-b",
+          "long": "--binary",
+          "desc": "Search for binary only"
+        },
+        {
+          "flag": "-m",
+          "long": "--manual",
+          "desc": "Search for man pages only"
+        },
+        {
+          "flag": "-s",
+          "long": "--source",
+          "desc": "Search for source only"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "whereis bash",
+          "desc": "Find bash binary, source, and man page"
+        },
+        {
+          "cmd": "whereis -b nginx",
+          "desc": "Find only the nginx binary"
+        },
+        {
+          "cmd": "whereis -m systemctl",
+          "desc": "Find the systemctl man page location"
+        }
+      ],
+      "suggestions": [
+        "which",
+        "type",
+        "locate"
+      ],
+      "pro_tip": "Use `whereis -b cmd` in automation scripts to check if a binary exists before using it — more reliable than `which` across different distros."
+    },
+    {
+      "name": "tmux",
+      "summary": "Terminal multiplexer: manage multiple terminal sessions in one window.",
+      "risk": "low",
+      "risk_reason": "Sessions persist independently; easy to lose work if confused.",
+      "cautions": [
+        "Detached sessions keep running (and keep any secrets or credentials in scrollback) — close them when finished."
+      ],
+      "explanation": "tmux creates persistent terminal sessions with multiple windows and panes. Sessions survive SSH disconnects — critical for long-running operations. Supports session sharing for pair programming and detach/reattach workflows.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tmux new -s deploy",
+          "desc": "Create named session 'deploy'"
+        },
+        {
+          "cmd": "tmux attach -t deploy",
+          "desc": "Reattach to 'deploy' session"
+        },
+        {
+          "cmd": "tmux ls",
+          "desc": "List all active sessions"
+        },
+        {
+          "cmd": "tmux kill-session -t deploy",
+          "desc": "Kill a specific session"
+        }
+      ],
+      "suggestions": [
+        "screen",
+        "nohup",
+        "ssh"
+      ],
+      "pro_tip": "Essential keybindings: Ctrl+b d (detach), Ctrl+b c (new window), Ctrl+b % (split vertical), Ctrl+b \" (split horizontal). Run long operations in tmux — they survive SSH drops."
+    },
+    {
+      "name": "screen",
+      "summary": "Terminal multiplexer with persistent sessions (older alternative to tmux).",
+      "risk": "low",
+      "risk_reason": "Sessions persist after logout; orphaned sessions consume resources.",
+      "cautions": [
+        "Detached sessions keep running and keep their scrollback — close them and avoid leaving root shells open."
+      ],
+      "explanation": "screen provides persistent terminal sessions that survive SSH disconnects, similar to tmux. While tmux is more modern and feature-rich, screen is often the only multiplexer available on minimal server installs.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "screen -S mysession",
+          "desc": "Create named session"
+        },
+        {
+          "cmd": "screen -r mysession",
+          "desc": "Reattach to session"
+        },
+        {
+          "cmd": "screen -ls",
+          "desc": "List all sessions"
+        },
+        {
+          "cmd": "screen -X -S mysession quit",
+          "desc": "Kill a session from outside"
+        }
+      ],
+      "suggestions": [
+        "tmux",
+        "nohup",
+        "ssh"
+      ],
+      "pro_tip": "Inside screen: Ctrl+a d (detach), Ctrl+a c (new window), Ctrl+a \" (list windows). Prefer tmux for new setups — screen is for when you're on a system without tmux."
+    },
+    {
+      "name": "jobs",
+      "summary": "List background and stopped jobs in the current shell.",
+      "risk": "low",
+      "risk_reason": "Read-only; bg/fg commands control jobs.",
+      "explanation": "jobs lists processes running in the background (&) or stopped (Ctrl+Z) in the current shell session. Combined with fg, bg, disown, and kill %N, it provides job control without needing PIDs.",
+      "flags": [
+        {
+          "flag": "-l",
+          "long": "--list-pids",
+          "desc": "Show PID alongside job info"
+        },
+        {
+          "flag": "-p",
+          "long": "--pids",
+          "desc": "Show only PIDs"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "jobs -l",
+          "desc": "List all jobs with PIDs"
+        },
+        {
+          "cmd": "fg %1",
+          "desc": "Bring job 1 to foreground"
+        },
+        {
+          "cmd": "bg %2",
+          "desc": "Resume job 2 in background"
+        },
+        {
+          "cmd": "disown %1",
+          "desc": "Detach job 1 from shell (survives logout)"
+        },
+        {
+          "cmd": "kill %2",
+          "desc": "Kill job 2 by job number"
+        }
+      ],
+      "suggestions": [
+        "nohup",
+        "ps",
+        "kill"
+      ],
+      "pro_tip": "Use `disown -h %1` after backgrounding a job with & to prevent it from receiving SIGHUP when your session closes — a lighter alternative to nohup for already-running processes."
+    },
+    {
+      "name": "sleep",
+      "summary": "Pause execution for a specified duration.",
+      "risk": "low",
+      "risk_reason": "Blocking; use carefully in production automation.",
+      "cautions": [
+        "`sleep` in scripts is a race-condition workaround — poll for the condition you actually need."
+      ],
+      "explanation": "sleep pauses the shell for a given number of seconds (or minutes/hours with m/h suffixes on GNU sleep). Used in retry loops, rate limiting, and waiting for services to start. Often overused where proper readiness checks are better.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "sleep 5",
+          "desc": "Wait 5 seconds"
+        },
+        {
+          "cmd": "sleep 0.5",
+          "desc": "Wait 500 milliseconds (GNU sleep)"
+        },
+        {
+          "cmd": "for i in {1..5}; do curl -f http://app/health && break || sleep 3; done",
+          "desc": "Retry with delay"
+        }
+      ],
+      "suggestions": [
+        "watch",
+        "wait",
+        "jobs"
+      ],
+      "pro_tip": "Replace `sleep 30` in startup scripts with a readiness loop: `until curl -sf http://localhost:8080/health; do sleep 2; done` — adapts to actual readiness instead of guessing."
+    },
+    {
+      "name": "test",
+      "summary": "Evaluate conditional expressions in shell scripts.",
+      "risk": "low",
+      "risk_reason": "Read-only evaluation.",
+      "explanation": "test evaluates conditions (file existence, string comparison, numeric comparison) and returns 0 (true) or 1 (false). Equivalent to [ ] syntax. The [[ ]] bash extension is safer and supports regex. The backbone of all shell script conditionals.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "True if file exists and is a regular file"
+        },
+        {
+          "flag": "-d",
+          "desc": "True if directory exists"
+        },
+        {
+          "flag": "-z",
+          "desc": "True if string is empty"
+        },
+        {
+          "flag": "-n",
+          "desc": "True if string is non-empty"
+        },
+        {
+          "flag": "-r/-w/-x",
+          "desc": "True if file is readable/writable/executable"
+        },
+        {
+          "flag": "-eq/-ne/-lt/-gt",
+          "desc": "Numeric comparisons"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "[ -f /etc/nginx/nginx.conf ] && echo 'nginx installed'",
+          "desc": "Check file existence"
+        },
+        {
+          "cmd": "[ -d /opt/app ] || mkdir -p /opt/app",
+          "desc": "Create directory if missing"
+        },
+        {
+          "cmd": "[[ $ENVNAME == prod* ]] && echo 'production environment'",
+          "desc": "Bash pattern match"
+        },
+        {
+          "cmd": "[ $(id -u) -eq 0 ] || { echo 'Must be root'; exit 1; }",
+          "desc": "Require root in script"
+        }
+      ],
+      "suggestions": [
+        "find",
+        "bash",
+        "printf"
+      ],
+      "pro_tip": "Prefer `[[ ]]` over `[ ]` in bash scripts — it handles variables with spaces safely without quoting, supports `&&`/`||`, and enables regex with `=~`."
+    },
+    {
+      "name": "declare",
+      "summary": "Declare shell variables with types and attributes.",
+      "risk": "low",
+      "risk_reason": "Scoped to current shell; -x exports to environment.",
+      "explanation": "declare sets variable attributes: -i for integers, -a for arrays, -A for associative arrays (hash maps), -r for read-only, -x for export. Enables type-checking and structured data in bash scripts.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--integer",
+          "desc": "Treat variable as integer (arithmetic only)"
+        },
+        {
+          "flag": "-a",
+          "long": "--array",
+          "desc": "Indexed array"
+        },
+        {
+          "flag": "-A",
+          "long": "--assoc",
+          "desc": "Associative array (hash map)"
+        },
+        {
+          "flag": "-r",
+          "long": "--readonly",
+          "desc": "Read-only variable"
+        },
+        {
+          "flag": "-x",
+          "long": "--export",
+          "desc": "Export to environment"
+        },
+        {
+          "flag": "-p",
+          "long": "--print",
+          "desc": "Print variable declaration"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "declare -A config; config[host]='localhost'; config[port]=5432",
+          "desc": "Create an associative array (hash map)"
+        },
+        {
+          "cmd": "declare -i count=0; count+=1",
+          "desc": "Integer variable with arithmetic"
+        },
+        {
+          "cmd": "declare -r VERSION='1.2.3'",
+          "desc": "Read-only constant"
+        },
+        {
+          "cmd": "declare -p myvar",
+          "desc": "Print variable declaration for debugging"
+        }
+      ],
+      "suggestions": [
+        "export",
+        "set",
+        "bash"
+      ],
+      "pro_tip": "Use `declare -A` for config maps in bash scripts: store key-value pairs without external tools. Iterate with `for key in \"${!map[@]}\"; do echo \"$key=${map[$key]}\"; done`"
+    },
+    {
+      "name": "read",
+      "summary": "Read input from stdin or user prompt into shell variables.",
+      "risk": "low",
+      "risk_reason": "Read-only input capture.",
+      "cautions": [
+        "Without -r, backslashes in input are interpreted; use `read -rs` for secrets so they are not echoed."
+      ],
+      "explanation": "read captures user input or reads lines from stdin into shell variables. Used for interactive scripts, parsing file content line-by-line, and prompting for secrets (with -s to disable echo). The -r flag prevents backslash interpretation.",
+      "flags": [
+        {
+          "flag": "-r",
+          "long": "--raw",
+          "desc": "Raw mode: don't interpret backslashes"
+        },
+        {
+          "flag": "-s",
+          "long": "--silent",
+          "desc": "Silent mode: don't echo input (for passwords)"
+        },
+        {
+          "flag": "-p",
+          "long": "--prompt",
+          "desc": "Print prompt before reading"
+        },
+        {
+          "flag": "-t",
+          "long": "--timeout",
+          "desc": "Timeout in seconds"
+        },
+        {
+          "flag": "-a",
+          "long": "--array",
+          "desc": "Read words into an array"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "read -p 'Enter cluster name: ' CLUSTER",
+          "desc": "Interactive prompt with variable capture"
+        },
+        {
+          "cmd": "read -s -p 'Password: ' PASS",
+          "desc": "Silent password prompt"
+        },
+        {
+          "cmd": "while IFS=: read -r user _ uid _; do echo \"$user uid=$uid\"; done < /etc/passwd",
+          "desc": "Parse /etc/passwd field by field"
+        },
+        {
+          "cmd": "read -r -t 10 -p 'Continue? [y/N] ' response",
+          "desc": "Prompt with 10-second timeout"
+        }
+      ],
+      "suggestions": [
+        "printf",
+        "test",
+        "source"
+      ],
+      "pro_tip": "Always use `IFS= read -r line` when reading file lines — prevents leading/trailing whitespace stripping and backslash interpretation that causes subtle bugs."
+    },
+    {
+      "name": "set",
+      "summary": "Set shell options and positional parameters; control script safety.",
+      "risk": "medium",
+      "risk_reason": "Disabling safety options (e.g., set +e) can mask script failures.",
+      "cautions": [
+        "`set +e` hides failures; `set -x` can print secrets into logs.",
+        "Use `set -euo pipefail` at the top of scripts and understand its edge cases (||, if, subshells).",
+        "`set -- args` replaces the positional parameters."
+      ],
+      "explanation": "set configures shell options that dramatically affect script behavior. `set -e` makes scripts exit on any error. `set -u` treats unset variables as errors. `set -o pipefail` catches failures in pipelines. Together, they make scripts fail-fast and safe.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "set -euo pipefail",
+          "desc": "Enable all safety options (recommended at top of all scripts)"
+        },
+        {
+          "cmd": "set -x",
+          "desc": "Enable debug mode: print each command before executing"
+        },
+        {
+          "cmd": "set +x",
+          "desc": "Disable debug mode"
+        },
+        {
+          "cmd": "set -e; false; echo 'never reached'",
+          "desc": "Demonstrate exit-on-error"
+        }
+      ],
+      "suggestions": [
+        "trap",
+        "declare",
+        "bash"
+      ],
+      "pro_tip": "Start every bash script with `#!/bin/bash\\nset -euo pipefail` — `e` exits on error, `u` catches unset variables, `pipefail` catches pipeline failures. This prevents 90% of silent script bugs."
+    },
+    {
+      "name": "trap",
+      "summary": "Execute commands when the shell receives signals or exits.",
+      "risk": "low",
+      "risk_reason": "Misuse can suppress error signals and mask failures.",
+      "cautions": [
+        "A wrong trap on EXIT/ERR can hide failures or run cleanup that deletes the wrong directory — quote and validate variables used in traps."
+      ],
+      "explanation": "trap registers commands to run when specific signals are received (INT, TERM, EXIT, ERR). Critical for cleanup logic: removing temp files, sending alerts on failure, and ensuring safe teardown of resources when a script exits.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "trap 'rm -f /tmp/mytemp.*' EXIT",
+          "desc": "Clean up temp files on any exit"
+        },
+        {
+          "cmd": "trap 'echo \"ERROR at line $LINENO\"' ERR",
+          "desc": "Report error line number on failure"
+        },
+        {
+          "cmd": "trap 'echo Interrupted; exit 1' INT TERM",
+          "desc": "Handle Ctrl+C gracefully"
+        },
+        {
+          "cmd": "trap '' SIGPIPE",
+          "desc": "Ignore broken pipe signals (common in pipelines)"
+        }
+      ],
+      "suggestions": [
+        "set",
+        "jobs",
+        "logger"
+      ],
+      "pro_tip": "Use `trap 'cleanup' EXIT` instead of duplicating cleanup at every exit point — EXIT fires on all exits (normal, error, signal), so one trap covers all cases."
+    },
+    {
+      "name": "stty",
+      "summary": "Configure terminal line settings and fix broken terminals.",
+      "risk": "low",
+      "risk_reason": "Changing settings can make terminal unusable until reset.",
+      "explanation": "stty configures terminal I/O settings — baud rate, character echoing, special characters, and more. Most commonly used to fix a 'broken' terminal (no echo, garbled input) with `stty sane` or to set terminal size for remote sessions.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Print all current settings"
+        },
+        {
+          "flag": "sane",
+          "desc": "Reset to sensible defaults"
+        },
+        {
+          "flag": "rows/cols",
+          "desc": "Set terminal dimensions"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "stty sane",
+          "desc": "Reset terminal to sane state (fix broken terminal)"
+        },
+        {
+          "cmd": "stty -a",
+          "desc": "Print all terminal settings"
+        },
+        {
+          "cmd": "stty rows 50 cols 220",
+          "desc": "Set terminal size (useful in reverse shells)"
+        },
+        {
+          "cmd": "stty -echo",
+          "desc": "Disable character echoing (for password scripts)"
+        },
+        {
+          "cmd": "stty echo",
+          "desc": "Re-enable character echoing"
+        }
+      ],
+      "suggestions": [
+        "tput",
+        "read",
+        "screen"
+      ],
+      "pro_tip": "When a terminal goes silent (no echo after entering a password), type `stty echo` blindly and press Enter — this re-enables echo without closing the session."
+    },
+    {
+      "name": "tput",
+      "summary": "Query and initialize terminal capabilities for scripting.",
+      "risk": "low",
+      "risk_reason": "Read-only terminal queries; terminal writes are temporary.",
+      "explanation": "tput queries the terminal database (terminfo) to retrieve capabilities like terminal dimensions, cursor control codes, and color codes. Used in scripts to produce colored output, move the cursor, and check terminal dimensions portably.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tput cols && tput lines",
+          "desc": "Get terminal width and height"
+        },
+        {
+          "cmd": "echo \"$(tput setaf 2)SUCCESS$(tput sgr0): Deploy complete\"",
+          "desc": "Green colored output in scripts"
+        },
+        {
+          "cmd": "tput civis",
+          "desc": "Hide cursor (restore with tput cnorm)"
+        },
+        {
+          "cmd": "tput clear",
+          "desc": "Clear screen (same as clear command)"
+        },
+        {
+          "cmd": "RED=$(tput setaf 1); GREEN=$(tput setaf 2); NC=$(tput sgr0)",
+          "desc": "Define color variables for use throughout a script"
+        }
+      ],
+      "suggestions": [
+        "stty",
+        "printf",
+        "echo"
+      ],
+      "pro_tip": "Define colors with tput in scripts: `RED=$(tput setaf 1); NC=$(tput sgr0); echo \"${RED}ERROR${NC}: msg\"` — more portable than hardcoding ANSI escape codes."
+    },
+    {
+      "name": "parallel",
+      "summary": "Execute jobs in parallel from command line or files.",
+      "risk": "medium",
+      "risk_reason": "Parallel execution can overload systems or APIs if not rate-limited.",
+      "cautions": [
+        "Many parallel jobs can overload the machine or hit API rate limits — set -j explicitly.",
+        "File names with spaces/metacharacters need quoting (-q) — otherwise the wrong files are processed.",
+        "Test with --dry-run first."
+      ],
+      "explanation": "GNU parallel runs jobs concurrently across CPU cores or remote hosts, replacing xargs -P with a more powerful and flexible interface. Supports progress bars, retry logic, input from files, and running across SSH hosts. Essential for bulk operations.",
+      "flags": [
+        {
+          "flag": "-j",
+          "long": "--jobs",
+          "desc": "Number of parallel jobs (default: CPU count)"
+        },
+        {
+          "flag": "--delay",
+          "desc": "Delay between job starts"
+        },
+        {
+          "flag": "--retries",
+          "desc": "Retry failed jobs N times"
+        },
+        {
+          "flag": "--progress",
+          "desc": "Show progress bar"
+        },
+        {
+          "flag": "-S",
+          "long": "--ssh",
+          "desc": "Run jobs on remote hosts via SSH"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "parallel -j 8 gzip ::: *.log",
+          "desc": "Compress log files 8 at a time"
+        },
+        {
+          "cmd": "cat urls.txt | parallel -j 10 curl -O",
+          "desc": "Download 10 URLs simultaneously"
+        },
+        {
+          "cmd": "parallel -j 4 --progress kubectl delete pod ::: $(kubectl get pods -o name)",
+          "desc": "Delete pods 4 at a time with progress"
+        },
+        {
+          "cmd": "parallel --retries 3 'curl -f {}' ::: $(cat endpoints.txt)",
+          "desc": "Test endpoints with retry on failure"
+        }
+      ],
+      "suggestions": [
+        "xargs",
+        "jobs",
+        "nproc"
+      ],
+      "pro_tip": "Use `parallel --delay 0.1` when hitting APIs to avoid rate limiting — adds 100ms between job starts while still running many jobs concurrently."
+    },
+    {
+      "name": "bash",
+      "summary": "GNU Bourne-Again shell",
+      "risk": "medium",
+      "risk_reason": "Runs arbitrary commands; scripts execute with your privileges.",
+      "cautions": [
+        "`curl … | bash` executes unseen remote code — download, read, then run.",
+        "Without `set -euo pipefail`, scripts continue after errors and can do damage with empty variables."
+      ],
+      "explanation": "The default shell on most Linux systems. `bash -c` runs a string as a command; `bash script.sh` runs a script.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Run a command string"
+        },
+        {
+          "flag": "-x",
+          "desc": "Trace commands as they run"
+        },
+        {
+          "flag": "-n",
+          "desc": "Syntax check without running"
+        },
+        {
+          "flag": "-e",
+          "desc": "Exit on first error"
+        },
+        {
+          "flag": "-u",
+          "desc": "Treat unset variables as errors"
+        },
+        {
+          "flag": "-l",
+          "desc": "Login shell"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "bash -n script.sh",
+          "desc": "Syntax-check a script"
+        },
+        {
+          "cmd": "bash -x script.sh",
+          "desc": "Debug by tracing"
+        }
+      ],
+      "suggestions": [
+        "sh",
+        "set",
+        "source"
+      ],
+      "low_when": [
+        "\\s-n\\b"
+      ]
+    },
+    {
+      "name": "sh",
+      "summary": "POSIX shell",
+      "risk": "medium",
+      "risk_reason": "Runs arbitrary commands; behaviour differs from bash.",
+      "cautions": [
+        "`curl … | sh` runs unseen remote code.",
+        "Test scripts with the same shell they will use in production (shebang matters)."
+      ],
+      "explanation": "On Debian/Ubuntu sh is dash; on RHEL it is bash in POSIX mode. Bash-only syntax ([[ ]], arrays) fails.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Run a command string"
+        },
+        {
+          "flag": "-x",
+          "desc": "Trace"
+        },
+        {
+          "flag": "-n",
+          "desc": "Syntax check"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sh -n script.sh",
+          "desc": "Check syntax"
+        },
+        {
+          "cmd": "sh -c \"echo $0\" test",
+          "desc": "Run a string"
+        }
+      ],
+      "suggestions": [
+        "bash"
+      ]
+    },
+    {
+      "name": "type",
+      "summary": "Describe how a name is interpreted",
+      "risk": "low",
+      "risk_reason": "Builtin; read-only.",
+      "explanation": "Tells you whether a word is an alias, function, builtin, keyword or file.",
+      "flags": [
+        {
+          "flag": "-a",
+          "desc": "Show all matches"
+        },
+        {
+          "flag": "-t",
+          "desc": "Print only the kind"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "type -a ls",
+          "desc": "Show alias and binary"
+        },
+        {
+          "cmd": "type cd",
+          "desc": "shows it is a builtin"
+        }
+      ],
+      "suggestions": [
+        "which",
+        "command",
+        "alias"
+      ]
+    },
+    {
+      "name": "command",
+      "summary": "Run a command bypassing functions/aliases",
+      "risk": "low",
+      "risk_reason": "Builtin.",
+      "explanation": "`command -v name` is the portable way to test whether a program exists.",
+      "flags": [
+        {
+          "flag": "-v",
+          "desc": "Print the path/definition"
+        },
+        {
+          "flag": "-p",
+          "desc": "Use a default PATH"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "command -v kubectl",
+          "desc": "Check that kubectl is installed"
+        },
+        {
+          "cmd": "command ls",
+          "desc": "Run ls ignoring an alias"
+        }
+      ],
+      "suggestions": [
+        "type",
+        "which"
+      ]
+    },
+    {
+      "name": "eval",
+      "summary": "Execute a string as shell code",
+      "risk": "high",
+      "risk_reason": "Executes arbitrary text; injection risk with any untrusted input.",
+      "cautions": [
+        "Never eval strings built from user input, filenames, network data or variables you did not set.",
+        "Prefer arrays, `declare -n`, or `printf %q` quoting over eval."
+      ],
+      "explanation": "Concatenates its arguments and runs the result as a command. Easy to misuse.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "eval \"$(ssh-agent -s)\"",
+          "desc": "Typical safe use: apply output of a trusted program"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "printf \"%q\" \"$value\"",
+          "why": "Quote values safely instead of eval"
+        }
+      ],
+      "suggestions": [
+        "bash",
+        "source"
+      ]
+    },
+    {
+      "name": "exec",
+      "summary": "Replace the shell with a command",
+      "risk": "medium",
+      "risk_reason": "Replaces the current process; the session ends when the command exits.",
+      "cautions": [
+        "Typing exec in an interactive shell with a command that exits closes your SSH session."
+      ],
+      "explanation": "`exec cmd` runs cmd in place of the shell. `exec >file` redirects the whole script’s output.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "exec bash -l",
+          "desc": "Restart your shell"
+        },
+        {
+          "cmd": "exec > >(tee out.log) 2>&1",
+          "desc": "Log everything the script prints"
+        }
+      ],
+      "suggestions": [
+        "bash",
+        "nohup"
+      ]
+    },
+    {
+      "name": "wait",
+      "summary": "Wait for background jobs",
+      "risk": "low",
+      "risk_reason": "Builtin.",
+      "explanation": "Pauses until the given background jobs finish and returns their exit status.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "sleep 5 & wait",
+          "desc": "Wait for a background job"
+        },
+        {
+          "cmd": "wait $pid",
+          "desc": "Wait for a specific PID"
+        }
+      ],
+      "suggestions": [
+        "jobs",
+        "bg",
+        "fg"
+      ]
+    },
+    {
+      "name": "bg",
+      "summary": "Resume a job in the background",
+      "risk": "low",
+      "risk_reason": "Job control only.",
+      "explanation": "Continues a stopped job in the background.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "bg %1",
+          "desc": "Resume job 1 in the background"
+        }
+      ],
+      "suggestions": [
+        "fg",
+        "jobs",
+        "disown"
+      ]
+    },
+    {
+      "name": "fg",
+      "summary": "Bring a job to the foreground",
+      "risk": "low",
+      "risk_reason": "Job control only.",
+      "explanation": "Moves a background or stopped job to the foreground.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "fg %1",
+          "desc": "Foreground job 1"
+        }
+      ],
+      "suggestions": [
+        "bg",
+        "jobs"
+      ]
+    },
+    {
+      "name": "disown",
+      "summary": "Detach a job from the shell",
+      "risk": "low",
+      "risk_reason": "The process keeps running after logout.",
+      "cautions": [
+        "Disowned processes lose their terminal — their output is lost unless redirected."
+      ],
+      "explanation": "Removes a job from the shell’s job table so it is not killed on hangup (-h keeps it in the table but ignores SIGHUP).",
+      "flags": [
+        {
+          "flag": "-h",
+          "desc": "Do not send SIGHUP on exit"
+        },
+        {
+          "flag": "-a",
+          "desc": "All jobs"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "disown -h %1",
+          "desc": "Keep job 1 alive after logout"
+        }
+      ],
+      "suggestions": [
+        "nohup",
+        "tmux",
+        "screen"
+      ]
+    },
+    {
+      "name": "unset",
+      "summary": "Remove a variable or function",
+      "risk": "low",
+      "risk_reason": "Affects the current shell only.",
+      "explanation": "Deletes shell variables and functions. See the flags and examples below, and run `man unset` for the full reference.",
+      "flags": [
+        {
+          "flag": "-v",
+          "desc": "Variable"
+        },
+        {
+          "flag": "-f",
+          "desc": "Function"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "unset AWS_PROFILE",
+          "desc": "Clear the AWS profile variable"
+        }
+      ],
+      "suggestions": [
+        "export",
+        "env"
+      ]
+    },
+    {
+      "name": "local",
+      "summary": "Declare a function-local variable",
+      "risk": "low",
+      "risk_reason": "Builtin.",
+      "explanation": "Limits a variable to the current function in bash.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "local name=\"$1\"",
+          "desc": "Inside a function"
+        }
+      ],
+      "suggestions": [
+        "declare",
+        "set"
+      ]
+    },
+    {
+      "name": "getopts",
+      "summary": "Parse script options",
+      "risk": "low",
+      "risk_reason": "Builtin.",
+      "explanation": "Parses short options in shell scripts. See the flags and examples below, and run `man getopts` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "while getopts \"f:v\" opt; do :; done",
+          "desc": "Parse -f value and -v"
+        }
+      ],
+      "suggestions": [
+        "shift",
+        "case"
+      ]
+    },
+    {
+      "name": "shift",
+      "summary": "Shift positional parameters",
+      "risk": "low",
+      "risk_reason": "Builtin.",
+      "explanation": "Drops $1 and moves the others down. See the flags and examples below, and run `man shift` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "shift 2",
+          "desc": "Drop two arguments"
+        }
+      ],
+      "suggestions": [
+        "getopts",
+        "set"
+      ]
+    },
+    {
+      "name": "mapfile",
+      "summary": "Read lines into an array",
+      "risk": "low",
+      "risk_reason": "Builtin.",
+      "explanation": "Reads lines from stdin into a bash array — safer than word-splitting command output.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Strip trailing newlines"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mapfile -t files < <(find . -name \"*.log\")",
+          "desc": "Collect results safely"
+        }
+      ],
+      "suggestions": [
+        "read",
+        "declare"
+      ]
+    },
+    {
+      "name": "time",
+      "summary": "Time a command",
+      "risk": "low",
+      "risk_reason": "Runs the command normally.",
+      "explanation": "Reports real, user and sys time. /usr/bin/time -v adds memory use.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "time tar -czf a.tgz dir",
+          "desc": "Time an archive"
+        },
+        {
+          "cmd": "/usr/bin/time -v ./job",
+          "desc": "Peak memory and I/O"
+        }
+      ],
+      "suggestions": [
+        "timeout",
+        "perf"
+      ]
+    },
+    {
+      "name": "timeout",
+      "summary": "Run a command with a time limit",
+      "risk": "medium",
+      "risk_reason": "Kills the command when the limit expires, possibly mid-operation.",
+      "cautions": [
+        "Killing a command part-way (backup, migration, copy) can leave partial or corrupt output."
+      ],
+      "explanation": "Sends a signal (TERM by default) after a duration; add -k to follow up with KILL.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Signal to send"
+        },
+        {
+          "flag": "-k",
+          "desc": "Send KILL after a grace period"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "timeout 30 curl -s https://example.com",
+          "desc": "Fail after 30 s"
+        },
+        {
+          "cmd": "timeout -k 5 60 ./job.sh",
+          "desc": "TERM at 60s, KILL 5s later"
+        }
+      ],
+      "suggestions": [
+        "kill",
+        "watch"
+      ]
+    },
+    {
+      "name": "yes",
+      "summary": "Repeat a string forever",
+      "risk": "medium",
+      "risk_reason": "Produces endless output and can fill disks or pipes.",
+      "cautions": [
+        "`yes | command` defeats the confirmation prompt that is protecting you.",
+        "Redirecting to a file fills the disk quickly."
+      ],
+      "explanation": "Prints \"y\" (or any string) repeatedly — used to auto-confirm prompts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "yes | rm -i *.tmp",
+          "desc": "Auto-answer prompts (dangerous)"
+        },
+        {
+          "cmd": "yes \"\" | head -3",
+          "desc": "Generate lines"
+        }
+      ],
+      "suggestions": [
+        "expect"
+      ]
+    },
+    {
+      "name": "true",
+      "summary": "Exit with success",
+      "risk": "low",
+      "risk_reason": "No effect.",
+      "explanation": "Returns exit status 0; useful as a no-op or loop condition.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "while true; do date; sleep 1; done",
+          "desc": "Endless loop"
+        }
+      ],
+      "suggestions": [
+        "false"
+      ]
+    },
+    {
+      "name": "false",
+      "summary": "Exit with failure",
+      "risk": "low",
+      "risk_reason": "No effect.",
+      "explanation": "Returns exit status 1. See the flags and examples below, and run `man false` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "false || echo failed",
+          "desc": "Test OR logic"
+        }
+      ],
+      "suggestions": [
+        "true"
+      ]
+    },
+    {
+      "name": "expr",
+      "summary": "Evaluate expressions",
+      "risk": "low",
+      "risk_reason": "No side effects.",
+      "explanation": "Old-style arithmetic and string evaluation; $(( )) is preferred in bash.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "expr 2 + 3",
+          "desc": "5"
+        }
+      ],
+      "suggestions": [
+        "bc"
+      ]
+    },
+    {
+      "name": "bc",
+      "summary": "Arbitrary precision calculator",
+      "risk": "low",
+      "risk_reason": "No side effects.",
+      "explanation": "Calculator language; use -l for floating point.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "Load math library, scale=20"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "echo \"scale=2; 10/3\" | bc",
+          "desc": "3.33"
+        }
+      ],
+      "suggestions": [
+        "expr"
+      ]
+    },
+    {
+      "name": "getent",
+      "summary": "Query system databases",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Looks up passwd, group, hosts and other NSS databases, including LDAP/SSSD sources.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "getent passwd alice",
+          "desc": "User entry"
+        },
+        {
+          "cmd": "getent hosts example.com",
+          "desc": "Resolve via NSS"
+        }
+      ],
+      "suggestions": [
+        "id",
+        "dig"
+      ]
+    },
+    {
+      "name": "xdg-open",
+      "summary": "Open a file or URL with the default app",
+      "risk": "low",
+      "risk_reason": "Launches an application.",
+      "explanation": "Desktop helper to open files and links. See the flags and examples below, and run `man xdg-open` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "xdg-open https://example.com",
+          "desc": "Open a URL"
+        }
+      ],
+      "suggestions": [
+        "open"
+      ]
+    },
+    {
+      "name": "clear",
+      "summary": "Clear the terminal screen",
+      "risk": "low",
+      "risk_reason": "Only clears the display.",
+      "explanation": "Redraws the screen; scrollback may remain. `reset` re-initialises a corrupted terminal.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "clear",
+          "desc": "Clear the screen"
+        },
+        {
+          "cmd": "reset",
+          "desc": "Recover from a garbled terminal"
+        }
+      ],
+      "suggestions": [
+        "tput"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,245 @@
+{
+  "intents": [
+    {
+      "id": "docker-running",
+      "title": "List running containers",
+      "match": [
+        [
+          "list",
+          "show",
+          "running",
+          "all"
+        ],
+        [
+          "container",
+          "containers",
+          "docker"
+        ]
+      ],
+      "say": [
+        "list running containers"
+      ],
+      "slots": {},
+      "cmd": "docker ps",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "docker ps -a",
+          "desc": "Including stopped"
+        }
+      ],
+      "category": "containers"
+    },
+    {
+      "id": "docker-logs",
+      "title": "Show container logs",
+      "match": [
+        [
+          "logs",
+          "log",
+          "output"
+        ],
+        [
+          "container",
+          "docker"
+        ]
+      ],
+      "say": [
+        "show container logs"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<container>",
+          "label": "container"
+        }
+      },
+      "cmd": "docker logs --tail 100 -f {pod}",
+      "notes": "",
+      "alts": [],
+      "category": "containers"
+    },
+    {
+      "id": "docker-shell",
+      "title": "Shell into a container",
+      "match": [
+        [
+          "shell",
+          "bash",
+          "exec",
+          "terminal",
+          "enter",
+          "into"
+        ],
+        [
+          "container",
+          "docker"
+        ]
+      ],
+      "say": [
+        "shell into a container"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<container>",
+          "label": "container"
+        }
+      },
+      "cmd": "docker exec -it {pod} sh",
+      "notes": "Changes inside a container are lost when it is recreated.",
+      "alts": [],
+      "category": "containers"
+    },
+    {
+      "id": "docker-clean",
+      "title": "Clean up Docker space",
+      "match": [
+        [
+          "clean",
+          "prune",
+          "free",
+          "remove",
+          "cleanup"
+        ],
+        [
+          "docker",
+          "images",
+          "containers",
+          "space",
+          "unused"
+        ]
+      ],
+      "say": [
+        "clean up docker space"
+      ],
+      "slots": {},
+      "cmd": "docker system df",
+      "notes": "Inspect usage first. `docker system prune -a --volumes` deletes ALL unused images and volumes (data loss) — use `docker image prune` and `docker container prune` for narrower cleanup.",
+      "alts": [
+        {
+          "cmd": "docker image prune",
+          "desc": "Dangling images only"
+        },
+        {
+          "cmd": "docker container prune",
+          "desc": "Stopped containers only"
+        }
+      ],
+      "category": "containers"
+    },
+    {
+      "id": "docker-run",
+      "title": "Run a container",
+      "match": [
+        [
+          "run",
+          "start",
+          "launch"
+        ],
+        [
+          "container",
+          "docker",
+          "image"
+        ]
+      ],
+      "say": [
+        "run a container"
+      ],
+      "slots": {
+        "image": {
+          "from": "image",
+          "default": "nginx:1.27",
+          "label": "image"
+        }
+      },
+      "cmd": "docker run -d --name app -p 8080:80 {image}",
+      "notes": "Pin the image tag; avoid --privileged and mounting / or the docker socket.",
+      "alts": [],
+      "category": "containers"
+    },
+    {
+      "id": "docker-build",
+      "title": "Build an image",
+      "match": [
+        [
+          "build"
+        ],
+        [
+          "image",
+          "docker",
+          "dockerfile"
+        ]
+      ],
+      "say": [
+        "build an image"
+      ],
+      "slots": {
+        "image": {
+          "from": "image",
+          "default": "myapp:1.0",
+          "label": "image tag"
+        }
+      },
+      "cmd": "docker build -t {image} .",
+      "notes": "",
+      "alts": [],
+      "category": "containers"
+    },
+    {
+      "id": "docker-stop-all",
+      "title": "Stop all containers",
+      "match": [
+        [
+          "stop",
+          "kill"
+        ],
+        [
+          "all"
+        ],
+        [
+          "container",
+          "containers",
+          "docker"
+        ]
+      ],
+      "say": [
+        "stop all containers"
+      ],
+      "slots": {},
+      "cmd": "docker ps -q",
+      "notes": "Shows the IDs first. Stopping everything: docker stop $(docker ps -q) — on a shared/production host this takes down every service.",
+      "alts": [],
+      "min": 3,
+      "category": "containers"
+    },
+    {
+      "id": "docker-inspect-ip",
+      "title": "Container IP address",
+      "match": [
+        [
+          "ip",
+          "address"
+        ],
+        [
+          "container",
+          "docker"
+        ]
+      ],
+      "say": [
+        "container ip address"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<container>",
+          "label": "container"
+        }
+      },
+      "cmd": "docker inspect {pod} | jq -r '.[0].NetworkSettings.Networks[].IPAddress'",
+      "notes": "",
+      "alts": [],
+      "category": "containers"
+    }
+  ]
+}

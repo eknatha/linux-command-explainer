@@ -1,0 +1,134 @@
+{
+  "intents": [
+    {
+      "id": "tf-plan",
+      "title": "Preview Terraform changes",
+      "match": [
+        [
+          "preview",
+          "plan",
+          "what will",
+          "dry run",
+          "dry-run"
+        ],
+        [
+          "terraform",
+          "infrastructure",
+          "changes"
+        ]
+      ],
+      "say": [
+        "preview terraform changes"
+      ],
+      "slots": {},
+      "cmd": "terraform plan -out=tfplan",
+      "notes": "Review every destroy / replace before applying: terraform apply tfplan.",
+      "alts": [],
+      "category": "iac"
+    },
+    {
+      "id": "tf-destroy-preview",
+      "title": "Preview Terraform destroy",
+      "match": [
+        [
+          "destroy",
+          "tear down",
+          "delete"
+        ],
+        [
+          "terraform",
+          "infrastructure",
+          "environment"
+        ]
+      ],
+      "say": [
+        "preview terraform destroy"
+      ],
+      "slots": {},
+      "cmd": "terraform plan -destroy",
+      "notes": "Check the workspace first (terraform workspace show). Never run destroy against production without review.",
+      "alts": [],
+      "category": "iac"
+    },
+    {
+      "id": "tf-state-list",
+      "title": "List Terraform resources",
+      "match": [
+        [
+          "list",
+          "show"
+        ],
+        [
+          "terraform"
+        ],
+        [
+          "state",
+          "resources"
+        ]
+      ],
+      "say": [
+        "list terraform resources"
+      ],
+      "slots": {},
+      "cmd": "terraform state list",
+      "notes": "",
+      "alts": [],
+      "category": "iac"
+    },
+    {
+      "id": "ansible-ping",
+      "title": "Ping hosts with Ansible",
+      "match": [
+        [
+          "ping",
+          "test",
+          "check"
+        ],
+        [
+          "ansible",
+          "hosts",
+          "inventory"
+        ]
+      ],
+      "say": [
+        "ping hosts with ansible"
+      ],
+      "slots": {},
+      "cmd": "ansible all -m ping --list-hosts && ansible all -m ping",
+      "notes": "",
+      "alts": [],
+      "category": "iac"
+    },
+    {
+      "id": "ansible-dry-run",
+      "title": "Dry-run an Ansible playbook",
+      "match": [
+        [
+          "dry run",
+          "dry-run",
+          "check",
+          "preview",
+          "test"
+        ],
+        [
+          "ansible",
+          "playbook"
+        ]
+      ],
+      "say": [
+        "dry-run an ansible playbook"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "site.yml",
+          "label": "playbook"
+        }
+      },
+      "cmd": "ansible-playbook {file} --check --diff --limit <host>",
+      "notes": "",
+      "alts": [],
+      "category": "iac"
+    }
+  ]
+}

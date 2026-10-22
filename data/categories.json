@@ -1,0 +1,18 @@
+{
+  "linux-files":    { "title": "Files & Archives",          "icon": "📁", "description": "List, copy, move, search, compress and transfer files and directories." },
+  "linux-text":     { "title": "Text Processing",           "icon": "📝", "description": "Search, filter, transform and compare text: grep, sed, awk, jq and friends." },
+  "linux-system":   { "title": "System & Processes",        "icon": "⚙️", "description": "Processes, services, scheduling, logs, kernel and hardware information." },
+  "linux-storage":  { "title": "Disks & Filesystems",       "icon": "💾", "description": "Partitions, filesystems, LVM, RAID, swap, encryption and mounts." },
+  "users-security": { "title": "Users, Permissions & Security", "icon": "🔐", "description": "Accounts, sudo, permissions, SSH keys, certificates, SELinux and auditing." },
+  "networking":     { "title": "Networking",                "icon": "🌐", "description": "Connectivity, DNS, sockets, firewalls, packet capture, transfers and VPNs." },
+  "shell":          { "title": "Shell & Scripting",         "icon": "🐚", "description": "Shell builtins, redirection, expansion, job control and scripting helpers." },
+  "kubernetes":     { "title": "Kubernetes & Helm",         "icon": "☸️", "description": "kubectl, Helm, kubeadm, etcd and cluster tooling for operating Kubernetes." },
+  "containers":     { "title": "Docker & Containers",       "icon": "🐳", "description": "Docker, Podman, Compose, image tooling and container runtimes." },
+  "git":            { "title": "Git",                       "icon": "🌿", "description": "Version control: commit, branch, merge, rebase, recover and inspect history." },
+  "iac":            { "title": "Terraform, Ansible & IaC",  "icon": "🏗️", "description": "Infrastructure as code and configuration management." },
+  "cloud":          { "title": "AWS, Azure & GCP CLIs",     "icon": "☁️", "description": "Cloud provider command-line tools with the destructive operations flagged." },
+  "databases":      { "title": "Databases",                 "icon": "🗄️", "description": "PostgreSQL, MySQL, Redis, MongoDB and friends: dump, restore, inspect, administer." },
+  "observability":  { "title": "Debugging & Performance",   "icon": "🔬", "description": "strace, perf, eBPF, profilers, load generators and monitoring helpers." },
+  "packages":       { "title": "Packages & Build",          "icon": "📦", "description": "apt, dnf, rpm, pip, npm, go, cargo, make and other package/build tools." },
+  "services":       { "title": "Web & Services",            "icon": "🧩", "description": "nginx, Apache, HAProxy, mail, supervisor and other service daemons." }
+}

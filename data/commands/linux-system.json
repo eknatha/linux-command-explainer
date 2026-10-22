@@ -1,0 +1,3621 @@
+{
+  "category": "linux-system",
+  "commands": [
+    {
+      "name": "ps",
+      "summary": "Display information about currently running processes.",
+      "risk": "low",
+      "risk_reason": "Read-only process snapshot.",
+      "cautions": [
+        "Command lines shown by `ps aux` may contain passwords or tokens — and so do other users’ processes on shared hosts."
+      ],
+      "explanation": "ps takes a snapshot of processes. `ps aux` shows all processes for all users (BSD format). Columns include PID, %CPU, %MEM, and COMMAND. Combine with grep to find specific processes. For live views use top or htop.",
+      "flags": [
+        {
+          "flag": "a",
+          "desc": "Show processes for all users"
+        },
+        {
+          "flag": "u",
+          "desc": "User-oriented format: show USER, CPU%, MEM%"
+        },
+        {
+          "flag": "x",
+          "desc": "Include processes without a controlling terminal"
+        },
+        {
+          "flag": "-e",
+          "desc": "Select all processes (POSIX)"
+        },
+        {
+          "flag": "--sort",
+          "desc": "Sort output (e.g. --sort=-%cpu for highest CPU first)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ps aux | grep nginx",
+          "desc": "Find nginx worker processes and their PIDs"
+        },
+        {
+          "cmd": "ps aux --sort=-%mem | head -10",
+          "desc": "Show top 10 memory-consuming processes"
+        },
+        {
+          "cmd": "ps -ef --forest",
+          "desc": "Show all processes as a parent-child tree"
+        }
+      ],
+      "suggestions": [
+        "top",
+        "htop",
+        "pgrep",
+        "kill",
+        "systemctl"
+      ],
+      "pro_tip": "Use `pgrep -la nginx` instead of `ps aux | grep nginx` — cleaner output that won't include the grep process itself."
+    },
+    {
+      "name": "kill",
+      "summary": "Send a signal to a process — commonly used to terminate processes.",
+      "risk": "high",
+      "risk_reason": "SIGKILL (-9) immediately terminates without cleanup — can corrupt data.",
+      "cautions": [
+        "`kill -9` gives the process no chance to clean up — send SIGTERM first and wait.",
+        "Verify the PID (`ps -p <pid> -o pid,user,cmd`) — PIDs get reused.",
+        "`kill -9 -1` / `kill -- -1` signals every process you can signal."
+      ],
+      "explanation": "kill sends signals to processes by PID. Default is SIGTERM (15) which requests graceful shutdown. SIGKILL (9) cannot be caught and forces immediate termination — use as last resort. SIGHUP (1) typically reloads service config.",
+      "flags": [
+        {
+          "flag": "-9",
+          "long": "-SIGKILL",
+          "desc": "Force kill immediately — no cleanup, potential data loss"
+        },
+        {
+          "flag": "-15",
+          "long": "-SIGTERM",
+          "desc": "Graceful termination request (default signal)"
+        },
+        {
+          "flag": "-1",
+          "long": "-SIGHUP",
+          "desc": "Hangup — typically reloads service configuration"
+        },
+        {
+          "flag": "-l",
+          "desc": "List all available signal names and numbers"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kill -15 1234",
+          "desc": "Gracefully terminate process 1234 (gives it time to clean up)"
+        },
+        {
+          "cmd": "kill -9 $(pgrep -f stuck_process)",
+          "desc": "Force-kill process by name when SIGTERM failed"
+        },
+        {
+          "cmd": "kill -1 $(pgrep nginx)",
+          "desc": "Send SIGHUP to nginx to reload configuration without restart"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ps -p <pid> -o pid,ppid,user,etime,cmd",
+          "why": "Confirm what you are about to kill."
+        },
+        {
+          "cmd": "kill -TERM <pid>",
+          "why": "Ask the process to stop cleanly first."
+        }
+      ],
+      "suggestions": [
+        "pkill",
+        "killall",
+        "pgrep",
+        "ps",
+        "systemctl"
+      ],
+      "pro_tip": "Always try SIGTERM first, wait 5s, then SIGKILL. Jumping to -9 can corrupt databases and leave stale lock files behind.",
+      "low_when": [
+        "\\s-l\\b|\\s-0\\b"
+      ]
+    },
+    {
+      "name": "systemctl",
+      "summary": "Control the systemd init system and service manager.",
+      "risk": "medium",
+      "risk_reason": "Starting, stopping, or disabling services directly affects system availability.",
+      "cautions": [
+        "Stopping or disabling the wrong unit (sshd, networking, firewalld) can lock you out of a remote host.",
+        "`restart` drops connections; use `reload` where supported.",
+        "After editing unit files run `systemctl daemon-reload`, then check `systemctl status` and `journalctl -u <unit>`."
+      ],
+      "explanation": "systemctl manages service lifecycle (start/stop/restart/reload), enables services to start at boot, and queries status with recent logs. Always verify service status after restart in automated scripts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl status nginx",
+          "desc": "Check nginx service status, PID, and recent log lines"
+        },
+        {
+          "cmd": "systemctl restart nginx && systemctl is-active nginx",
+          "desc": "Restart nginx and confirm it's running"
+        },
+        {
+          "cmd": "systemctl enable --now docker",
+          "desc": "Enable Docker at boot AND start it immediately"
+        }
+      ],
+      "suggestions": [
+        "journalctl",
+        "service",
+        "ps",
+        "kill"
+      ],
+      "pro_tip": "Use `systemctl list-units --type=service --state=failed` to see all failed services — great for post-reboot health checks.",
+      "low_when": [
+        "\\b(status|list-units|list-unit-files|list-timers|is-active|is-enabled|is-failed|show|cat|--failed|list-dependencies)\\b|--failed"
+      ]
+    },
+    {
+      "name": "journalctl",
+      "summary": "Query and display systemd journal logs.",
+      "risk": "low",
+      "risk_reason": "Read-only log viewer.",
+      "cautions": [
+        "Logs may contain secrets and personal data; `--vacuum-size/--vacuum-time` permanently deletes old journals."
+      ],
+      "explanation": "journalctl is the primary tool for accessing systemd's structured binary journal. It supports filtering by unit, time range, priority, and boot. Unlike tail on flat log files, it understands log metadata and allows complex structured queries.",
+      "flags": [
+        {
+          "flag": "-u",
+          "long": "--unit",
+          "desc": "Filter by systemd service unit"
+        },
+        {
+          "flag": "-f",
+          "long": "--follow",
+          "desc": "Follow journal in real time"
+        },
+        {
+          "flag": "-n",
+          "long": "--lines",
+          "desc": "Show last N lines"
+        },
+        {
+          "flag": "-p",
+          "long": "--priority",
+          "desc": "Filter by priority (0=emerg to 7=debug)"
+        },
+        {
+          "flag": "--since",
+          "desc": "Show logs since a timestamp"
+        },
+        {
+          "flag": "--until",
+          "desc": "Show logs until a timestamp"
+        },
+        {
+          "flag": "-b",
+          "long": "--boot",
+          "desc": "Show logs from current boot (-1 for previous)"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Output format: json, json-pretty, short, verbose"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "journalctl -u nginx -f",
+          "desc": "Follow nginx service logs"
+        },
+        {
+          "cmd": "journalctl -p err -b",
+          "desc": "Show errors from current boot only"
+        },
+        {
+          "cmd": "journalctl --since '2024-01-15 10:00' --until '2024-01-15 11:00'",
+          "desc": "Logs in a specific time window"
+        },
+        {
+          "cmd": "journalctl -u kubelet -n 100 --no-pager",
+          "desc": "Last 100 kubelet log lines"
+        },
+        {
+          "cmd": "journalctl -o json-pretty -u sshd | jq '.MESSAGE'",
+          "desc": "Structured log output for parsing"
+        }
+      ],
+      "suggestions": [
+        "systemctl",
+        "dmesg",
+        "tail"
+      ],
+      "pro_tip": "Use `journalctl -b -1 -p err` to review errors from the previous boot after a crash — far faster than reconstructing the timeline from multiple log files."
+    },
+    {
+      "name": "lsof",
+      "summary": "List open files and network connections by processes.",
+      "risk": "low",
+      "risk_reason": "Read-only; shows live system state.",
+      "cautions": [
+        "Without filters lsof scans every process and file and can take minutes on busy hosts; use -p, -i or +D carefully (+D recurses)."
+      ],
+      "explanation": "lsof (list open files) shows every file, socket, pipe, and device currently opened by processes. On Linux, everything is a file — so lsof reveals TCP connections, listening ports, deleted-but-open files, and which process holds a lock.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--internet",
+          "desc": "Show network connections (optionally filter by port)"
+        },
+        {
+          "flag": "-p",
+          "long": "--pid",
+          "desc": "Filter by process ID"
+        },
+        {
+          "flag": "-u",
+          "long": "--user",
+          "desc": "Filter by username"
+        },
+        {
+          "flag": "-n",
+          "long": "--no-dns",
+          "desc": "Don't resolve hostnames (faster)"
+        },
+        {
+          "flag": "+D",
+          "desc": "List all open files in a directory"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lsof -i :8080",
+          "desc": "Find what's listening on port 8080"
+        },
+        {
+          "cmd": "lsof -p 1234",
+          "desc": "Show all files opened by PID 1234"
+        },
+        {
+          "cmd": "lsof -u www-data",
+          "desc": "Show files opened by www-data user"
+        },
+        {
+          "cmd": "lsof +D /var/log",
+          "desc": "List all open files under /var/log"
+        },
+        {
+          "cmd": "lsof | grep deleted",
+          "desc": "Find files deleted but still held open (disk space recovery)"
+        }
+      ],
+      "suggestions": [
+        "ss",
+        "netstat",
+        "fuser"
+      ],
+      "pro_tip": "When `df` shows disk full but you can't find the files, run `lsof | grep deleted` — processes holding deleted files keep them consuming space until the process dies."
+    },
+    {
+      "name": "crontab",
+      "summary": "View, edit, or manage per-user cron schedules for recurring jobs.",
+      "risk": "medium",
+      "risk_reason": "Misconfigured jobs run commands automatically — potentially destructively.",
+      "cautions": [
+        "`crontab -r` deletes ALL jobs without asking — and sits right next to -e on the keyboard.",
+        "Cron has a minimal environment (PATH, HOME); use absolute paths and redirect output.",
+        "Overlapping runs pile up — wrap jobs in `flock -n`."
+      ],
+      "explanation": "crontab manages scheduled jobs. The five time fields are: minute (0-59), hour (0-23), day (1-31), month (1-12), weekday (0-7). `*` means any, `,` for lists, `-` for ranges, `/` for intervals. Always use full paths in cron commands.",
+      "flags": [
+        {
+          "flag": "-e",
+          "desc": "Edit current user's crontab in $EDITOR"
+        },
+        {
+          "flag": "-l",
+          "desc": "List current crontab"
+        },
+        {
+          "flag": "-r",
+          "desc": "Remove current user's crontab entirely"
+        },
+        {
+          "flag": "-u",
+          "desc": "Specify another user (root only)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "crontab -l",
+          "desc": "View current cron schedule"
+        },
+        {
+          "cmd": "0 */6 * * * /usr/local/bin/health_check.sh",
+          "desc": "Run health check every 6 hours"
+        },
+        {
+          "cmd": "30 23 * * 5 /opt/scripts/weekly-report.sh >> /var/log/reports.log 2>&1",
+          "desc": "Weekly report every Friday at 11:30 PM with full logging"
+        }
+      ],
+      "suggestions": [
+        "at",
+        "systemd timer",
+        "watch",
+        "cronie"
+      ],
+      "pro_tip": "Use https://crontab.guru to visually verify cron expressions before deploying them.",
+      "low_when": [
+        "\\s-l\\b"
+      ],
+      "low_unless": [
+        "\\s-(r|e)\\b"
+      ]
+    },
+    {
+      "name": "top",
+      "summary": "Real-time dynamic view of system processes, CPU, and memory usage.",
+      "risk": "low",
+      "risk_reason": "Read-only by default; kill commands inside top carry risk.",
+      "explanation": "top provides a live display sorted by CPU usage. Press M to sort by memory, k to kill a process, q to quit. -b runs batch mode for scripting.",
+      "flags": [
+        {
+          "flag": "-b",
+          "long": "--batch",
+          "desc": "Non-interactive batch mode for scripts"
+        },
+        {
+          "flag": "-n",
+          "desc": "Number of iterations before exiting"
+        },
+        {
+          "flag": "-p",
+          "desc": "Monitor specific PIDs only"
+        },
+        {
+          "flag": "-u",
+          "desc": "Show processes for a specific user"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "top -bn1 | head -20",
+          "desc": "Capture a single top snapshot for logging"
+        },
+        {
+          "cmd": "top -u www-data",
+          "desc": "Monitor only web server user processes"
+        }
+      ],
+      "suggestions": [
+        "htop",
+        "ps",
+        "vmstat",
+        "iostat",
+        "glances"
+      ],
+      "pro_tip": "Install `htop` — same as top but with color, mouse support, and a much cleaner UI: `sudo apt install htop`"
+    },
+    {
+      "name": "uptime",
+      "summary": "Show how long the system has been running and load averages.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "uptime displays current time, system uptime, number of logged-in users, and load averages for 1, 5, and 15 minutes. Load average represents the number of processes in runnable or uninterruptible state — should generally stay below CPU core count.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "uptime",
+          "desc": "Show uptime and load averages"
+        },
+        {
+          "cmd": "uptime -p",
+          "desc": "Show uptime in pretty format (e.g., 'up 2 days, 3 hours')"
+        },
+        {
+          "cmd": "uptime -s",
+          "desc": "Show exact boot timestamp"
+        },
+        {
+          "cmd": "cat /proc/uptime",
+          "desc": "Machine-readable uptime in seconds"
+        }
+      ],
+      "suggestions": [
+        "top",
+        "vmstat",
+        "uname"
+      ],
+      "pro_tip": "Compare load average to your CPU count: `nproc` tells you cores. Load of 4.0 is fine on a 8-core box but critical on a 2-core one."
+    },
+    {
+      "name": "hostnamectl",
+      "summary": "Query and set the system hostname, OS info, and machine identity.",
+      "risk": "low",
+      "risk_reason": "Changing hostname can affect network identity and break service configs that rely on it.",
+      "cautions": [
+        "Changing the hostname can break software that stores it (monitoring, certificates, clustering, Kubernetes node names)."
+      ],
+      "explanation": "hostnamectl manages three hostname types: static (persistent, stored in /etc/hostname), transient (runtime, overridden by DHCP), and pretty (human-readable display name). Running without arguments shows OS, kernel, hardware, and virtualization info — useful for inventory scripting.",
+      "flags": [
+        {
+          "flag": "set-hostname",
+          "desc": "Set the static system hostname persistently"
+        },
+        {
+          "flag": "--static",
+          "desc": "Target the static hostname specifically"
+        },
+        {
+          "flag": "--transient",
+          "desc": "Target the transient (runtime) hostname"
+        },
+        {
+          "flag": "--pretty",
+          "desc": "Target the pretty (human-readable) hostname"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "hostnamectl",
+          "desc": "Display full system identity: hostname, OS, kernel, arch, virtualization type"
+        },
+        {
+          "cmd": "hostnamectl set-hostname prod-web-01",
+          "desc": "Permanently rename the system to prod-web-01"
+        },
+        {
+          "cmd": "hostnamectl set-hostname 'Production Web Server 01' --pretty",
+          "desc": "Set a human-friendly pretty hostname that can include spaces"
+        }
+      ],
+      "suggestions": [
+        "hostname",
+        "uname -a",
+        "timedatectl",
+        "localectl"
+      ],
+      "pro_tip": "After setting a new hostname, update /etc/hosts to map 127.0.1.1 to the new name — tools that do reverse DNS lookups will otherwise hang."
+    },
+    {
+      "name": "vmstat",
+      "summary": "Report virtual memory, CPU, and I/O statistics.",
+      "risk": "low",
+      "risk_reason": "Read-only system monitor.",
+      "explanation": "vmstat provides a snapshot or continuous stream of system resource statistics: processes, memory, swap, block I/O, and CPU time. Ideal for diagnosing high CPU wait (wa column) indicating I/O bottlenecks, or high swap usage.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--active",
+          "desc": "Show active/inactive memory"
+        },
+        {
+          "flag": "-s",
+          "long": "--stats",
+          "desc": "Print memory event statistics table"
+        },
+        {
+          "flag": "-d",
+          "long": "--disk",
+          "desc": "Show disk statistics"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "vmstat 1 5",
+          "desc": "Sample every 1 second, 5 times"
+        },
+        {
+          "cmd": "vmstat -s",
+          "desc": "Show comprehensive memory statistics table"
+        },
+        {
+          "cmd": "vmstat -d",
+          "desc": "Show disk read/write statistics"
+        },
+        {
+          "cmd": "vmstat 2 | awk 'NR>2 {print $15}' | awk '{sum+=$1} END {print sum/NR\"%\"}'",
+          "desc": "Calculate average CPU idle over time"
+        }
+      ],
+      "suggestions": [
+        "iostat",
+        "free",
+        "top"
+      ],
+      "pro_tip": "Watch the 'wa' (I/O wait) column in `vmstat 1` — consistently above 10-15% indicates disk is the bottleneck, not CPU. This is often misread as a CPU problem."
+    },
+    {
+      "name": "iostat",
+      "summary": "Report CPU and disk I/O statistics.",
+      "risk": "low",
+      "risk_reason": "Read-only monitor.",
+      "explanation": "iostat (from sysstat package) reports CPU utilization and per-device disk I/O metrics including throughput (MB/s), IOPS, and await (average I/O wait time in ms). The -x flag provides extended per-device statistics essential for storage performance analysis.",
+      "flags": [
+        {
+          "flag": "-x",
+          "long": "--extended",
+          "desc": "Show extended disk statistics"
+        },
+        {
+          "flag": "-d",
+          "long": "--device",
+          "desc": "Show device utilization only"
+        },
+        {
+          "flag": "-c",
+          "long": "--cpu",
+          "desc": "Show CPU statistics only"
+        },
+        {
+          "flag": "-h",
+          "long": "--human",
+          "desc": "Human-readable sizes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iostat -x 1 5",
+          "desc": "Extended disk stats, every second, 5 samples"
+        },
+        {
+          "cmd": "iostat -xh 2",
+          "desc": "Human-readable extended I/O stats every 2s"
+        },
+        {
+          "cmd": "iostat -d /dev/sda 1",
+          "desc": "Monitor specific disk every second"
+        }
+      ],
+      "suggestions": [
+        "vmstat",
+        "df",
+        "iotop"
+      ],
+      "pro_tip": "In `iostat -x` output, focus on `await` (avg I/O wait ms) and `%util` (device saturation). `await` > 20ms or `%util` > 80% signals a storage bottleneck."
+    },
+    {
+      "name": "free",
+      "summary": "Display total, used, and available system memory.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "free shows physical memory and swap usage. The 'available' column (not 'free') is what matters — it includes reclaimable cache and is what the kernel reports as usable for new processes. Buffers and cache are not 'wasted' memory.",
+      "flags": [
+        {
+          "flag": "-h",
+          "long": "--human",
+          "desc": "Print human-readable sizes (MB/GB)"
+        },
+        {
+          "flag": "-s",
+          "long": "--seconds",
+          "desc": "Continuously update at interval"
+        },
+        {
+          "flag": "-t",
+          "long": "--total",
+          "desc": "Show grand total row"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "free -h",
+          "desc": "Show memory usage in human-readable format"
+        },
+        {
+          "cmd": "free -h -s 2",
+          "desc": "Refresh memory stats every 2 seconds"
+        },
+        {
+          "cmd": "free -ht",
+          "desc": "Show human-readable with total row"
+        }
+      ],
+      "suggestions": [
+        "vmstat",
+        "top",
+        "ps"
+      ],
+      "pro_tip": "The 'available' column is the only one that matters for capacity planning — ignore 'free'. Linux aggressively uses RAM for cache; that's normal and good."
+    },
+    {
+      "name": "uname",
+      "summary": "Print system information including kernel version and architecture.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "uname displays kernel and system information. Commonly used to verify the kernel version before patching, check CPU architecture for binary compatibility, and in scripts that need to adapt behavior per OS or architecture.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Print all system information"
+        },
+        {
+          "flag": "-r",
+          "long": "--kernel-release",
+          "desc": "Print kernel version only"
+        },
+        {
+          "flag": "-m",
+          "long": "--machine",
+          "desc": "Print machine hardware architecture"
+        },
+        {
+          "flag": "-s",
+          "long": "--kernel-name",
+          "desc": "Print OS name (Linux)"
+        },
+        {
+          "flag": "-n",
+          "long": "--nodename",
+          "desc": "Print hostname"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "uname -a",
+          "desc": "Full system information"
+        },
+        {
+          "cmd": "uname -r",
+          "desc": "Kernel version only (e.g., for module compatibility)"
+        },
+        {
+          "cmd": "uname -m",
+          "desc": "Architecture (x86_64, aarch64, etc.)"
+        }
+      ],
+      "suggestions": [
+        "hostnamectl",
+        "lscpu",
+        "uptime"
+      ],
+      "pro_tip": "In CI/CD scripts, use `uname -m` to detect architecture and pull the correct binary (amd64 vs arm64) — critical for multi-arch Docker image builds."
+    },
+    {
+      "name": "lscpu",
+      "summary": "Display CPU architecture and topology information.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "lscpu reads CPU details from /proc/cpuinfo and sysfs, displaying architecture, byte order, cores, threads, NUMA topology, caches, and CPU flags. Essential for capacity planning, performance tuning, and understanding NUMA effects.",
+      "flags": [
+        {
+          "flag": "-J",
+          "long": "--json",
+          "desc": "Output in JSON format"
+        },
+        {
+          "flag": "-e",
+          "long": "--extended",
+          "desc": "Show extended readable format"
+        },
+        {
+          "flag": "-p",
+          "long": "--parse",
+          "desc": "Parseable per-CPU output"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lscpu",
+          "desc": "Full CPU topology and details"
+        },
+        {
+          "cmd": "lscpu | grep -E 'Core|Thread|Socket'",
+          "desc": "Check physical vs logical CPU counts"
+        },
+        {
+          "cmd": "lscpu -J | jq '.lscpu[] | select(.field==\"CPU(s):\")'",
+          "desc": "Extract CPU count in JSON pipeline"
+        }
+      ],
+      "suggestions": [
+        "nproc",
+        "uname",
+        "free"
+      ],
+      "pro_tip": "Check 'NUMA node(s)' in lscpu output — applications unaware of NUMA topology can experience severe performance degradation on multi-socket servers."
+    },
+    {
+      "name": "nproc",
+      "summary": "Print the number of available processing units.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "nproc prints the number of CPUs available to the current process (respecting CPU affinity and cgroups). Simpler than parsing lscpu. Useful for setting parallel job counts in scripts and Makefiles.",
+      "flags": [
+        {
+          "flag": "--all",
+          "desc": "Print total number of processors, not just available"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nproc",
+          "desc": "Number of CPUs available to current process"
+        },
+        {
+          "cmd": "nproc --all",
+          "desc": "Total CPU count on the system"
+        },
+        {
+          "cmd": "make -j$(nproc)",
+          "desc": "Compile using all available CPUs"
+        },
+        {
+          "cmd": "xargs -P $(nproc)",
+          "desc": "Parallelize to number of CPUs"
+        }
+      ],
+      "suggestions": [
+        "lscpu",
+        "uptime",
+        "top"
+      ],
+      "pro_tip": "Use `$(nproc)` in Dockerfiles for parallel builds: `RUN make -j$(nproc)` — builds in containers respects the container's CPU quota, not the host's full count."
+    },
+    {
+      "name": "dmesg",
+      "summary": "Print or control the kernel ring buffer messages.",
+      "risk": "low",
+      "risk_reason": "Read-only; --clear requires root.",
+      "cautions": [
+        "Kernel logs can reveal addresses and hardware details; on some systems reading them requires root or kernel.dmesg_restrict=0."
+      ],
+      "explanation": "dmesg displays kernel messages from the ring buffer — hardware detection, driver errors, disk issues, OOM killer events, and network events. The -T flag adds human-readable timestamps. Essential for diagnosing hardware failures, OOM events, and kernel panics.",
+      "flags": [
+        {
+          "flag": "-T",
+          "long": "--ctime",
+          "desc": "Human-readable timestamps"
+        },
+        {
+          "flag": "-l",
+          "long": "--level",
+          "desc": "Filter by level (err, warn, info, etc.)"
+        },
+        {
+          "flag": "-f",
+          "long": "--facility",
+          "desc": "Filter by facility (kern, daemon, etc.)"
+        },
+        {
+          "flag": "-w",
+          "long": "--follow",
+          "desc": "Follow kernel messages in real time"
+        },
+        {
+          "flag": "--clear",
+          "desc": "Clear the ring buffer (requires root)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dmesg -T | grep -i error",
+          "desc": "Show kernel errors with timestamps"
+        },
+        {
+          "cmd": "dmesg -T | grep -i 'oom\\|killed'",
+          "desc": "Find OOM killer events"
+        },
+        {
+          "cmd": "dmesg -T | grep -i 'sda\\|nvme'",
+          "desc": "Check disk/storage kernel messages"
+        },
+        {
+          "cmd": "dmesg -w",
+          "desc": "Follow kernel log in real time"
+        },
+        {
+          "cmd": "dmesg -T | tail -50",
+          "desc": "Recent kernel messages"
+        }
+      ],
+      "suggestions": [
+        "journalctl",
+        "sysctl",
+        "lsblk"
+      ],
+      "pro_tip": "After any unexplained process death, run `dmesg -T | grep -i killed` to check if the OOM killer was responsible — a common cause misdiagnosed as application bugs."
+    },
+    {
+      "name": "sysctl",
+      "summary": "Read and write kernel parameters at runtime.",
+      "risk": "high",
+      "risk_reason": "Can destabilize the system or change security posture.",
+      "cautions": [
+        "Runtime changes affect the whole host immediately and are lost on reboot unless persisted in /etc/sysctl.d/.",
+        "Wrong values (rp_filter, ip_forward, tcp tuning, vm.overcommit, kernel.panic) can break networking or crash services.",
+        "Record the old value first (sysctl -n <key>) so you can roll back."
+      ],
+      "explanation": "sysctl reads and modifies kernel parameters in /proc/sys/ at runtime. Changes are immediate but not persistent unless written to /etc/sysctl.conf or /etc/sysctl.d/. Used for tuning network stack, enabling IP forwarding, configuring VM behavior, and hardening.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Print all kernel parameters"
+        },
+        {
+          "flag": "-w",
+          "long": "--write",
+          "desc": "Set a parameter value"
+        },
+        {
+          "flag": "-p",
+          "long": "--load",
+          "desc": "Load from a file (default: /etc/sysctl.conf)"
+        },
+        {
+          "flag": "-n",
+          "long": "--values",
+          "desc": "Print only the value, not the name"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sysctl -a | grep net.ipv4.ip_forward",
+          "desc": "Check if IP forwarding is enabled"
+        },
+        {
+          "cmd": "sysctl -w net.ipv4.ip_forward=1",
+          "desc": "Enable IP forwarding (not persistent)"
+        },
+        {
+          "cmd": "sysctl net.core.somaxconn",
+          "desc": "Check max socket listen queue"
+        },
+        {
+          "cmd": "sysctl -p /etc/sysctl.d/99-custom.conf",
+          "desc": "Apply custom sysctl config file"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "sysctl -n <key>",
+          "why": "Note the current value before changing it."
+        },
+        {
+          "cmd": "sysctl --system",
+          "why": "Reload from config files to undo runtime experiments."
+        }
+      ],
+      "suggestions": [
+        "dmesg",
+        "ulimit",
+        "ip"
+      ],
+      "pro_tip": "For K8s nodes, always verify: `sysctl net.bridge.bridge-nf-call-iptables=1` and `net.ipv4.ip_forward=1`. Missing these causes pod networking failures that are hard to trace.",
+      "low_when": [
+        "\\s-(a|n)\\b|^\\s*[\\w.]+\\s*$|--all"
+      ],
+      "low_unless": [
+        "-w|=|-p|--system"
+      ]
+    },
+    {
+      "name": "ulimit",
+      "summary": "Get and set resource limits for the current shell and child processes.",
+      "risk": "medium",
+      "risk_reason": "Incorrect limits can starve processes or hide resource issues.",
+      "cautions": [
+        "Limits set in a shell apply to that shell and its children only; persistent limits live in /etc/security/limits.d/ or systemd LimitNOFILE=.",
+        "`unlimited` removes protection against runaway processes."
+      ],
+      "explanation": "ulimit controls resource limits (open files, processes, stack size, core dumps) for the shell and its children. Limits come in two types: soft (current limit, can be raised by user) and hard (maximum ceiling, only root can raise). Critical for high-connection services.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--nofile",
+          "desc": "Max open file descriptors"
+        },
+        {
+          "flag": "-u",
+          "long": "--nproc",
+          "desc": "Max user processes"
+        },
+        {
+          "flag": "-s",
+          "long": "--stack",
+          "desc": "Stack size in KB"
+        },
+        {
+          "flag": "-c",
+          "long": "--core",
+          "desc": "Max core file size"
+        },
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Print all current limits"
+        },
+        {
+          "flag": "-S",
+          "long": "--soft",
+          "desc": "Show/set soft limits"
+        },
+        {
+          "flag": "-H",
+          "long": "--hard",
+          "desc": "Show/set hard limits"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ulimit -a",
+          "desc": "Show all current resource limits"
+        },
+        {
+          "cmd": "ulimit -n 65536",
+          "desc": "Increase open file limit for this session"
+        },
+        {
+          "cmd": "ulimit -c unlimited",
+          "desc": "Enable core dumps for debugging"
+        },
+        {
+          "cmd": "cat /proc/1234/limits",
+          "desc": "Check limits of a running process"
+        }
+      ],
+      "suggestions": [
+        "sysctl",
+        "systemctl",
+        "ps"
+      ],
+      "pro_tip": "High-traffic services (nginx, node) need `nofile` set to 65536+ in /etc/security/limits.conf or systemd unit (LimitNOFILE=65536). Default of 1024 causes 'too many open files' at load.",
+      "low_when": [
+        "\\s-a\\b|^\\s*-?[a-zA-Z]\\s*$|\\s-S\\b"
+      ],
+      "low_unless": [
+        "unlimited|\\s-[a-zA-Z]+\\s+\\d"
+      ]
+    },
+    {
+      "name": "timedatectl",
+      "summary": "Query and configure system time, date, and timezone.",
+      "risk": "low",
+      "risk_reason": "Changing time can affect logs and scheduled jobs.",
+      "cautions": [
+        "`set-time`/`set-ntp false` changes the system clock behaviour — time jumps break TLS, Kerberos, databases and log correlation."
+      ],
+      "explanation": "timedatectl is the systemd tool for managing system time. Shows current time, hardware clock, NTP sync status, and timezone. Used to set timezone for servers and verify NTP is active — critical for distributed systems and log correlation.",
+      "flags": [
+        {
+          "flag": "set-timezone",
+          "desc": "Set timezone (e.g., Asia/Kolkata)"
+        },
+        {
+          "flag": "set-ntp",
+          "desc": "Enable/disable NTP sync (true/false)"
+        },
+        {
+          "flag": "list-timezones",
+          "desc": "List all available timezones"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "timedatectl",
+          "desc": "Show current time, timezone, and NTP status"
+        },
+        {
+          "cmd": "timedatectl set-timezone Asia/Kolkata",
+          "desc": "Set timezone to IST"
+        },
+        {
+          "cmd": "timedatectl set-ntp true",
+          "desc": "Enable NTP synchronization"
+        },
+        {
+          "cmd": "timedatectl list-timezones | grep India",
+          "desc": "Find India timezone name"
+        }
+      ],
+      "suggestions": [
+        "date",
+        "ntpq",
+        "chronyc"
+      ],
+      "pro_tip": "Always verify `NTP synchronized: yes` on new servers before deploying distributed applications — unsynchronized clocks cause mysterious TLS errors and log correlation failures."
+    },
+    {
+      "name": "date",
+      "summary": "Display or set the system date and time; format timestamps.",
+      "risk": "low",
+      "risk_reason": "Setting time requires root; display is read-only.",
+      "cautions": [
+        "`date -s` changes the system clock — it can break TLS, Kerberos, cron, logs and replication; use NTP/chrony instead."
+      ],
+      "explanation": "date displays the current date/time in configurable formats, or sets the system clock. Heavily used in scripts for generating timestamps, log filenames, and date arithmetic. The -d flag parses arbitrary date expressions.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--date",
+          "desc": "Display the given date string"
+        },
+        {
+          "flag": "-u",
+          "long": "--utc",
+          "desc": "Use UTC time"
+        },
+        {
+          "flag": "+FORMAT",
+          "desc": "Custom output format"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "date '+%Y-%m-%d_%H:%M:%S'",
+          "desc": "ISO-style timestamp for log filenames"
+        },
+        {
+          "cmd": "date -u +%s",
+          "desc": "Unix epoch seconds in UTC"
+        },
+        {
+          "cmd": "date -d 'yesterday' '+%Y-%m-%d'",
+          "desc": "Yesterday's date for log rotation scripts"
+        },
+        {
+          "cmd": "date -d '7 days ago' '+%Y-%m-%d'",
+          "desc": "Date 7 days ago"
+        },
+        {
+          "cmd": "date -d @1700000000",
+          "desc": "Convert Unix timestamp to human-readable"
+        }
+      ],
+      "suggestions": [
+        "timedatectl",
+        "crontab",
+        "watch"
+      ],
+      "pro_tip": "Use `date +%s` and arithmetic for measuring script execution time: `start=$(date +%s); ... ; echo $(($(date +%s)-start))s elapsed`"
+    },
+    {
+      "name": "watch",
+      "summary": "Repeatedly execute a command at intervals and display output.",
+      "risk": "low",
+      "risk_reason": "Runs commands repeatedly; avoid watch on write operations.",
+      "cautions": [
+        "`watch` re-runs the command every interval — with kubectl, aws or API calls this can hammer the target or hit rate limits.",
+        "Do not watch destructive commands."
+      ],
+      "explanation": "watch runs a command every N seconds (default 2) and displays its output full-screen, highlighting changes. Perfect for monitoring dynamic state like pod counts, resource usage, or deployment rollouts without writing a custom loop.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--interval",
+          "desc": "Set update interval in seconds"
+        },
+        {
+          "flag": "-d",
+          "long": "--differences",
+          "desc": "Highlight changes since last update"
+        },
+        {
+          "flag": "-g",
+          "long": "--chgexit",
+          "desc": "Exit when output changes"
+        },
+        {
+          "flag": "-e",
+          "long": "--errexit",
+          "desc": "Freeze on command error"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "watch -n 2 'kubectl get pods'",
+          "desc": "Monitor pod status every 2 seconds"
+        },
+        {
+          "cmd": "watch -d -n 1 'df -h /var'",
+          "desc": "Watch disk usage with change highlighting"
+        },
+        {
+          "cmd": "watch -n 5 'ss -tunlp | grep :8080'",
+          "desc": "Watch for port listener"
+        },
+        {
+          "cmd": "watch -g 'kubectl get deploy myapp -o jsonpath=\"{.status.readyReplicas}\"'",
+          "desc": "Exit when deployment scale changes"
+        }
+      ],
+      "suggestions": [
+        "tail",
+        "top",
+        "journalctl"
+      ],
+      "pro_tip": "Use `watch -d` during rolling deployments to instantly spot when pod statuses change — the highlighting makes it obvious without having to scan all rows manually."
+    },
+    {
+      "name": "nohup",
+      "summary": "Run a command immune to hangup signals (SSH disconnects).",
+      "risk": "low",
+      "risk_reason": "Processes continue after logout; remember to manage them.",
+      "cautions": [
+        "Output goes to nohup.out in the current directory (can grow without limit) — redirect it explicitly."
+      ],
+      "explanation": "nohup runs a command that won't be killed when the terminal session ends (SIGHUP is ignored). Output goes to nohup.out by default. A quick alternative to tmux/screen for one-off long-running commands.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nohup ./long-script.sh &",
+          "desc": "Run script in background, immune to hangup"
+        },
+        {
+          "cmd": "nohup python3 server.py > server.log 2>&1 &",
+          "desc": "Run with custom log file"
+        },
+        {
+          "cmd": "echo $!",
+          "desc": "Get PID of last backgrounded process"
+        }
+      ],
+      "suggestions": [
+        "tmux",
+        "screen",
+        "jobs"
+      ],
+      "pro_tip": "Always redirect both stdout and stderr with `> out.log 2>&1` when using nohup — otherwise output goes to nohup.out in whatever directory you ran it from."
+    },
+    {
+      "name": "fuser",
+      "summary": "Identify processes using files or sockets.",
+      "risk": "low",
+      "risk_reason": "With -k flag, can send signals to processes.",
+      "explanation": "fuser identifies which processes are using specified files, directories, or network sockets. Simpler than lsof for the specific question 'what is using this file/port?' Returns PIDs which can be targeted directly.",
+      "flags": [
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Verbose output including username and access type"
+        },
+        {
+          "flag": "-n",
+          "long": "--namespace",
+          "desc": "Select namespace: file, tcp, udp"
+        },
+        {
+          "flag": "-k",
+          "long": "--kill",
+          "desc": "Kill processes (sends SIGKILL by default)"
+        },
+        {
+          "flag": "-m",
+          "long": "--mount",
+          "desc": "All processes accessing the mount point"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fuser 8080/tcp",
+          "desc": "Find PID using TCP port 8080"
+        },
+        {
+          "cmd": "fuser -v /var/log/app.log",
+          "desc": "Verbose: show who has log file open"
+        },
+        {
+          "cmd": "fuser -k 8080/tcp",
+          "desc": "Kill process using port 8080"
+        },
+        {
+          "cmd": "fuser -m /mnt/data",
+          "desc": "Find all processes accessing a mounted volume"
+        }
+      ],
+      "suggestions": [
+        "lsof",
+        "ss",
+        "kill"
+      ],
+      "pro_tip": "Before `umount` fails with 'device is busy', run `fuser -mv /mountpoint` to find exactly which process is holding the mount — saves the 'why can't I unmount this' frustration."
+    },
+    {
+      "name": "logger",
+      "summary": "Send messages to the system log (syslog/journald).",
+      "risk": "low",
+      "risk_reason": "Writes to system log; flooding can fill log storage.",
+      "cautions": [
+        "Do not log secrets — syslog is readable by many users and often shipped to central systems."
+      ],
+      "explanation": "logger writes messages to the system journal or syslog. Used in scripts to emit structured log entries that appear in journalctl alongside system logs — crucial for script audit trails and integration with centralized logging.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--tag",
+          "desc": "Add a tag/identifier to messages"
+        },
+        {
+          "flag": "-p",
+          "long": "--priority",
+          "desc": "Set message priority (e.g., user.error)"
+        },
+        {
+          "flag": "-s",
+          "long": "--stderr",
+          "desc": "Also print to stderr"
+        },
+        {
+          "flag": "-n",
+          "long": "--server",
+          "desc": "Send to remote syslog server"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "logger -t deploy 'Deployment v1.2.3 started by ec2-user'",
+          "desc": "Log a tagged deployment event"
+        },
+        {
+          "cmd": "logger -p user.error -t myapp 'Database connection failed'",
+          "desc": "Log an error with priority"
+        },
+        {
+          "cmd": "echo 'Backup complete' | logger -t backup",
+          "desc": "Pipe output to syslog"
+        }
+      ],
+      "suggestions": [
+        "journalctl",
+        "systemctl",
+        "tee"
+      ],
+      "pro_tip": "Add `logger -t $(basename $0) \"Starting: $0 $*\"` to the top of every admin script — creates an automatic audit trail in journald for all script executions."
+    },
+    {
+      "name": "sar",
+      "summary": "Collect and report system activity statistics over time.",
+      "risk": "low",
+      "risk_reason": "Read-only; requires sysstat package.",
+      "explanation": "sar (System Activity Reporter) collects and reports CPU, memory, network, and disk statistics. Unlike vmstat/iostat which show current state, sar records historical data (when sadc daemon runs) enabling you to analyze what happened during an incident hours ago.",
+      "flags": [
+        {
+          "flag": "-u",
+          "long": "--cpu",
+          "desc": "CPU utilization"
+        },
+        {
+          "flag": "-r",
+          "long": "--memory",
+          "desc": "Memory statistics"
+        },
+        {
+          "flag": "-n DEV",
+          "desc": "Network interface statistics"
+        },
+        {
+          "flag": "-b",
+          "long": "--io",
+          "desc": "I/O statistics"
+        },
+        {
+          "flag": "-f",
+          "long": "--file",
+          "desc": "Read from a saved data file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sar -u 1 5",
+          "desc": "CPU usage, every 1 second, 5 samples"
+        },
+        {
+          "cmd": "sar -r 1 5",
+          "desc": "Memory stats every second"
+        },
+        {
+          "cmd": "sar -n DEV 1 3",
+          "desc": "Network traffic per interface"
+        },
+        {
+          "cmd": "sar -u -f /var/log/sysstat/sa01",
+          "desc": "Review CPU history from a saved report"
+        }
+      ],
+      "suggestions": [
+        "vmstat",
+        "iostat",
+        "dmesg"
+      ],
+      "pro_tip": "Enable sysstat's cron job (`/etc/cron.d/sysstat`) so sar continuously records history. After an incident, use `sar -u -f /var/log/sysstat/saNN` to replay what CPU/memory did during the event."
+    },
+    {
+      "name": "at",
+      "summary": "Schedule a one-time command to run at a specified time.",
+      "risk": "low",
+      "risk_reason": "Schedules future execution; verify time zone and system time.",
+      "explanation": "at schedules commands for one-time execution at a specific future time, unlike crontab which recurs. Jobs are queued in /var/spool/at and run even if the user logs out. The atq command lists pending jobs; atrm removes them.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "echo 'systemctl restart nginx' | at 23:00",
+          "desc": "Schedule nginx restart at 11 PM"
+        },
+        {
+          "cmd": "at 14:30 tomorrow <<< 'bash /opt/scripts/backup.sh'",
+          "desc": "Schedule backup for tomorrow afternoon"
+        },
+        {
+          "cmd": "atq",
+          "desc": "List pending at jobs"
+        },
+        {
+          "cmd": "atrm 3",
+          "desc": "Remove job number 3 from queue"
+        }
+      ],
+      "suggestions": [
+        "crontab",
+        "systemctl",
+        "logger"
+      ],
+      "pro_tip": "Use `at` for maintenance tasks that should run exactly once (e.g., applying a configuration change at a specific time). Unlike cron, there's no risk of it accidentally running repeatedly."
+    },
+    {
+      "name": "rsyslog",
+      "summary": "Configure and manage the rsyslog system logging daemon.",
+      "risk": "medium",
+      "risk_reason": "Misconfiguration can stop system logging entirely.",
+      "cautions": [
+        "A syntax error in rsyslog.conf can stop logging entirely — validate with `rsyslogd -N1`.",
+        "Forwarding logs over UDP can lose messages; use TCP/RELP with disk-assisted queues.",
+        "Rotate and cap local log files so /var does not fill up."
+      ],
+      "explanation": "rsyslog is the high-performance system logging daemon used on most Linux distros alongside or instead of systemd's journald. It processes logs using rules (facility.severity → destination) and can forward logs to remote servers. Config files live in /etc/rsyslog.conf and /etc/rsyslog.d/.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl status rsyslog",
+          "desc": "Check rsyslog service status"
+        },
+        {
+          "cmd": "rsyslogd -N1",
+          "desc": "Validate rsyslog config without restarting"
+        },
+        {
+          "cmd": "logger -t test 'Hello rsyslog' && tail -5 /var/log/syslog",
+          "desc": "Send test message and verify delivery"
+        },
+        {
+          "cmd": "grep '*.error' /etc/rsyslog.conf",
+          "desc": "Check where error-level messages are routed"
+        },
+        {
+          "cmd": "echo '*.* @@192.168.1.100:514' > /etc/rsyslog.d/99-remote.conf && systemctl restart rsyslog",
+          "desc": "Forward all logs to remote syslog server via TCP"
+        }
+      ],
+      "suggestions": [
+        "journalctl",
+        "logger",
+        "tail"
+      ],
+      "pro_tip": "Use `rsyslogd -N1` to validate config before restarting — a syntax error in rsyslog.conf silently stops all logging, which you'll only notice during an incident."
+    },
+    {
+      "name": "logrotate",
+      "summary": "Automatically rotate, compress, and manage log files.",
+      "risk": "low",
+      "risk_reason": "Misconfigured rotation can delete logs or fill disk.",
+      "explanation": "logrotate manages log file rotation on a schedule — compressing old logs, deleting logs older than N days, and sending signals to services to reopen log files. Config in /etc/logrotate.conf and /etc/logrotate.d/. Run by cron or systemd timer daily.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--debug",
+          "desc": "Dry run — show what would happen without doing it"
+        },
+        {
+          "flag": "-f",
+          "long": "--force",
+          "desc": "Force rotation even if not due"
+        },
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Verbose output"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "logrotate -d /etc/logrotate.d/nginx",
+          "desc": "Dry run nginx log rotation config"
+        },
+        {
+          "cmd": "logrotate -f /etc/logrotate.conf",
+          "desc": "Force rotate all logs immediately"
+        },
+        {
+          "cmd": "logrotate -v /etc/logrotate.d/myapp",
+          "desc": "Verbose rotation for debugging"
+        },
+        {
+          "cmd": "cat /etc/logrotate.d/nginx",
+          "desc": "View nginx logrotate config"
+        }
+      ],
+      "suggestions": [
+        "rsyslog",
+        "journalctl",
+        "find"
+      ],
+      "pro_tip": "Always test new logrotate configs with `-d` (dry run) first. Common mistake: missing `postrotate` signal to the daemon to reopen files — without it, the service keeps writing to the rotated file."
+    },
+    {
+      "name": "cron",
+      "kind": "topic",
+      "summary": "Schedule recurring tasks using the system cron daemon.",
+      "risk": "medium",
+      "risk_reason": "Cron jobs run silently; errors can go unnoticed for days.",
+      "cautions": [
+        "Cron runs silently — send output to a log or mail so failures are noticed.",
+        "Use full paths and set PATH explicitly in the crontab.",
+        "Prevent overlapping runs with `flock -n /tmp/job.lock <command>`."
+      ],
+      "explanation": "Cron runs scheduled commands based on a time expression (minute hour day month weekday). System cron jobs live in /etc/cron.d/, /etc/cron.daily/, etc. User cron jobs are managed via crontab. Each field: minute(0-59) hour(0-23) day(1-31) month(1-12) weekday(0-7).",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "crontab -e",
+          "desc": "Edit current user's crontab"
+        },
+        {
+          "cmd": "crontab -l",
+          "desc": "List current user's cron jobs"
+        },
+        {
+          "cmd": "crontab -l -u nginx",
+          "desc": "List cron jobs for specific user"
+        },
+        {
+          "cmd": "echo '0 2 * * * /opt/scripts/backup.sh >> /var/log/backup.log 2>&1' | crontab -",
+          "desc": "Add a daily 2AM backup job"
+        },
+        {
+          "cmd": "ls /etc/cron.d/ && cat /etc/cron.d/sysstat",
+          "desc": "View system cron jobs"
+        }
+      ],
+      "suggestions": [
+        "at",
+        "systemctl",
+        "logger"
+      ],
+      "pro_tip": "Always redirect cron output: `command >> /var/log/myjob.log 2>&1`. Without redirection, errors go to the user's mail (often ignored). Also set MAILTO='' in crontab to suppress email if not needed."
+    },
+    {
+      "name": "systemd timer",
+      "kind": "topic",
+      "match": [
+        "systemd-timer"
+      ],
+      "summary": "Systemd timer units as a modern alternative to cron.",
+      "risk": "low",
+      "risk_reason": "Timer units require corresponding service units.",
+      "explanation": "Systemd timers replace cron for scheduled tasks, offering dependency management, precise logging via journald, and missed-run catch-up (Persistent=true). A timer unit (.timer) pairs with a service unit (.service) that defines what to run.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl list-timers --all",
+          "desc": "List all timers and their next trigger time"
+        },
+        {
+          "cmd": "systemctl status backup.timer",
+          "desc": "Check status of a specific timer"
+        },
+        {
+          "cmd": "systemctl enable --now backup.timer",
+          "desc": "Enable and start a timer immediately"
+        },
+        {
+          "cmd": "journalctl -u backup.service",
+          "desc": "View logs of the timer's associated service"
+        },
+        {
+          "cmd": "systemd-analyze calendar 'Mon *-*-* 02:00:00'",
+          "desc": "Test a calendar expression"
+        }
+      ],
+      "suggestions": [
+        "cron",
+        "systemctl",
+        "journalctl"
+      ],
+      "pro_tip": "Use `systemd-analyze calendar 'your-expression'` to validate timer calendar expressions before deploying — shows next 10 trigger times, saving debugging time."
+    },
+    {
+      "name": "nsenter",
+      "summary": "Enter the namespaces of another process.",
+      "risk": "high",
+      "risk_reason": "Provides access to isolated process namespaces including network and PID.",
+      "cautions": [
+        "Entering a container’s namespaces as root bypasses its isolation; with the mount/PID namespaces your commands can affect the host.",
+        "Use it for diagnostics (network namespace) rather than changing state."
+      ],
+      "explanation": "nsenter runs a program in the namespace(s) of an existing process. Essential for debugging containerized processes — enter a container's network namespace to run network tools that aren't available inside the container, or debug a pod's network stack using host tools.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--target",
+          "desc": "Target process PID"
+        },
+        {
+          "flag": "-n",
+          "long": "--net",
+          "desc": "Enter network namespace"
+        },
+        {
+          "flag": "-p",
+          "long": "--pid",
+          "desc": "Enter PID namespace"
+        },
+        {
+          "flag": "-m",
+          "long": "--mount",
+          "desc": "Enter mount namespace"
+        },
+        {
+          "flag": "--all",
+          "desc": "Enter all namespaces"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nsenter -t $(docker inspect -f '{{.State.Pid}}' mycontainer) -n ss -tnp",
+          "desc": "Run ss inside a container's network namespace"
+        },
+        {
+          "cmd": "nsenter -t 1234 --net ip addr",
+          "desc": "Show network interfaces from another process's view"
+        },
+        {
+          "cmd": "nsenter -t $(pgrep nginx | head -1) --all bash",
+          "desc": "Full shell inside nginx's namespace"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "nsenter -t <pid> -n ss -tnp",
+          "why": "Enter only the network namespace (-n) for read-only diagnostics."
+        }
+      ],
+      "suggestions": [
+        "docker exec",
+        "kubectl exec",
+        "lsof"
+      ],
+      "pro_tip": "Use nsenter to debug distroless or scratch containers that have no shell — run `nsenter -t <container-pid> -n tcpdump` from the host to capture traffic inside a container with no tools."
+    },
+    {
+      "name": "unshare",
+      "summary": "Run a program with some namespaces unshared from the parent.",
+      "risk": "medium",
+      "risk_reason": "Can create isolated environments that are hard to clean up.",
+      "cautions": [
+        "Creates namespaces that persist while any process uses them — hard to clean up if forgotten.",
+        "`unshare -r` maps you to root inside a user namespace, which widens the kernel attack surface."
+      ],
+      "explanation": "unshare creates new namespaces (network, PID, mount, user, UTS) and runs a command in them, isolated from the parent. Used to understand container internals, test namespace isolation, and create lightweight sandboxes without full container runtime.",
+      "flags": [
+        {
+          "flag": "--net",
+          "desc": "Create new network namespace"
+        },
+        {
+          "flag": "--pid",
+          "desc": "Create new PID namespace"
+        },
+        {
+          "flag": "--mount",
+          "desc": "Create new mount namespace"
+        },
+        {
+          "flag": "--user",
+          "desc": "Create new user namespace (unprivileged)"
+        },
+        {
+          "flag": "--fork",
+          "desc": "Fork before executing command"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "unshare --net bash",
+          "desc": "Shell with its own isolated network namespace (no interfaces)"
+        },
+        {
+          "cmd": "unshare --user --map-root-user bash",
+          "desc": "Shell with root privileges in user namespace"
+        },
+        {
+          "cmd": "unshare --pid --fork --mount-proc bash",
+          "desc": "Isolated PID namespace (only sees own processes)"
+        }
+      ],
+      "suggestions": [
+        "nsenter",
+        "docker exec",
+        "systemctl"
+      ],
+      "pro_tip": "Use `unshare --net bash` to test how your app behaves with no network — quickly reveals hardcoded DNS lookups or network dependencies you didn't know existed."
+    },
+    {
+      "name": "cgroups",
+      "kind": "topic",
+      "match": [
+        "systemd-cgls",
+        "cgroups"
+      ],
+      "summary": "Inspect and manage control groups that limit process resources.",
+      "risk": "medium",
+      "risk_reason": "Incorrect limits can OOM-kill processes or starve services.",
+      "cautions": [
+        "Setting memory/CPU limits too low OOM-kills or throttles services.",
+        "Use `systemctl set-property` (or unit drop-ins) rather than writing to /sys/fs/cgroup directly so changes persist."
+      ],
+      "explanation": "Cgroups (control groups) limit and account for CPU, memory, I/O, and network resources used by groups of processes. Containers use cgroups heavily. The systemd-cgls and systemd-cgtop tools visualize the cgroup hierarchy. Direct manipulation is via /sys/fs/cgroup/.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemd-cgls",
+          "desc": "Show cgroup hierarchy tree"
+        },
+        {
+          "cmd": "systemd-cgtop",
+          "desc": "Live resource usage by cgroup (like top for cgroups)"
+        },
+        {
+          "cmd": "cat /sys/fs/cgroup/memory/system.slice/docker-<id>.scope/memory.limit_in_bytes",
+          "desc": "View container memory limit"
+        },
+        {
+          "cmd": "cat /proc/1234/cgroup",
+          "desc": "Show cgroups for a specific PID"
+        },
+        {
+          "cmd": "systemctl set-property nginx.service MemoryLimit=512M",
+          "desc": "Set memory limit on a systemd service"
+        }
+      ],
+      "suggestions": [
+        "nsenter",
+        "ps",
+        "top"
+      ],
+      "pro_tip": "Use `systemctl set-property myservice.service CPUQuota=50%` and `MemoryLimit=1G` to apply resource limits to any systemd service without touching container runtimes.",
+      "low_when": [
+        "systemd-cgls|cgtop|cgls"
+      ]
+    },
+    {
+      "name": "chroot",
+      "summary": "Change the root directory for a process and its children.",
+      "risk": "high",
+      "risk_reason": "Can be used to access filesystems in ways that bypass host permissions.",
+      "cautions": [
+        "A chroot is not a security boundary — root inside it can escape.",
+        "Binaries in an incomplete chroot fail with confusing errors; bind-mount /proc, /sys and /dev when repairing systems.",
+        "Double-check which directory you chroot into."
+      ],
+      "explanation": "chroot changes the apparent root directory for a process, isolating it from the rest of the filesystem. Used for system rescue (booting into a broken system's filesystem), building packages in clean environments, and as the foundation for containers.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mount /dev/sda1 /mnt && chroot /mnt /bin/bash",
+          "desc": "Chroot into a mounted system for rescue"
+        },
+        {
+          "cmd": "chroot /mnt /usr/bin/passwd root",
+          "desc": "Reset root password on mounted system"
+        },
+        {
+          "cmd": "mount --bind /dev /mnt/dev && mount --bind /proc /mnt/proc && chroot /mnt",
+          "desc": "Full rescue chroot with devices and proc"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "findmnt -R /mnt",
+          "why": "Verify the mounts of the target tree before chrooting."
+        }
+      ],
+      "suggestions": [
+        "mount",
+        "nsenter",
+        "unshare"
+      ],
+      "pro_tip": "For a full rescue chroot, always bind-mount /dev, /proc, /sys, and /run before chrooting — without them, systemd, udev, and many tools will fail with cryptic errors."
+    },
+    {
+      "name": "pgrep",
+      "summary": "Find process IDs by name or other attributes.",
+      "risk": "low",
+      "risk_reason": "Read-only process lookup.",
+      "explanation": "pgrep finds PIDs matching name patterns or other criteria without parsing ps output. Returns just PIDs, making it ideal for scripting. pkill (its sibling) sends signals to matched processes. The -a flag includes the full command line.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--list-full",
+          "desc": "Print full command line"
+        },
+        {
+          "flag": "-u",
+          "long": "--euid",
+          "desc": "Match by effective user"
+        },
+        {
+          "flag": "-f",
+          "long": "--full",
+          "desc": "Match against full command line"
+        },
+        {
+          "flag": "-l",
+          "long": "--list-name",
+          "desc": "List PID and name"
+        },
+        {
+          "flag": "-x",
+          "long": "--exact",
+          "desc": "Exact name match only"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pgrep nginx",
+          "desc": "Get all nginx PIDs"
+        },
+        {
+          "cmd": "pgrep -a java",
+          "desc": "List all Java processes with full command"
+        },
+        {
+          "cmd": "pgrep -u www-data",
+          "desc": "Find all processes owned by www-data"
+        },
+        {
+          "cmd": "pgrep -f 'python.*worker'",
+          "desc": "Match processes by full command line pattern"
+        },
+        {
+          "cmd": "kill -HUP $(pgrep nginx)",
+          "desc": "Send HUP to all nginx workers"
+        }
+      ],
+      "suggestions": [
+        "ps",
+        "kill",
+        "top"
+      ],
+      "pro_tip": "Use `pgrep -f 'pattern'` instead of `ps aux | grep | awk` — cleaner, no accidental self-match, and returns just PIDs for direct use in commands."
+    },
+    {
+      "name": "pkill",
+      "summary": "Send signals to processes matched by name or attributes.",
+      "risk": "high",
+      "risk_reason": "Can kill unintended processes if pattern is too broad.",
+      "cautions": [
+        "Matching is by substring: `pkill java` kills every JVM on the host.",
+        "Preview with `pgrep -a <pattern>`; prefer `pkill -x` (exact) or `-u <user>`.",
+        "SIGKILL (-9) skips cleanup."
+      ],
+      "explanation": "pkill sends signals to all processes matching a name pattern or other criteria. The default signal is SIGTERM (graceful shutdown). With -9 (SIGKILL), it force-kills. Always verify with pgrep first — pkill applies to all matches.",
+      "flags": [
+        {
+          "flag": "-f",
+          "long": "--full",
+          "desc": "Match against full command line"
+        },
+        {
+          "flag": "-u",
+          "long": "--euid",
+          "desc": "Match by user"
+        },
+        {
+          "flag": "-signal",
+          "desc": "Signal to send (default: SIGTERM/15)"
+        },
+        {
+          "flag": "-9",
+          "desc": "Force kill (SIGKILL)"
+        },
+        {
+          "flag": "-HUP",
+          "desc": "Send SIGHUP (reload config for many daemons)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pkill -HUP nginx",
+          "desc": "Reload nginx config (graceful)"
+        },
+        {
+          "cmd": "pkill -u www-data",
+          "desc": "Terminate all processes owned by www-data"
+        },
+        {
+          "cmd": "pkill -f 'python.*stale_worker'",
+          "desc": "Kill stale workers by command pattern"
+        },
+        {
+          "cmd": "pgrep java && pkill -9 java",
+          "desc": "Verify then force-kill all Java processes"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "pgrep -a <pattern>",
+          "why": "Preview which processes match."
+        },
+        {
+          "cmd": "pkill -x -TERM <name>",
+          "why": "Exact name, graceful signal."
+        }
+      ],
+      "suggestions": [
+        "pgrep",
+        "kill",
+        "ps"
+      ],
+      "pro_tip": "Always run `pgrep -a pattern` before `pkill pattern` to see exactly what will be affected — pkill's output tells you nothing about what it killed."
+    },
+    {
+      "name": "systemctl advanced",
+      "kind": "topic",
+      "parent": "systemctl",
+      "summary": "Advanced systemd service management: dependencies, drop-ins, and masking.",
+      "risk": "medium",
+      "risk_reason": "Masking and disabling services affects system functionality.",
+      "cautions": [
+        "Masking a unit prevents any start — even by dependencies; remember to unmask.",
+        "`isolate`, `rescue` and `emergency` stop most services immediately.",
+        "`systemctl edit` creates drop-ins; run daemon-reload and verify with `systemctl cat`."
+      ],
+      "explanation": "Beyond start/stop/status, systemctl manages service dependencies, unit file overrides (drop-ins), masking (preventing any start), and systemd's boot analysis. Drop-in files in /etc/systemd/system/service.d/ override specific unit directives without editing originals.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl list-dependencies nginx.service",
+          "desc": "Show dependency tree for nginx"
+        },
+        {
+          "cmd": "systemctl cat nginx.service",
+          "desc": "Show the effective unit file including drop-ins"
+        },
+        {
+          "cmd": "systemctl edit nginx.service",
+          "desc": "Create a drop-in override for nginx unit"
+        },
+        {
+          "cmd": "systemctl mask postfix.service",
+          "desc": "Permanently prevent postfix from starting (even by dependencies)"
+        },
+        {
+          "cmd": "systemd-analyze blame | head -20",
+          "desc": "Show services ranked by boot time"
+        },
+        {
+          "cmd": "systemd-analyze critical-chain",
+          "desc": "Show the critical path in boot sequence"
+        }
+      ],
+      "suggestions": [
+        "journalctl",
+        "cron",
+        "systemd timer"
+      ],
+      "pro_tip": "Use `systemctl edit service` for drop-in overrides instead of editing unit files directly — overrides survive package upgrades and are clearly separated in `/etc/systemd/system/service.d/override.conf`.",
+      "low_when": [
+        "\\b(status|list-|is-|show|cat)\\b|--failed"
+      ]
+    },
+    {
+      "name": "htop",
+      "summary": "Interactive process viewer",
+      "risk": "medium",
+      "risk_reason": "Read-only view, but F9/k sends signals to processes.",
+      "cautions": [
+        "Pressing F9/k then Enter sends a signal to the selected process — check the PID highlighted.",
+        "Run as a normal user for read-only viewing; only use root when you must signal other users’ processes."
+      ],
+      "explanation": "Colourful top replacement with tree view, search and kill. F5 tree, F6 sort, F9 kill, F4 filter.",
+      "flags": [
+        {
+          "flag": "-u",
+          "desc": "Show one user"
+        },
+        {
+          "flag": "-p",
+          "desc": "Show specific PIDs"
+        },
+        {
+          "flag": "-d",
+          "desc": "Refresh delay (tenths of a second)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "htop -u www-data",
+          "desc": "Processes of one user"
+        },
+        {
+          "cmd": "htop -p 1234,5678",
+          "desc": "Watch specific PIDs"
+        }
+      ],
+      "suggestions": [
+        "top",
+        "ps",
+        "kill"
+      ]
+    },
+    {
+      "name": "killall",
+      "summary": "Kill processes by name",
+      "risk": "high",
+      "risk_reason": "Signals every process with a matching name — on Solaris-like systems killall kills ALL processes.",
+      "cautions": [
+        "Kills every instance on the host, including processes from other users or containers (if you are root).",
+        "`killall` without a name on non-Linux Unixes terminates everything.",
+        "Use SIGTERM first; SIGKILL skips cleanup and can corrupt data."
+      ],
+      "explanation": "On Linux killall <name> sends a signal (TERM by default) to every process with that exact name.",
+      "flags": [
+        {
+          "flag": "-9",
+          "desc": "Force kill (SIGKILL)"
+        },
+        {
+          "flag": "-u",
+          "desc": "Only the given user’s processes"
+        },
+        {
+          "flag": "-i",
+          "desc": "Ask before each kill"
+        },
+        {
+          "flag": "-w",
+          "desc": "Wait for processes to die"
+        },
+        {
+          "flag": "-e",
+          "desc": "Require exact match"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "killall -i nginx",
+          "desc": "Ask before killing each nginx process"
+        },
+        {
+          "cmd": "killall -TERM -u alice node",
+          "desc": "Stop alice’s node processes"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "pgrep -a <name>",
+          "why": "Preview what would be killed"
+        },
+        {
+          "cmd": "killall -i -TERM <name>",
+          "why": "Interactive, graceful"
+        }
+      ],
+      "suggestions": [
+        "pkill",
+        "kill",
+        "pgrep"
+      ]
+    },
+    {
+      "name": "service",
+      "summary": "Run a SysV init script / systemctl wrapper",
+      "risk": "medium",
+      "risk_reason": "Starts, stops and restarts services.",
+      "cautions": [
+        "Restart drops active connections — reload if supported.",
+        "Stopping sshd, networking or firewalls on a remote host can lock you out."
+      ],
+      "explanation": "`service name action` is a compatibility wrapper; on systemd it calls systemctl.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "service nginx status",
+          "desc": "Check status"
+        },
+        {
+          "cmd": "service nginx restart",
+          "desc": "Restart a service"
+        }
+      ],
+      "suggestions": [
+        "systemctl",
+        "journalctl"
+      ]
+    },
+    {
+      "name": "chkconfig",
+      "summary": "Manage SysV services at boot (RHEL legacy)",
+      "risk": "medium",
+      "risk_reason": "Changes which services start at boot.",
+      "cautions": [
+        "Disabling a critical service (network, sshd) breaks the host at next boot."
+      ],
+      "explanation": "Legacy tool for enabling/disabling init scripts; use systemctl on modern systems.",
+      "flags": [
+        {
+          "flag": "--list",
+          "long": "--list",
+          "desc": "Show services and runlevels"
+        },
+        {
+          "flag": "--add",
+          "long": "--add",
+          "desc": "Register a service"
+        },
+        {
+          "flag": "--del",
+          "long": "--del",
+          "desc": "Remove a service"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "chkconfig --list",
+          "desc": "List services"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ]
+    },
+    {
+      "name": "last",
+      "summary": "Show login history",
+      "risk": "low",
+      "risk_reason": "Read-only; contains usernames and IPs (sensitive).",
+      "cautions": [
+        "Output contains usernames and source IPs — treat as sensitive."
+      ],
+      "explanation": "Reads /var/log/wtmp to show past logins, reboots and shutdowns.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Limit number of entries"
+        },
+        {
+          "flag": "-x",
+          "desc": "Include shutdown/runlevel changes"
+        },
+        {
+          "flag": "-F",
+          "desc": "Full timestamps"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "last -n 20",
+          "desc": "Recent logins"
+        },
+        {
+          "cmd": "last reboot",
+          "desc": "Reboot history"
+        }
+      ],
+      "suggestions": [
+        "lastb",
+        "who",
+        "w"
+      ]
+    },
+    {
+      "name": "lastb",
+      "summary": "Show failed login attempts",
+      "risk": "low",
+      "risk_reason": "Read-only; reveals attacker IPs and usernames (sensitive).",
+      "cautions": [
+        "Failed logins may contain passwords mistakenly typed as usernames — protect the output."
+      ],
+      "explanation": "Reads /var/log/btmp. Needs root. See the flags and examples below, and run `man lastb` for the full reference.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Limit entries"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sudo lastb | head",
+          "desc": "Recent failures"
+        }
+      ],
+      "suggestions": [
+        "last",
+        "fail2ban-client"
+      ]
+    },
+    {
+      "name": "w",
+      "summary": "Show who is logged in and what they run",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Displays logged-in users, idle time and their current commands plus load averages.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "w",
+          "desc": "Current sessions"
+        }
+      ],
+      "suggestions": [
+        "who",
+        "last",
+        "uptime"
+      ]
+    },
+    {
+      "name": "who",
+      "summary": "Show who is logged in",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Lists current login sessions. See the flags and examples below, and run `man who` for the full reference.",
+      "flags": [
+        {
+          "flag": "-a",
+          "desc": "All information"
+        },
+        {
+          "flag": "-b",
+          "desc": "Last boot time"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "who -a",
+          "desc": "Detailed sessions"
+        }
+      ],
+      "suggestions": [
+        "w",
+        "last"
+      ]
+    },
+    {
+      "name": "id",
+      "summary": "Print user and group IDs",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows UID, GID and supplementary groups for a user.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "id",
+          "desc": "Your identity"
+        },
+        {
+          "cmd": "id alice",
+          "desc": "Another user"
+        }
+      ],
+      "suggestions": [
+        "groups",
+        "whoami",
+        "getent"
+      ]
+    },
+    {
+      "name": "whoami",
+      "summary": "Print the current username",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints the effective username. See the flags and examples below, and run `man whoami` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "whoami",
+          "desc": "Who am I (useful after sudo/su)"
+        }
+      ],
+      "suggestions": [
+        "id",
+        "w"
+      ]
+    },
+    {
+      "name": "groups",
+      "summary": "List group memberships",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints the groups of a user. See the flags and examples below, and run `man groups` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "groups alice",
+          "desc": "alice’s groups"
+        }
+      ],
+      "suggestions": [
+        "id",
+        "usermod"
+      ]
+    },
+    {
+      "name": "hostname",
+      "summary": "Show or set the hostname",
+      "risk": "medium",
+      "risk_reason": "Setting the hostname changes system identity.",
+      "cautions": [
+        "Changing it can break monitoring, certificates, clustering and Kubernetes node registration — use hostnamectl and plan the change."
+      ],
+      "explanation": "Without arguments prints the hostname; with an argument sets it until reboot.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "FQDN"
+        },
+        {
+          "flag": "-I",
+          "desc": "All IP addresses"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "hostname -f",
+          "desc": "Fully-qualified name"
+        },
+        {
+          "cmd": "hostname -I",
+          "desc": "IP addresses"
+        }
+      ],
+      "suggestions": [
+        "hostnamectl",
+        "uname"
+      ]
+    },
+    {
+      "name": "localectl",
+      "summary": "Control locale and keyboard settings",
+      "risk": "medium",
+      "risk_reason": "Changes system-wide locale and keymap.",
+      "cautions": [
+        "A wrong locale can break scripts that parse tool output; test in a session first."
+      ],
+      "explanation": "Show or set system locale, keyboard layout and X11 keymap via systemd-localed.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "localectl status",
+          "desc": "Current locale"
+        },
+        {
+          "cmd": "localectl set-locale LANG=en_US.UTF-8",
+          "desc": "Set the locale"
+        }
+      ],
+      "suggestions": [
+        "timedatectl",
+        "hostnamectl"
+      ]
+    },
+    {
+      "name": "loginctl",
+      "summary": "Manage login sessions",
+      "risk": "high",
+      "risk_reason": "Can terminate sessions and users, including your own.",
+      "cautions": [
+        "terminate-user/terminate-session kills all that user’s processes — including unsaved work and your own SSH session.",
+        "enable-linger lets a user keep processes running with no login; review who has it."
+      ],
+      "explanation": "Query and control systemd-logind: list sessions, lock/terminate sessions, enable linger.",
+      "flags": [
+        {
+          "flag": "list-sessions",
+          "desc": "Show sessions"
+        },
+        {
+          "flag": "terminate-session",
+          "desc": "End a session"
+        },
+        {
+          "flag": "terminate-user",
+          "desc": "End all of a user’s sessions"
+        },
+        {
+          "flag": "enable-linger",
+          "desc": "Let user services run without a login"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "loginctl list-sessions",
+          "desc": "Active sessions"
+        },
+        {
+          "cmd": "loginctl enable-linger alice",
+          "desc": "Keep alice’s services running after logout"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "loginctl list-sessions",
+          "why": "Check which session is which first"
+        },
+        {
+          "cmd": "loginctl show-session <id>",
+          "why": "Inspect before terminating"
+        }
+      ],
+      "suggestions": [
+        "who",
+        "systemctl"
+      ]
+    },
+    {
+      "name": "reboot",
+      "summary": "Reboot the system",
+      "risk": "high",
+      "risk_reason": "Disconnects all users and stops all services.",
+      "cautions": [
+        "Check who is logged in and what is running (who, systemctl list-jobs) before rebooting.",
+        "On remote hosts confirm sshd, networking and fstab are valid or you may lose access.",
+        "Schedule maintenance windows and drain nodes (kubectl drain) first."
+      ],
+      "explanation": "Restarts the machine via systemd. May be immediate.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "Force without stopping services cleanly",
+          "caution": "Skips orderly shutdown; can corrupt data."
+        },
+        {
+          "flag": "--no-wall",
+          "long": "--no-wall",
+          "desc": "Do not warn logged-in users"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "systemctl reboot",
+          "desc": "Clean reboot"
+        },
+        {
+          "cmd": "shutdown -r +5 \"maintenance\"",
+          "desc": "Reboot in 5 minutes with a message"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "shutdown -r +10 \"reboot for maintenance\"",
+          "why": "Give users a warning window"
+        },
+        {
+          "cmd": "shutdown -c",
+          "why": "Cancel a scheduled shutdown"
+        }
+      ],
+      "suggestions": [
+        "shutdown",
+        "systemctl"
+      ]
+    },
+    {
+      "name": "shutdown",
+      "summary": "Power off or reboot the system",
+      "risk": "high",
+      "risk_reason": "Stops all services and may make remote machines unreachable.",
+      "cautions": [
+        "`shutdown -h now` on a remote host powers it off — you may not be able to turn it back on.",
+        "Notify users and drain workloads first."
+      ],
+      "explanation": "Schedules a halt, poweroff or reboot with a warning message.",
+      "flags": [
+        {
+          "flag": "-h",
+          "desc": "Halt / power off"
+        },
+        {
+          "flag": "-r",
+          "desc": "Reboot"
+        },
+        {
+          "flag": "-c",
+          "desc": "Cancel a scheduled shutdown"
+        },
+        {
+          "flag": "now",
+          "desc": "Immediate (argument)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "shutdown -r +5 \"maintenance\"",
+          "desc": "Reboot in 5 minutes"
+        },
+        {
+          "cmd": "shutdown -c",
+          "desc": "Cancel"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "shutdown -r +10 \"message\"",
+          "why": "Schedule with a warning"
+        },
+        {
+          "cmd": "shutdown -c",
+          "why": "Cancel if it was a mistake"
+        }
+      ],
+      "suggestions": [
+        "reboot",
+        "systemctl"
+      ]
+    },
+    {
+      "name": "poweroff",
+      "summary": "Power off the machine",
+      "risk": "high",
+      "risk_reason": "Shuts the host down; remote machines may not come back.",
+      "cautions": [
+        "Cannot be undone remotely unless the host has out-of-band management."
+      ],
+      "explanation": "Equivalent to shutdown -P now. See the flags and examples below, and run `man poweroff` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl poweroff",
+          "desc": "Power off"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "shutdown -h +5 \"message\"",
+          "why": "Schedule with a warning"
+        }
+      ],
+      "suggestions": [
+        "shutdown",
+        "reboot"
+      ]
+    },
+    {
+      "name": "lsmod",
+      "summary": "List loaded kernel modules",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows loaded kernel modules and their usage counts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lsmod | grep -i nvme",
+          "desc": "Check if a module is loaded"
+        }
+      ],
+      "suggestions": [
+        "modprobe",
+        "modinfo"
+      ]
+    },
+    {
+      "name": "modinfo",
+      "summary": "Show kernel module information",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints details and parameters of a module.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "modinfo ixgbe",
+          "desc": "Module details"
+        }
+      ],
+      "suggestions": [
+        "lsmod",
+        "modprobe"
+      ]
+    },
+    {
+      "name": "modprobe",
+      "summary": "Load or remove kernel modules",
+      "risk": "high",
+      "risk_reason": "Loading/unloading modules affects kernel stability and hardware.",
+      "cautions": [
+        "Removing a module in use for network or storage drivers can drop connectivity or disks.",
+        "Out-of-tree modules can taint or crash the kernel — test first."
+      ],
+      "explanation": "Adds or removes modules with dependencies resolved. Persistent configuration lives in /etc/modprobe.d/.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Remove a module"
+        },
+        {
+          "flag": "-n",
+          "desc": "Dry run"
+        },
+        {
+          "flag": "-v",
+          "desc": "Verbose"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "modprobe -n -v br_netfilter",
+          "desc": "Dry run"
+        },
+        {
+          "cmd": "modprobe br_netfilter",
+          "desc": "Load a module"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "modprobe -n -v <module>",
+          "why": "Dry run first"
+        }
+      ],
+      "suggestions": [
+        "lsmod",
+        "modinfo"
+      ]
+    },
+    {
+      "name": "dmidecode",
+      "summary": "Show hardware info from BIOS/DMI",
+      "risk": "low",
+      "risk_reason": "Read-only (needs root).",
+      "cautions": [
+        "Output includes serial numbers/UUIDs — treat as sensitive."
+      ],
+      "explanation": "Prints hardware details including serial numbers and memory slots.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Type (memory, system, bios)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dmidecode -t memory",
+          "desc": "RAM modules"
+        },
+        {
+          "cmd": "dmidecode -s system-serial-number",
+          "desc": "Serial number"
+        }
+      ],
+      "suggestions": [
+        "lscpu",
+        "lspci"
+      ]
+    },
+    {
+      "name": "lspci",
+      "summary": "List PCI devices",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows PCI devices such as NICs and GPUs.",
+      "flags": [
+        {
+          "flag": "-v",
+          "desc": "Verbose"
+        },
+        {
+          "flag": "-k",
+          "desc": "Show kernel drivers"
+        },
+        {
+          "flag": "-nn",
+          "desc": "Show vendor/device IDs"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lspci -k",
+          "desc": "Devices and drivers"
+        }
+      ],
+      "suggestions": [
+        "lsusb",
+        "dmidecode"
+      ]
+    },
+    {
+      "name": "lsusb",
+      "summary": "List USB devices",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Lists USB buses and devices. See the flags and examples below, and run `man lsusb` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lsusb -t",
+          "desc": "Tree view"
+        }
+      ],
+      "suggestions": [
+        "lspci"
+      ]
+    },
+    {
+      "name": "lshw",
+      "summary": "List hardware configuration",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Detailed hardware inventory. See the flags and examples below, and run `man lshw` for the full reference.",
+      "flags": [
+        {
+          "flag": "-short",
+          "desc": "Short table"
+        },
+        {
+          "flag": "-class",
+          "desc": "Filter by class"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lshw -short",
+          "desc": "Hardware summary"
+        }
+      ],
+      "suggestions": [
+        "dmidecode",
+        "lspci"
+      ]
+    },
+    {
+      "name": "sensors",
+      "summary": "Show temperature and fan sensors",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "lm-sensors output for CPU, fans and voltages.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "sensors",
+          "desc": "Show readings"
+        }
+      ],
+      "suggestions": [
+        "smartctl"
+      ]
+    },
+    {
+      "name": "nice",
+      "summary": "Run a command with a lower priority",
+      "risk": "low",
+      "risk_reason": "Changes scheduling priority only.",
+      "cautions": [
+        "Negative values need root and can starve other processes."
+      ],
+      "explanation": "Adjusts niceness (−20 high priority to 19 low).",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Niceness increment"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nice -n 10 tar -czf backup.tgz /data",
+          "desc": "Run a backup at low priority"
+        }
+      ],
+      "suggestions": [
+        "renice",
+        "ionice"
+      ]
+    },
+    {
+      "name": "renice",
+      "summary": "Change priority of a running process",
+      "risk": "medium",
+      "risk_reason": "Raising priority can starve other workloads.",
+      "cautions": [
+        "Negative niceness on busy hosts can make the system unresponsive."
+      ],
+      "explanation": "Changes the niceness of running processes.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "New niceness"
+        },
+        {
+          "flag": "-p",
+          "desc": "PID"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "renice -n 10 -p 1234",
+          "desc": "Lower priority of PID 1234"
+        }
+      ],
+      "suggestions": [
+        "nice",
+        "ionice"
+      ]
+    },
+    {
+      "name": "ionice",
+      "summary": "Set I/O scheduling class",
+      "risk": "low",
+      "risk_reason": "Only changes I/O priority.",
+      "cautions": [
+        "Realtime class (1) can starve other processes of disk access."
+      ],
+      "explanation": "Control disk I/O priority of a process. See the flags and examples below, and run `man ionice` for the full reference.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Class (1 realtime, 2 best-effort, 3 idle)"
+        },
+        {
+          "flag": "-n",
+          "desc": "Priority within class"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ionice -c3 rsync -a /src /dst",
+          "desc": "Run copy at idle I/O priority"
+        }
+      ],
+      "suggestions": [
+        "nice",
+        "iotop"
+      ]
+    },
+    {
+      "name": "pstree",
+      "summary": "Show processes as a tree",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Visualises parent/child relationships. See the flags and examples below, and run `man pstree` for the full reference.",
+      "flags": [
+        {
+          "flag": "-p",
+          "desc": "Show PIDs"
+        },
+        {
+          "flag": "-a",
+          "desc": "Show arguments"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pstree -ap",
+          "desc": "Tree with PIDs and arguments"
+        }
+      ],
+      "suggestions": [
+        "ps",
+        "top"
+      ]
+    },
+    {
+      "name": "pidof",
+      "summary": "Find process IDs by name",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints PIDs for a program name. See the flags and examples below, and run `man pidof` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pidof nginx",
+          "desc": "PIDs of nginx"
+        }
+      ],
+      "suggestions": [
+        "pgrep",
+        "ps"
+      ]
+    },
+    {
+      "name": "mpstat",
+      "summary": "Per-CPU statistics",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "sysstat tool showing per-core utilisation.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mpstat -P ALL 1 5",
+          "desc": "Per-core stats for 5 seconds"
+        }
+      ],
+      "suggestions": [
+        "sar",
+        "vmstat",
+        "top"
+      ]
+    },
+    {
+      "name": "pidstat",
+      "summary": "Per-process statistics",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "sysstat tool reporting CPU, memory and I/O per process.",
+      "flags": [
+        {
+          "flag": "-u",
+          "desc": "CPU"
+        },
+        {
+          "flag": "-r",
+          "desc": "Memory"
+        },
+        {
+          "flag": "-d",
+          "desc": "Disk I/O"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pidstat -d 1 5",
+          "desc": "Disk I/O per process"
+        }
+      ],
+      "suggestions": [
+        "iotop",
+        "sar"
+      ]
+    },
+    {
+      "name": "ldd",
+      "summary": "Print shared library dependencies",
+      "risk": "medium",
+      "risk_reason": "Some ldd implementations execute the target binary.",
+      "cautions": [
+        "Never run ldd on untrusted binaries — use `objdump -p file | grep NEEDED` or `readelf -d` instead."
+      ],
+      "explanation": "Shows which shared libraries a binary needs. glibc ldd may run the program.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ldd /usr/bin/ssh",
+          "desc": "Libraries of ssh"
+        }
+      ],
+      "suggestions": [
+        "strace",
+        "file"
+      ]
+    },
+    {
+      "name": "getcap",
+      "summary": "Show file capabilities",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Lists Linux capabilities set on files. See the flags and examples below, and run `man getcap` for the full reference.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Recurse"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "getcap -r / 2>/dev/null",
+          "desc": "Find files with capabilities (audit)"
+        }
+      ],
+      "suggestions": [
+        "setcap",
+        "find"
+      ]
+    },
+    {
+      "name": "setcap",
+      "summary": "Set file capabilities",
+      "risk": "high",
+      "risk_reason": "Grants privileged powers to a binary; misuse creates privilege-escalation paths.",
+      "cautions": [
+        "Capabilities like cap_sys_admin or cap_setuid are effectively root.",
+        "They are lost when the file is replaced by an upgrade."
+      ],
+      "explanation": "Assigns capabilities such as cap_net_bind_service to executables.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Remove capabilities"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "setcap cap_net_bind_service=+ep /usr/bin/myapp",
+          "desc": "Allow binding to low ports"
+        },
+        {
+          "cmd": "setcap -r /usr/bin/myapp",
+          "desc": "Remove capabilities"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "systemctl edit <unit>   # AmbientCapabilities=CAP_NET_BIND_SERVICE",
+          "why": "Grant capabilities via systemd instead"
+        }
+      ],
+      "suggestions": [
+        "getcap"
+      ]
+    },
+    {
+      "name": "auditctl",
+      "summary": "Control the Linux audit system",
+      "risk": "high",
+      "risk_reason": "Wrong rules can flood logs or, with -e 2, lock the audit configuration until reboot.",
+      "cautions": [
+        "Rules that match busy paths can generate gigabytes of logs and fill /var.",
+        "-e 2 makes rules immutable until reboot.",
+        "-D removes all rules including compliance ones."
+      ],
+      "explanation": "Add, list and delete kernel audit rules.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List rules"
+        },
+        {
+          "flag": "-w",
+          "desc": "Watch a file"
+        },
+        {
+          "flag": "-D",
+          "desc": "Delete all rules"
+        },
+        {
+          "flag": "-e 2",
+          "desc": "Lock configuration (immutable until reboot)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "auditctl -l",
+          "desc": "List rules"
+        },
+        {
+          "cmd": "auditctl -w /etc/passwd -p wa -k passwd",
+          "desc": "Watch writes to /etc/passwd"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "auditctl -l",
+          "why": "Review existing rules first"
+        }
+      ],
+      "suggestions": [
+        "ausearch",
+        "journalctl"
+      ]
+    },
+    {
+      "name": "ausearch",
+      "summary": "Search audit logs",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Query auditd logs by key, type or time. See the flags and examples below, and run `man ausearch` for the full reference.",
+      "flags": [
+        {
+          "flag": "-m",
+          "desc": "Message type"
+        },
+        {
+          "flag": "-ts",
+          "desc": "Start time"
+        },
+        {
+          "flag": "-k",
+          "desc": "Key"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ausearch -m avc -ts recent",
+          "desc": "Recent SELinux denials"
+        }
+      ],
+      "suggestions": [
+        "auditctl",
+        "selinux"
+      ]
+    },
+    {
+      "name": "systemctl stop",
+      "match": [
+        "systemctl stop"
+      ],
+      "summary": "Stop a service",
+      "risk": "high",
+      "risk_reason": "Stops the service immediately; dependants may fail; stopping sshd/network can lock you out.",
+      "cautions": [
+        "Check what depends on the unit and whether you reach the host through it (sshd, NetworkManager, firewalld).",
+        "Production stops cause outages — drain from the load balancer first."
+      ],
+      "explanation": "Stops a unit. Unlike restart, nothing brings it back.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl stop nginx",
+          "desc": "Stop nginx"
+        },
+        {
+          "cmd": "systemctl list-dependencies --reverse nginx",
+          "desc": "What depends on it?"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "systemctl list-dependencies --reverse <unit>",
+          "why": "See dependants"
+        },
+        {
+          "cmd": "systemctl status <unit>",
+          "why": "Check current state"
+        }
+      ],
+      "suggestions": [
+        "systemctl",
+        "systemctl start"
+      ]
+    },
+    {
+      "name": "systemctl restart",
+      "match": [
+        "systemctl restart"
+      ],
+      "summary": "Restart a service",
+      "risk": "medium",
+      "risk_reason": "Drops connections and briefly interrupts the service.",
+      "cautions": [
+        "Validate the configuration first (nginx -t, sshd -t, apachectl configtest).",
+        "Restart of databases and message brokers can take minutes and trigger failovers."
+      ],
+      "explanation": "Stops then starts a unit; use reload for configuration changes where supported.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl restart nginx",
+          "desc": "Restart"
+        },
+        {
+          "cmd": "systemctl reload nginx",
+          "desc": "Reload config without dropping connections"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "systemctl reload <unit>",
+          "why": "Prefer reload if supported"
+        },
+        {
+          "cmd": "systemctl status <unit> --no-pager",
+          "why": "Verify afterwards"
+        }
+      ],
+      "suggestions": [
+        "systemctl reload",
+        "journalctl"
+      ]
+    },
+    {
+      "name": "systemctl disable",
+      "match": [
+        "systemctl disable"
+      ],
+      "summary": "Disable a service at boot",
+      "risk": "medium",
+      "risk_reason": "The service will not start after the next reboot.",
+      "cautions": [
+        "Disabling network, ssh or firewall units can make the next reboot unreachable."
+      ],
+      "explanation": "Removes the enable symlinks. --now also stops it immediately.",
+      "flags": [
+        {
+          "flag": "--now",
+          "long": "--now",
+          "desc": "Also stop the unit"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "systemctl disable --now cups",
+          "desc": "Disable and stop"
+        }
+      ],
+      "suggestions": [
+        "systemctl enable",
+        "systemctl mask"
+      ]
+    },
+    {
+      "name": "systemctl mask",
+      "match": [
+        "systemctl mask"
+      ],
+      "summary": "Make a unit impossible to start",
+      "risk": "high",
+      "risk_reason": "Even dependencies and manual starts fail until unmasked.",
+      "cautions": [
+        "Masked units cause confusing “Unit is masked” failures later — document them."
+      ],
+      "explanation": "Links the unit to /dev/null. See the flags and examples below, and run `man systemctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl mask sleep.target",
+          "desc": "Mask"
+        },
+        {
+          "cmd": "systemctl unmask sleep.target",
+          "desc": "Undo"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "systemctl unmask <unit>",
+          "why": "Undo"
+        },
+        {
+          "cmd": "systemctl disable --now <unit>",
+          "why": "Less drastic"
+        }
+      ],
+      "suggestions": [
+        "systemctl disable"
+      ]
+    },
+    {
+      "name": "systemctl daemon-reload",
+      "match": [
+        "systemctl daemon-reload"
+      ],
+      "summary": "Reload unit files",
+      "risk": "medium",
+      "risk_reason": "Re-reads all unit files; does not restart services.",
+      "cautions": [
+        "Services keep running with the old definition until restarted."
+      ],
+      "explanation": "Needed after editing unit files or drop-ins.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl daemon-reload",
+          "desc": "Reload"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ]
+    },
+    {
+      "name": "systemctl edit",
+      "match": [
+        "systemctl edit"
+      ],
+      "summary": "Create unit overrides",
+      "risk": "medium",
+      "risk_reason": "Drop-ins change service behaviour.",
+      "cautions": [
+        "Keep overrides in Git/config management."
+      ],
+      "explanation": "Creates /etc/systemd/system/<unit>.d/override.conf.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemctl edit nginx",
+          "desc": "Edit a drop-in"
+        },
+        {
+          "cmd": "systemctl cat nginx",
+          "desc": "Show the effective unit"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ]
+    },
+    {
+      "name": "journalctl -u",
+      "match": [
+        "journalctl -u"
+      ],
+      "summary": "Logs for one unit",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows journal entries for a systemd unit.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "journalctl -u nginx --since \"1 hour ago\"",
+          "desc": "Recent logs"
+        },
+        {
+          "cmd": "journalctl -u nginx -f",
+          "desc": "Follow"
+        }
+      ],
+      "suggestions": [
+        "journalctl"
+      ]
+    },
+    {
+      "name": "anacron",
+      "match": [
+        "anacron"
+      ],
+      "summary": "Cron for machines not always on",
+      "risk": "low",
+      "risk_reason": "Runs jobs periodically.",
+      "explanation": "Ensures daily/weekly jobs run after downtime.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "anacron -T",
+          "desc": "Test the config"
+        }
+      ],
+      "suggestions": [
+        "cron"
+      ]
+    },
+    {
+      "name": "flock",
+      "match": [
+        "flock"
+      ],
+      "summary": "Prevent overlapping runs",
+      "risk": "low",
+      "risk_reason": "Lock files only.",
+      "explanation": "Wraps a command with a file lock. See the flags and examples below, and run `man flock` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "flock -n /tmp/job.lock ./job.sh",
+          "desc": "Skip if already running"
+        }
+      ],
+      "suggestions": [
+        "cron"
+      ]
+    },
+    {
+      "name": "lsns",
+      "match": [
+        "lsns"
+      ],
+      "summary": "List namespaces",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows Linux namespaces in use. See the flags and examples below, and run `man lsns` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lsns",
+          "desc": "All namespaces"
+        }
+      ],
+      "suggestions": [
+        "nsenter"
+      ]
+    },
+    {
+      "name": "sudoedit",
+      "match": [
+        "sudoedit"
+      ],
+      "summary": "Edit root-owned files safely",
+      "risk": "medium",
+      "risk_reason": "Edits system files.",
+      "cautions": [
+        "Validate config syntax before reloading the service."
+      ],
+      "explanation": "Opens a temporary copy in your editor and writes it back as root.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "sudoedit /etc/hosts",
+          "desc": "Edit"
+        }
+      ],
+      "suggestions": [
+        "sudo",
+        "visudo"
+      ]
+    },
+    {
+      "name": "script",
+      "match": [
+        "script"
+      ],
+      "summary": "Record a terminal session",
+      "risk": "low",
+      "risk_reason": "Logs everything you type and see (including passwords).",
+      "cautions": [
+        "The log can contain passwords and secrets — protect it."
+      ],
+      "explanation": "Saves a transcript. See the flags and examples below, and run `man script` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "script -a session.log",
+          "desc": "Append to a log"
+        }
+      ],
+      "suggestions": [
+        "tmux"
+      ]
+    },
+    {
+      "name": "reset",
+      "match": [
+        "reset"
+      ],
+      "summary": "Reinitialise the terminal",
+      "risk": "low",
+      "risk_reason": "Only affects the terminal.",
+      "explanation": "Fixes a garbled terminal. See the flags and examples below, and run `man reset` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "reset",
+          "desc": "Recover"
+        }
+      ],
+      "suggestions": [
+        "clear"
+      ]
+    },
+    {
+      "name": "lastlog",
+      "match": [
+        "lastlog"
+      ],
+      "summary": "Show last login per user",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Reads /var/log/lastlog. See the flags and examples below, and run `man lastlog` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lastlog -u alice",
+          "desc": "Alice’s last login"
+        }
+      ],
+      "suggestions": [
+        "last"
+      ]
+    },
+    {
+      "name": "getconf",
+      "match": [
+        "getconf"
+      ],
+      "summary": "Query system limits",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints system configuration values. See the flags and examples below, and run `man getconf` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "getconf ARG_MAX",
+          "desc": "Max argument length"
+        },
+        {
+          "cmd": "getconf PAGE_SIZE",
+          "desc": "Page size"
+        }
+      ],
+      "suggestions": [
+        "ulimit"
+      ]
+    },
+    {
+      "name": "numactl",
+      "match": [
+        "numactl"
+      ],
+      "summary": "NUMA policy control",
+      "risk": "medium",
+      "risk_reason": "Wrong binding hurts performance.",
+      "explanation": "Run processes with NUMA policies. See the flags and examples below, and run `man numactl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "numactl --hardware",
+          "desc": "Topology"
+        }
+      ],
+      "suggestions": [
+        "lscpu"
+      ],
+      "low_when": [
+        "--hardware|-H|--show|-s"
+      ],
+      "cautions": [
+        "Binding memory to one NUMA node can cause out-of-memory errors even when other nodes have free memory.",
+        "Test policy changes on staging; wrong CPU/memory binding degrades latency-sensitive services."
+      ]
+    },
+    {
+      "name": "taskset",
+      "match": [
+        "taskset"
+      ],
+      "summary": "Set CPU affinity",
+      "risk": "medium",
+      "risk_reason": "Pinning can starve other work.",
+      "cautions": [
+        "Mis-pinning degrades latency."
+      ],
+      "explanation": "Bind processes to CPUs. See the flags and examples below, and run `man taskset` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "taskset -cp 0-3 1234",
+          "desc": "Pin PID to CPUs 0-3"
+        }
+      ],
+      "suggestions": [
+        "nice"
+      ]
+    },
+    {
+      "name": "chrt",
+      "match": [
+        "chrt"
+      ],
+      "summary": "Real-time scheduling",
+      "risk": "high",
+      "risk_reason": "Real-time priority can starve the system.",
+      "cautions": [
+        "SCHED_FIFO/RR processes that loop will freeze other tasks."
+      ],
+      "explanation": "Sets scheduling policy/priority. See the flags and examples below, and run `man chrt` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "chrt -p 1234",
+          "desc": "Show policy"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "chrt -p <pid>",
+          "why": "Inspect before changing"
+        }
+      ],
+      "suggestions": [
+        "nice"
+      ],
+      "low_when": [
+        "\\s-p\\s+\\d+$"
+      ]
+    },
+    {
+      "name": "hwclock",
+      "match": [
+        "hwclock"
+      ],
+      "summary": "Read/set the hardware clock",
+      "risk": "high",
+      "risk_reason": "Setting the clock causes time jumps.",
+      "cautions": [
+        "Time jumps break TLS, Kerberos, replication and logs."
+      ],
+      "explanation": "Shows or sets the RTC. See the flags and examples below, and run `man hwclock` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "hwclock --show",
+          "desc": "Show RTC"
+        },
+        {
+          "cmd": "hwclock --systohc",
+          "desc": "Write system time to RTC"
+        }
+      ],
+      "suggestions": [
+        "timedatectl",
+        "chronyc"
+      ],
+      "low_when": [
+        "--show|-r\\b"
+      ]
+    },
+    {
+      "name": "ntpdate",
+      "match": [
+        "ntpdate"
+      ],
+      "summary": "Set the clock once from an NTP server",
+      "risk": "high",
+      "risk_reason": "Steps the clock; deprecated.",
+      "cautions": [
+        "Stepping time can break running services; use chrony/systemd-timesyncd."
+      ],
+      "explanation": "Legacy one-shot time sync. See the flags and examples below, and run `man ntpdate` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ntpdate -q pool.ntp.org",
+          "desc": "Query only (-q)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ntpdate -q <server>",
+          "why": "Query without setting"
+        }
+      ],
+      "suggestions": [
+        "chronyc"
+      ],
+      "low_when": [
+        "\\s-q\\b"
+      ]
+    },
+    {
+      "name": "busctl",
+      "match": [
+        "busctl"
+      ],
+      "summary": "D-Bus inspection",
+      "risk": "low",
+      "risk_reason": "Read-only unless calling methods.",
+      "cautions": [
+        "`call` can trigger privileged actions."
+      ],
+      "explanation": "Inspect and call D-Bus services. See the flags and examples below, and run `man busctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "busctl list",
+          "desc": "Services"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ],
+      "low_when": [
+        "\\b(list|tree|introspect|status)\\b"
+      ],
+      "low_unless": [
+        "call|set-property|emit"
+      ]
+    },
+    {
+      "name": "systemd-cat",
+      "match": [
+        "systemd-cat"
+      ],
+      "summary": "Send output to the journal",
+      "risk": "low",
+      "risk_reason": "Writes log entries.",
+      "explanation": "Pipe a command output into journald. See the flags and examples below, and run `man systemd-cat` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "echo hi | systemd-cat -t myapp",
+          "desc": "Log a line"
+        }
+      ],
+      "suggestions": [
+        "journalctl",
+        "logger"
+      ]
+    }
+  ]
+}

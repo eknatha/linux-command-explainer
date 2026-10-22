@@ -1,0 +1,1767 @@
+{
+  "category": "linux-storage",
+  "commands": [
+    {
+      "name": "lsblk",
+      "summary": "List block devices in a tree view showing partitions and mount points.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "lsblk displays block devices (disks, partitions, LVM, NVMe) in a tree structure with sizes, types, and mount points. Far clearer than parsing fdisk or df output for understanding disk layout. The -f flag adds filesystem and UUID info.",
+      "flags": [
+        {
+          "flag": "-f",
+          "long": "--fs",
+          "desc": "Show filesystem type, UUID, and label"
+        },
+        {
+          "flag": "-d",
+          "long": "--nodeps",
+          "desc": "Don't show device dependencies (list disks only)"
+        },
+        {
+          "flag": "-J",
+          "long": "--json",
+          "desc": "JSON output"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Select specific columns"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lsblk",
+          "desc": "Tree view of all block devices"
+        },
+        {
+          "cmd": "lsblk -f",
+          "desc": "Include filesystem type, UUID, and mount points"
+        },
+        {
+          "cmd": "lsblk -d -o NAME,SIZE,ROTA,TYPE",
+          "desc": "List disks with rotation (HDD vs SSD)"
+        },
+        {
+          "cmd": "lsblk -J | jq '.blockdevices[] | {name:.name, size:.size}'",
+          "desc": "JSON output for scripting"
+        }
+      ],
+      "suggestions": [
+        "mount",
+        "df",
+        "fdisk"
+      ],
+      "pro_tip": "Check `ROTA` column in `lsblk -d -o NAME,SIZE,ROTA` — ROTA=1 means HDD (spinning), ROTA=0 means SSD/NVMe. Critical for setting correct I/O scheduler and benchmark expectations."
+    },
+    {
+      "name": "mount",
+      "summary": "Mount filesystems to make them accessible.",
+      "risk": "high",
+      "risk_reason": "Incorrect mounts can overwrite mountpoints or expose data.",
+      "cautions": [
+        "Mounting over a non-empty directory hides its contents until it is unmounted.",
+        "Wrong options (remount,ro, -o bind) can break running services; `umount -l` leaves processes with stale handles.",
+        "Test /etc/fstab changes before rebooting — a bad line can drop the machine into emergency mode (add nofail where appropriate)."
+      ],
+      "explanation": "mount attaches filesystems (block devices, network shares, virtual filesystems) to the directory tree. Without arguments, shows all currently mounted filesystems. Persistent mounts are configured in /etc/fstab.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--types",
+          "desc": "Filesystem type (ext4, nfs, tmpfs, etc.)"
+        },
+        {
+          "flag": "-o",
+          "long": "--options",
+          "desc": "Mount options (ro, rw, noexec, etc.)"
+        },
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Mount all filesystems from /etc/fstab"
+        },
+        {
+          "flag": "--bind",
+          "desc": "Bind-mount a directory to another location"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mount | column -t",
+          "desc": "Show all mounts in table format"
+        },
+        {
+          "cmd": "mount /dev/sdb1 /mnt/data",
+          "desc": "Mount a disk partition"
+        },
+        {
+          "cmd": "mount -o ro /dev/sdb1 /mnt/recovery",
+          "desc": "Mount read-only for recovery"
+        },
+        {
+          "cmd": "mount --bind /opt/app /var/www/app",
+          "desc": "Bind-mount a directory"
+        },
+        {
+          "cmd": "mount -t tmpfs -o size=512m tmpfs /tmp/ramdisk",
+          "desc": "Create RAM disk"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "findmnt --verify",
+          "why": "Validate /etc/fstab before the next reboot."
+        },
+        {
+          "cmd": "mount -fav",
+          "why": "Fake run: shows what `mount -a` would do without mounting anything."
+        }
+      ],
+      "suggestions": [
+        "lsblk",
+        "df",
+        "fuser"
+      ],
+      "pro_tip": "Use `mount -o remount,ro /` for emergency read-only remount during disk issue investigation — prevents further writes while you diagnose. Reverse with `remount,rw`.",
+      "low_when": [
+        "^\\s*$|\\s-l\\b|findmnt|^\\s*-t\\s+\\S+\\s*$"
+      ],
+      "low_unless": [
+        "\\s/"
+      ]
+    },
+    {
+      "name": "lvm",
+      "kind": "topic",
+      "match": [
+        "lvs",
+        "vgs",
+        "pvs",
+        "lvm"
+      ],
+      "summary": "Logical Volume Manager: create, resize, and manage logical volumes.",
+      "risk": "high",
+      "risk_reason": "LVM operations on wrong volumes cause data loss.",
+      "cautions": [
+        "Removing or reducing logical volumes destroys data — shrink the filesystem first and keep a snapshot or backup.",
+        "Save metadata with vgcfgbackup before big changes.",
+        "Check device names with lsblk — pvcreate/pvremove on the wrong disk wipes it."
+      ],
+      "explanation": "LVM abstracts physical storage into volume groups (VGs) and logical volumes (LVs) that can be resized live. The core workflow: create physical volumes (PVs) → group into VGs → carve out LVs. LVs can be snapshotted, resized online, and moved between physical disks.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pvs && vgs && lvs",
+          "desc": "Show physical volumes, volume groups, and logical volumes"
+        },
+        {
+          "cmd": "lvcreate -L 10G -n data vg0",
+          "desc": "Create a 10GB logical volume named 'data' in vg0"
+        },
+        {
+          "cmd": "lvextend -L +5G /dev/vg0/data && resize2fs /dev/vg0/data",
+          "desc": "Extend LV by 5GB and grow filesystem"
+        },
+        {
+          "cmd": "lvcreate -s -L 5G -n data_snap /dev/vg0/data",
+          "desc": "Create a snapshot of a logical volume"
+        },
+        {
+          "cmd": "vgextend vg0 /dev/sdb",
+          "desc": "Add a new disk to an existing volume group"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "lvs -a -o +devices && vgs && pvs",
+          "why": "Review the layout first."
+        },
+        {
+          "cmd": "lvcreate -s -n pre_change -L 5G <vg>/<lv>",
+          "why": "Snapshot before resizing or modifying."
+        }
+      ],
+      "suggestions": [
+        "mount",
+        "lsblk",
+        "df"
+      ],
+      "pro_tip": "Create LVM snapshots before risky operations: `lvcreate -s -L 2G -n pre_upgrade /dev/vg0/root` — if something goes wrong, revert instantly with `lvconvert --merge /dev/vg0/pre_upgrade`.",
+      "low_when": [
+        "\\b(lvs|vgs|pvs|lvdisplay|vgdisplay|pvdisplay|lvm)\\b"
+      ],
+      "low_unless": [
+        "(create|remove|extend|reduce|resize|rename|change|scan)\\b"
+      ]
+    },
+    {
+      "name": "mdadm",
+      "summary": "Manage Linux software RAID arrays.",
+      "risk": "high",
+      "risk_reason": "Incorrect mdadm operations can destroy RAID arrays and data.",
+      "cautions": [
+        "Failing or removing a member of a degraded array can lose the array — check /proc/mdstat first.",
+        "--zero-superblock and --create can destroy existing RAID metadata.",
+        "Replace one disk at a time and wait for the resync to finish."
+      ],
+      "explanation": "mdadm creates and manages Linux software RAID (md) arrays — RAID 0, 1, 5, 6, and 10. Used on servers without hardware RAID controllers. Key operations: creating arrays, checking sync status, replacing failed drives, and monitoring array health.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mdadm --detail /dev/md0",
+          "desc": "Show RAID array status and member disks"
+        },
+        {
+          "cmd": "cat /proc/mdstat",
+          "desc": "Quick RAID sync status and health overview"
+        },
+        {
+          "cmd": "mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb /dev/sdc",
+          "desc": "Create RAID 1 mirror"
+        },
+        {
+          "cmd": "mdadm --manage /dev/md0 --fail /dev/sdb && mdadm --manage /dev/md0 --remove /dev/sdb",
+          "desc": "Remove a failed disk from array"
+        },
+        {
+          "cmd": "mdadm --manage /dev/md0 --add /dev/sdd",
+          "desc": "Add a replacement disk (triggers rebuild)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "cat /proc/mdstat && mdadm --detail /dev/md0",
+          "why": "Check the array state before any change."
+        }
+      ],
+      "suggestions": [
+        "lvm",
+        "lsblk",
+        "dmesg"
+      ],
+      "pro_tip": "Monitor RAID health with `mdadm --monitor --mail=admin@example.com --daemonise /dev/md0` — sends email on array events. Also check `/proc/mdstat` daily in your monitoring stack.",
+      "low_when": [
+        "--detail|-D\\b|--examine|-E\\b|--query|-Q\\b"
+      ],
+      "low_unless": [
+        "--(create|stop|fail|remove|add|grow|zero)|-C\\b|-S\\b|-f\\b|-r\\b|-a\\b"
+      ]
+    },
+    {
+      "name": "swap",
+      "kind": "topic",
+      "match": [
+        "swapon",
+        "swapoff",
+        "swap"
+      ],
+      "summary": "Manage swap space on Linux systems.",
+      "risk": "medium",
+      "risk_reason": "Disabling swap on memory-constrained systems triggers OOM.",
+      "cautions": [
+        "Disabling swap on a memory-constrained host can trigger the OOM killer.",
+        "swapoff has to move pages back into RAM and can take a long time on a busy system.",
+        "Persist swap in /etc/fstab or it disappears at reboot."
+      ],
+      "explanation": "Linux swap (managed via swapon/swapoff and /etc/fstab) extends virtual memory using disk space. On cloud instances, swap files are often preferred over swap partitions. Kubernetes nodes should have swap disabled (swapoff -a) for proper resource accounting.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "swapon --show",
+          "desc": "Show active swap devices and their usage"
+        },
+        {
+          "cmd": "free -h | grep Swap",
+          "desc": "Quick swap usage summary"
+        },
+        {
+          "cmd": "fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile",
+          "desc": "Create and enable a 4GB swap file"
+        },
+        {
+          "cmd": "swapoff -a && sed -i '/swap/d' /etc/fstab",
+          "desc": "Disable all swap permanently (required for Kubernetes nodes)"
+        },
+        {
+          "cmd": "sysctl vm.swappiness=10",
+          "desc": "Reduce swap aggressiveness (0-100, lower = prefer RAM)"
+        }
+      ],
+      "suggestions": [
+        "free",
+        "vmstat",
+        "sysctl"
+      ],
+      "pro_tip": "Set `vm.swappiness=10` on database servers — reduces aggressive swap usage that causes latency spikes. On Kubernetes nodes, set `swappiness=0` or disable swap entirely.",
+      "low_when": [
+        "--show|swapon -s|-s\\b"
+      ],
+      "low_unless": [
+        "swapoff|mkswap|-a\\b|-d\\b"
+      ]
+    },
+    {
+      "name": "fdisk",
+      "summary": "Partition table manipulator",
+      "risk": "high",
+      "risk_reason": "Writing a partition table can destroy all data on the disk.",
+      "cautions": [
+        "Identify the right disk with lsblk and serial numbers before editing.",
+        "Nothing is written until w; q quits without saving.",
+        "Deleting a partition makes its data unrecoverable without special tools.",
+        "Back up the partition table first: sfdisk -d /dev/sdX > sdX.pt"
+      ],
+      "explanation": "Interactive tool to create/delete partitions on MBR/GPT disks. Changes are written only when you press w.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List partitions (read-only)"
+        },
+        {
+          "flag": "-u",
+          "desc": "Show sizes in sectors"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fdisk -l",
+          "desc": "List all partitions"
+        },
+        {
+          "cmd": "fdisk /dev/sdb",
+          "desc": "Edit /dev/sdb (interactive)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "sfdisk -d /dev/sdX > sdX.pt",
+          "why": "Back up the partition table"
+        },
+        {
+          "cmd": "lsblk -f",
+          "why": "Verify which device is which"
+        }
+      ],
+      "suggestions": [
+        "parted",
+        "lsblk",
+        "mkfs"
+      ],
+      "low_when": [
+        "\\s-l\\b"
+      ],
+      "low_unless": []
+    },
+    {
+      "name": "parted",
+      "summary": "Partition editor",
+      "risk": "high",
+      "risk_reason": "Applies changes immediately; wrong device or range destroys data.",
+      "cautions": [
+        "mklabel wipes the partition table — all data becomes inaccessible.",
+        "-s skips confirmations.",
+        "Verify the device with lsblk -o NAME,SIZE,MODEL,SERIAL."
+      ],
+      "explanation": "Create, resize and delete partitions, supports GPT and large disks. Many commands act at once in script mode.",
+      "flags": [
+        {
+          "flag": "print",
+          "desc": "Show the partition table"
+        },
+        {
+          "flag": "mklabel",
+          "desc": "Create a new partition table (destroys existing)"
+        },
+        {
+          "flag": "mkpart",
+          "desc": "Create a partition"
+        },
+        {
+          "flag": "rm",
+          "desc": "Delete a partition"
+        },
+        {
+          "flag": "-s",
+          "desc": "Script mode: no prompts"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "parted /dev/sdb print",
+          "desc": "Show partitions"
+        },
+        {
+          "cmd": "parted -s /dev/sdb mklabel gpt mkpart primary ext4 0% 100%",
+          "desc": "New GPT with one partition"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "parted /dev/sdX print",
+          "why": "Inspect before changing"
+        },
+        {
+          "cmd": "sfdisk -d /dev/sdX > sdX.pt",
+          "why": "Back up the table"
+        }
+      ],
+      "suggestions": [
+        "fdisk",
+        "lsblk",
+        "mkfs"
+      ],
+      "low_when": [
+        "\\bprint\\b|\\s-l\\b"
+      ],
+      "low_unless": [
+        "mklabel|mkpart|rm\\b|resizepart"
+      ]
+    },
+    {
+      "name": "mkfs",
+      "summary": "Create a filesystem",
+      "risk": "high",
+      "risk_reason": "Formats a device — all existing data is lost.",
+      "cautions": [
+        "Irreversible: the old filesystem’s data is overwritten/lost.",
+        "Triple-check the device with lsblk -f; a mounted device should never be formatted.",
+        "Never run on a device you have not verified is empty (blkid shows existing filesystems)."
+      ],
+      "explanation": "Builds a filesystem (mkfs.ext4, mkfs.xfs, mkfs.btrfs …) on a partition or LV.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Filesystem type"
+        },
+        {
+          "flag": "-L",
+          "desc": "Volume label"
+        },
+        {
+          "flag": "-F",
+          "desc": "Force (even if filesystem exists)",
+          "caution": "Skips safety checks."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mkfs.ext4 -L data /dev/sdb1",
+          "desc": "Format a partition"
+        },
+        {
+          "cmd": "mkfs.xfs /dev/vg0/data",
+          "desc": "Format an LV"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "blkid /dev/sdX",
+          "why": "Check whether it already holds a filesystem"
+        },
+        {
+          "cmd": "lsblk -f",
+          "why": "Verify the target device"
+        }
+      ],
+      "suggestions": [
+        "lsblk",
+        "blkid",
+        "fdisk"
+      ]
+    },
+    {
+      "name": "blkid",
+      "summary": "Show block device attributes",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints UUIDs, labels and filesystem types — use UUIDs in fstab.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "blkid",
+          "desc": "All devices"
+        },
+        {
+          "cmd": "blkid /dev/sda1",
+          "desc": "One device"
+        }
+      ],
+      "suggestions": [
+        "lsblk",
+        "mount"
+      ]
+    },
+    {
+      "name": "findmnt",
+      "summary": "Show mounted filesystems",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Tree/list view of mounts; --verify checks fstab.",
+      "flags": [
+        {
+          "flag": "--verify",
+          "long": "--verify",
+          "desc": "Validate /etc/fstab"
+        },
+        {
+          "flag": "-t",
+          "desc": "Filter by type"
+        },
+        {
+          "flag": "-R",
+          "desc": "Recursive"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "findmnt",
+          "desc": "Mount tree"
+        },
+        {
+          "cmd": "findmnt --verify",
+          "desc": "Check fstab syntax"
+        }
+      ],
+      "suggestions": [
+        "mount",
+        "df"
+      ]
+    },
+    {
+      "name": "umount",
+      "summary": "Unmount filesystems",
+      "risk": "medium",
+      "risk_reason": "Unmounting a busy filesystem can break services; -l/-f leave stale handles or lose data.",
+      "cautions": [
+        "Check usage with fuser -vm / lsof +D first.",
+        "Lazy unmount hides problems rather than solving them."
+      ],
+      "explanation": "Detaches a filesystem. Fails if files are open (use lsof/fuser to find them).",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "Lazy unmount: detach now, clean up later",
+          "caution": "Processes keep stale handles."
+        },
+        {
+          "flag": "-f",
+          "desc": "Force (NFS)",
+          "caution": "May lose in-flight data."
+        },
+        {
+          "flag": "-R",
+          "desc": "Recursive"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "umount /mnt/data",
+          "desc": "Unmount"
+        },
+        {
+          "cmd": "fuser -vm /mnt/data",
+          "desc": "See what is using it"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "fuser -vm <mountpoint>",
+          "why": "Find processes using the mount"
+        },
+        {
+          "cmd": "findmnt <mountpoint>",
+          "why": "Confirm what is mounted there"
+        }
+      ],
+      "suggestions": [
+        "mount",
+        "lsof"
+      ]
+    },
+    {
+      "name": "e2fsck",
+      "summary": "Check ext2/3/4 filesystems",
+      "risk": "high",
+      "risk_reason": "Running fsck on a mounted filesystem can corrupt it; repairs can delete data.",
+      "cautions": [
+        "Never run on a mounted filesystem (except -n).",
+        "Take an image backup (dd/ddrescue) of failing disks before repairing.",
+        "Repairs can move data to lost+found."
+      ],
+      "explanation": "Checks and repairs ext filesystems. Always run on unmounted devices.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Read-only check"
+        },
+        {
+          "flag": "-p",
+          "desc": "Automatic safe repairs"
+        },
+        {
+          "flag": "-f",
+          "desc": "Force check"
+        },
+        {
+          "flag": "-y",
+          "desc": "Answer yes to all repairs",
+          "caution": "May delete or truncate damaged files."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "e2fsck -n /dev/sdb1",
+          "desc": "Read-only check"
+        },
+        {
+          "cmd": "e2fsck -f /dev/sdb1",
+          "desc": "Force a check"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "e2fsck -n <device>",
+          "why": "Read-only check first"
+        },
+        {
+          "cmd": "ddrescue <device> image.img map",
+          "why": "Image a failing disk first"
+        }
+      ],
+      "suggestions": [
+        "fsck",
+        "smartctl",
+        "mount"
+      ]
+    },
+    {
+      "name": "fsck",
+      "summary": "Check and repair filesystems",
+      "risk": "high",
+      "risk_reason": "Repairs can delete or relocate data; running on a mounted filesystem corrupts it.",
+      "cautions": [
+        "Unmount first (or boot rescue mode).",
+        "-y can discard data automatically.",
+        "Image a failing disk before running repairs."
+      ],
+      "explanation": "Front-end for filesystem checkers (fsck.ext4, fsck.xfs …).",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Do not make changes"
+        },
+        {
+          "flag": "-y",
+          "desc": "Assume yes to all prompts"
+        },
+        {
+          "flag": "-f",
+          "desc": "Force"
+        },
+        {
+          "flag": "-A",
+          "desc": "Check all in fstab"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fsck -n /dev/sdb1",
+          "desc": "Dry run"
+        },
+        {
+          "cmd": "fsck -f /dev/sdb1",
+          "desc": "Force check (unmounted)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "fsck -n <device>",
+          "why": "Dry run"
+        }
+      ],
+      "suggestions": [
+        "e2fsck",
+        "mount",
+        "smartctl"
+      ]
+    },
+    {
+      "name": "xfs_repair",
+      "summary": "Repair XFS filesystems",
+      "risk": "high",
+      "risk_reason": "Can discard metadata and data; -L destroys the log.",
+      "cautions": [
+        "Mount/unmount once to replay the log before using -L.",
+        "Back up (xfs_metadump or image) before repairs."
+      ],
+      "explanation": "Repairs XFS filesystems, which must be unmounted. -n only checks.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Check only, no changes"
+        },
+        {
+          "flag": "-L",
+          "desc": "Zero the log (data loss)",
+          "caution": "Discards the metadata log."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "xfs_repair -n /dev/sdb1",
+          "desc": "Dry run"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "xfs_repair -n <device>",
+          "why": "Check without modifying"
+        }
+      ],
+      "suggestions": [
+        "fsck",
+        "mount"
+      ]
+    },
+    {
+      "name": "resize2fs",
+      "summary": "Resize ext filesystems",
+      "risk": "high",
+      "risk_reason": "Shrinking a filesystem without a backup can corrupt data.",
+      "cautions": [
+        "Shrink the filesystem BEFORE shrinking the LV/partition, never after.",
+        "Back up first and run e2fsck -f."
+      ],
+      "explanation": "Grows or shrinks ext2/3/4. Growing can be done online; shrinking needs unmount and fsck.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "resize2fs /dev/vg0/data",
+          "desc": "Grow to fill the LV"
+        },
+        {
+          "cmd": "resize2fs /dev/vg0/data 50G",
+          "desc": "Shrink to 50G (offline)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "e2fsck -f <device>",
+          "why": "Check before resizing"
+        },
+        {
+          "cmd": "lvextend -r -L +10G <lv>",
+          "why": "Extend LV + filesystem in one step"
+        }
+      ],
+      "suggestions": [
+        "lvm",
+        "e2fsck",
+        "xfs_growfs"
+      ]
+    },
+    {
+      "name": "xfs_growfs",
+      "summary": "Grow a mounted XFS filesystem",
+      "risk": "medium",
+      "risk_reason": "Growing is generally safe, but XFS cannot be shrunk.",
+      "cautions": [
+        "XFS cannot be shrunk — plan sizes carefully.",
+        "Ensure the underlying LV/partition has really been extended."
+      ],
+      "explanation": "Expands XFS to fill the underlying device.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "xfs_growfs /data",
+          "desc": "Grow the filesystem mounted at /data"
+        }
+      ],
+      "suggestions": [
+        "lvm",
+        "resize2fs"
+      ]
+    },
+    {
+      "name": "smartctl",
+      "summary": "Disk SMART health tool",
+      "risk": "low",
+      "risk_reason": "Read-only unless self-tests are started.",
+      "cautions": [
+        "Long self-tests add I/O load — schedule off-peak."
+      ],
+      "explanation": "Reads SMART data: health, error counts, wear and temperature.",
+      "flags": [
+        {
+          "flag": "-a",
+          "desc": "All SMART data"
+        },
+        {
+          "flag": "-H",
+          "desc": "Health summary"
+        },
+        {
+          "flag": "-t",
+          "desc": "Run a self-test"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "smartctl -H /dev/sda",
+          "desc": "Health check"
+        },
+        {
+          "cmd": "smartctl -a /dev/nvme0",
+          "desc": "Full report"
+        }
+      ],
+      "suggestions": [
+        "lsblk",
+        "fsck"
+      ]
+    },
+    {
+      "name": "hdparm",
+      "summary": "Get/set disk parameters",
+      "risk": "high",
+      "risk_reason": "Setting parameters or secure erase can brick or wipe a disk.",
+      "cautions": [
+        "Never use write/security options on the wrong disk.",
+        "ATA secure erase destroys all data."
+      ],
+      "explanation": "Queries disk info and benchmarks; can change power, cache and security features.",
+      "flags": [
+        {
+          "flag": "-I",
+          "desc": "Identify device"
+        },
+        {
+          "flag": "-t",
+          "desc": "Benchmark reads"
+        },
+        {
+          "flag": "--security-erase",
+          "long": "--security-erase",
+          "desc": "Secure erase",
+          "caution": "Destroys all data."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "hdparm -I /dev/sda",
+          "desc": "Drive info"
+        },
+        {
+          "cmd": "hdparm -t /dev/sda",
+          "desc": "Read speed test"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "hdparm -I <device>",
+          "why": "Identify before changing anything"
+        }
+      ],
+      "suggestions": [
+        "smartctl",
+        "lsblk"
+      ]
+    },
+    {
+      "name": "dd",
+      "summary": "Convert and copy raw data",
+      "risk": "high",
+      "risk_reason": "Writing to the wrong target overwrites disks irrecoverably; there is no confirmation.",
+      "cautions": [
+        "Swapping if= and of= overwrites your source.",
+        "Triple-check of=/dev/sdX with lsblk -o NAME,SIZE,MODEL,MOUNTPOINT.",
+        "Never write to a mounted disk or a device with unknown contents.",
+        "Nothing is asked: the first block is overwritten immediately."
+      ],
+      "explanation": "Copies blocks from input to output — used for disk images, boot media and benchmarking.",
+      "flags": [
+        {
+          "flag": "if=",
+          "desc": "Input file/device"
+        },
+        {
+          "flag": "of=",
+          "desc": "Output file/device (DANGEROUS)",
+          "caution": "A wrong of= overwrites data with no prompt."
+        },
+        {
+          "flag": "bs=",
+          "desc": "Block size"
+        },
+        {
+          "flag": "status=progress",
+          "desc": "Show progress"
+        },
+        {
+          "flag": "conv=fsync",
+          "desc": "Flush data before exit"
+        },
+        {
+          "flag": "count=",
+          "desc": "Number of blocks"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dd if=/dev/sda of=disk.img bs=4M status=progress",
+          "desc": "Image a disk"
+        },
+        {
+          "cmd": "dd if=ubuntu.iso of=/dev/sdX bs=4M status=progress conv=fsync",
+          "desc": "Write an ISO to a USB stick"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "lsblk -o NAME,SIZE,MODEL,MOUNTPOINT",
+          "why": "Verify the target device"
+        },
+        {
+          "cmd": "ddrescue <src> <dst> map",
+          "why": "Use ddrescue for failing disks"
+        },
+        {
+          "cmd": "pv file.iso | dd of=/dev/sdX bs=4M",
+          "why": "Show progress via pv"
+        }
+      ],
+      "suggestions": [
+        "lsblk",
+        "mkfs",
+        "ddrescue"
+      ]
+    },
+    {
+      "name": "wipefs",
+      "summary": "Wipe filesystem signatures",
+      "risk": "high",
+      "risk_reason": "Removes filesystem/RAID/LVM signatures; data becomes unreachable.",
+      "cautions": [
+        "Verify the device with lsblk; use -n first.",
+        "Back up signatures: wipefs -b …"
+      ],
+      "explanation": "Lists or erases signatures from block devices.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Dry run"
+        },
+        {
+          "flag": "-a",
+          "desc": "Erase all signatures",
+          "caution": "Makes the disk look empty."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "wipefs /dev/sdb",
+          "desc": "List signatures (read-only)"
+        },
+        {
+          "cmd": "wipefs -n -a /dev/sdb",
+          "desc": "Dry run"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "wipefs -n -a <device>",
+          "why": "Dry run first"
+        },
+        {
+          "cmd": "wipefs <device>",
+          "why": "List signatures read-only"
+        }
+      ],
+      "suggestions": [
+        "mkfs",
+        "lsblk"
+      ]
+    },
+    {
+      "name": "cryptsetup",
+      "summary": "LUKS disk encryption",
+      "risk": "high",
+      "risk_reason": "Wrong commands destroy the key slots or format the volume; losing the passphrase loses the data.",
+      "cautions": [
+        "Back up the LUKS header immediately after luksFormat — header corruption means total data loss.",
+        "Keep at least two key slots/passphrases and store the recovery key safely.",
+        "luksFormat erases the target device’s data."
+      ],
+      "explanation": "Sets up, opens and manages LUKS encrypted volumes.",
+      "flags": [
+        {
+          "flag": "luksFormat",
+          "desc": "Encrypt a device (erases data)",
+          "caution": "Destroys existing data."
+        },
+        {
+          "flag": "open",
+          "desc": "Unlock a volume"
+        },
+        {
+          "flag": "close",
+          "desc": "Lock a volume"
+        },
+        {
+          "flag": "luksHeaderBackup",
+          "desc": "Back up the LUKS header"
+        },
+        {
+          "flag": "luksRemoveKey",
+          "desc": "Remove a passphrase"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "cryptsetup open /dev/sdb1 secure",
+          "desc": "Unlock"
+        },
+        {
+          "cmd": "cryptsetup luksHeaderBackup /dev/sdb1 --header-backup-file hdr.img",
+          "desc": "Back up the header"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "cryptsetup luksHeaderBackup <dev> --header-backup-file hdr.img",
+          "why": "Back up the header"
+        },
+        {
+          "cmd": "cryptsetup luksDump <dev>",
+          "why": "Review key slots"
+        }
+      ],
+      "suggestions": [
+        "lsblk",
+        "mkfs"
+      ]
+    },
+    {
+      "name": "pvcreate",
+      "summary": "Initialize a physical volume for LVM",
+      "risk": "high",
+      "risk_reason": "Writes LVM metadata to the device, destroying existing data.",
+      "cautions": [
+        "Destroys the existing signature on the device.",
+        "Check lsblk -f first; never run on a disk with data you need."
+      ],
+      "explanation": "Marks a block device as an LVM PV. See the flags and examples below, and run `man pvcreate` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pvcreate /dev/sdb",
+          "desc": "Initialise /dev/sdb"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "pvs && lsblk -f",
+          "why": "Inspect existing layout first"
+        }
+      ],
+      "suggestions": [
+        "vgcreate",
+        "lvm"
+      ]
+    },
+    {
+      "name": "vgcreate",
+      "summary": "Create a volume group",
+      "risk": "medium",
+      "risk_reason": "Allocates devices to a volume group.",
+      "cautions": [
+        "Mixing slow/fast or non-redundant disks affects the entire VG."
+      ],
+      "explanation": "Creates a VG from PVs. See the flags and examples below, and run `man vgcreate` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "vgcreate vg0 /dev/sdb",
+          "desc": "Create VG vg0"
+        }
+      ],
+      "suggestions": [
+        "pvcreate",
+        "lvcreate"
+      ]
+    },
+    {
+      "name": "lvcreate",
+      "summary": "Create a logical volume",
+      "risk": "medium",
+      "risk_reason": "Consumes VG space; mis-sizing causes problems later.",
+      "cautions": [
+        "Snapshots that fill up become invalid and degrade performance — monitor with lvs."
+      ],
+      "explanation": "Creates LVs, snapshots and thin volumes.",
+      "flags": [
+        {
+          "flag": "-L",
+          "desc": "Size"
+        },
+        {
+          "flag": "-l",
+          "desc": "Extents or %"
+        },
+        {
+          "flag": "-n",
+          "desc": "Name"
+        },
+        {
+          "flag": "-s",
+          "desc": "Snapshot"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lvcreate -L 20G -n data vg0",
+          "desc": "20 GB volume"
+        },
+        {
+          "cmd": "lvcreate -s -n snap -L 5G vg0/data",
+          "desc": "Snapshot"
+        }
+      ],
+      "suggestions": [
+        "lvm",
+        "mkfs"
+      ]
+    },
+    {
+      "name": "lvextend",
+      "summary": "Extend a logical volume",
+      "risk": "medium",
+      "risk_reason": "Growing is generally safe; wrong args can exhaust the VG.",
+      "cautions": [
+        "Check free VG space (vgs) first."
+      ],
+      "explanation": "Adds space to an LV; use -r to grow the filesystem as well.",
+      "flags": [
+        {
+          "flag": "-L",
+          "desc": "New size or +size"
+        },
+        {
+          "flag": "-r",
+          "desc": "Resize the filesystem too"
+        },
+        {
+          "flag": "-l",
+          "desc": "Extents"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lvextend -r -L +10G /dev/vg0/data",
+          "desc": "Grow by 10G including the filesystem"
+        }
+      ],
+      "suggestions": [
+        "lvm",
+        "resize2fs"
+      ]
+    },
+    {
+      "name": "lvreduce",
+      "summary": "Shrink a logical volume",
+      "risk": "high",
+      "risk_reason": "Shrinking below the filesystem size destroys data.",
+      "cautions": [
+        "Back up first; XFS cannot be shrunk.",
+        "Shrink the filesystem before the LV, never after."
+      ],
+      "explanation": "Reduces the size of an LV. The filesystem must be shrunk first.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Shrink the filesystem too"
+        },
+        {
+          "flag": "-L",
+          "desc": "New size"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lvreduce -r -L 20G /dev/vg0/data",
+          "desc": "Shrink to 20G with the filesystem"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "lvreduce -r -L <size> <lv>",
+          "why": "-r shrinks filesystem and LV in the right order"
+        },
+        {
+          "cmd": "lvcreate -s -n pre_shrink -L 5G <vg>/<lv>",
+          "why": "Snapshot before shrinking"
+        }
+      ],
+      "suggestions": [
+        "lvextend",
+        "resize2fs"
+      ]
+    },
+    {
+      "name": "lvremove",
+      "summary": "Remove a logical volume",
+      "risk": "high",
+      "risk_reason": "Deletes the LV and its data.",
+      "cautions": [
+        "Data is gone once removed — snapshot or back up first.",
+        "-f skips the confirmation."
+      ],
+      "explanation": "Removes an LV (or snapshot). See the flags and examples below, and run `man lvremove` for the full reference.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "Do not ask for confirmation"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "lvremove vg0/old",
+          "desc": "Remove LV (asks)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "lvs -a -o +devices",
+          "why": "Confirm the LV"
+        },
+        {
+          "cmd": "lvchange -an vg/lv",
+          "why": "Deactivate first to test impact"
+        }
+      ],
+      "suggestions": [
+        "lvm",
+        "lvcreate"
+      ]
+    },
+    {
+      "name": "nfs",
+      "kind": "topic",
+      "match": [
+        "showmount",
+        "exportfs",
+        "nfsstat",
+        "mount.nfs"
+      ],
+      "summary": "NFS client and export tools",
+      "risk": "medium",
+      "risk_reason": "Network mounts can hang processes when the server is unavailable; exports can expose data.",
+      "cautions": [
+        "Use hard,intr/soft carefully: soft can silently lose writes, hard can hang processes.",
+        "Restrict exports by host and use root_squash; avoid no_root_squash.",
+        "Mount with nosuid,nodev,noexec where possible."
+      ],
+      "explanation": "Mount NFS shares with mount -t nfs and export with /etc/exports and exportfs.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "showmount -e nfs-server",
+          "desc": "List exports"
+        },
+        {
+          "cmd": "mount -t nfs -o ro,nosuid nfs-server:/data /mnt",
+          "desc": "Read-only mount"
+        },
+        {
+          "cmd": "exportfs -v",
+          "desc": "Show active exports"
+        }
+      ],
+      "suggestions": [
+        "mount",
+        "findmnt"
+      ]
+    },
+    {
+      "name": "ddrescue",
+      "summary": "Rescue data from failing disks",
+      "risk": "medium",
+      "risk_reason": "Writes an image; wrong output target overwrites data.",
+      "cautions": [
+        "Always write to a different disk with enough space.",
+        "Never run on a mounted failing disk if you can avoid it."
+      ],
+      "explanation": "GNU ddrescue copies data from failing drives while keeping a map of bad areas.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Skip the scraping phase"
+        },
+        {
+          "flag": "-r",
+          "desc": "Retry count"
+        },
+        {
+          "flag": "-d",
+          "desc": "Direct disc access"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ddrescue -n /dev/sda disk.img disk.map",
+          "desc": "First pass"
+        },
+        {
+          "cmd": "ddrescue -d -r3 /dev/sda disk.img disk.map",
+          "desc": "Retry bad sectors"
+        }
+      ],
+      "suggestions": [
+        "dd",
+        "smartctl",
+        "fsck"
+      ]
+    },
+    {
+      "name": "blockdev",
+      "match": [
+        "blockdev"
+      ],
+      "summary": "Block device ioctls",
+      "risk": "high",
+      "risk_reason": "Setting flags can make disks read-only/read-write unexpectedly.",
+      "cautions": [
+        "--setrw on a protected device can lead to corruption."
+      ],
+      "explanation": "Query or set block-device parameters. See the flags and examples below, and run `man blockdev` for the full reference.",
+      "flags": [
+        {
+          "flag": "--getsize64",
+          "long": "--getsize64",
+          "desc": "Size in bytes"
+        },
+        {
+          "flag": "--setro",
+          "long": "--setro",
+          "desc": "Make read-only"
+        },
+        {
+          "flag": "--setrw",
+          "long": "--setrw",
+          "desc": "Make writable",
+          "caution": "Can expose data to writes."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "blockdev --getsize64 /dev/sda",
+          "desc": "Disk size"
+        }
+      ],
+      "suggestions": [
+        "lsblk"
+      ],
+      "low_when": [
+        "--get|--report"
+      ]
+    },
+    {
+      "name": "partprobe",
+      "match": [
+        "partprobe"
+      ],
+      "summary": "Re-read partition tables",
+      "risk": "medium",
+      "risk_reason": "Triggers kernel rescans.",
+      "cautions": [
+        "Can disrupt devices in use; prefer partx -u."
+      ],
+      "explanation": "Informs the kernel of partition changes.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "partprobe /dev/sdb",
+          "desc": "Re-read"
+        }
+      ],
+      "suggestions": [
+        "fdisk"
+      ]
+    },
+    {
+      "name": "sfdisk",
+      "match": [
+        "sfdisk"
+      ],
+      "summary": "Scriptable partitioning",
+      "risk": "high",
+      "risk_reason": "Writes partition tables non-interactively.",
+      "cautions": [
+        "Restoring writes immediately and destroys the current table."
+      ],
+      "explanation": "Dump/restore partition tables. See the flags and examples below, and run `man sfdisk` for the full reference.",
+      "flags": [
+        {
+          "flag": "-d",
+          "desc": "Dump"
+        },
+        {
+          "flag": "--no-reread",
+          "long": "--no-reread",
+          "desc": "Skip kernel reread"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sfdisk -d /dev/sda > sda.pt",
+          "desc": "Back up the table"
+        },
+        {
+          "cmd": "sfdisk /dev/sdb < sda.pt",
+          "desc": "Restore (overwrites!)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "sfdisk -d <dev> > <dev>.pt",
+          "why": "Back up first"
+        }
+      ],
+      "suggestions": [
+        "fdisk"
+      ],
+      "low_when": [
+        "\\s-(d|l|s|J)\\b|--dump|--list|--json"
+      ],
+      "low_unless": []
+    },
+    {
+      "name": "tune2fs",
+      "match": [
+        "tune2fs"
+      ],
+      "summary": "Adjust ext filesystem parameters",
+      "risk": "high",
+      "risk_reason": "Changing features/reserved blocks affects filesystem behaviour.",
+      "cautions": [
+        "Enabling/disabling features on mounted filesystems can corrupt data."
+      ],
+      "explanation": "Tune ext2/3/4 parameters; -l lists them.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List superblock"
+        },
+        {
+          "flag": "-m",
+          "desc": "Reserved percentage"
+        },
+        {
+          "flag": "-O",
+          "desc": "Features"
+        },
+        {
+          "flag": "-L",
+          "desc": "Label"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tune2fs -l /dev/sda1",
+          "desc": "Show parameters"
+        },
+        {
+          "cmd": "tune2fs -m 1 /dev/sdb1",
+          "desc": "Reserve 1%"
+        }
+      ],
+      "suggestions": [
+        "e2fsck"
+      ],
+      "low_when": [
+        "\\s-l\\b"
+      ]
+    },
+    {
+      "name": "xfs_info",
+      "match": [
+        "xfs_info"
+      ],
+      "summary": "Show XFS geometry",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints XFS filesystem parameters. See the flags and examples below, and run `man xfs_info` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "xfs_info /data",
+          "desc": "Geometry"
+        }
+      ],
+      "suggestions": [
+        "xfs_growfs"
+      ]
+    },
+    {
+      "name": "btrfs",
+      "match": [
+        "btrfs"
+      ],
+      "summary": "Btrfs management",
+      "risk": "high",
+      "risk_reason": "Balance, scrub and delete operations are heavy; subvolume deletion removes data.",
+      "cautions": [
+        "`balance` is I/O heavy; `subvolume delete` removes data.",
+        "RAID5/6 is still considered unreliable."
+      ],
+      "explanation": "Manage btrfs subvolumes, snapshots and balancing.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "btrfs filesystem usage /",
+          "desc": "Usage"
+        },
+        {
+          "cmd": "btrfs subvolume snapshot / /snap1",
+          "desc": "Snapshot"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "btrfs subvolume snapshot -r <src> <dst>",
+          "why": "Create read-only snapshot first"
+        }
+      ],
+      "suggestions": [
+        "mount"
+      ],
+      "low_when": [
+        "filesystem (usage|show|df)|subvolume list|device stats|scrub status"
+      ],
+      "low_unless": [
+        "delete|balance|scrub start|resize|remove"
+      ]
+    },
+    {
+      "name": "zfs",
+      "match": [
+        "zfs"
+      ],
+      "summary": "ZFS datasets and snapshots",
+      "risk": "high",
+      "risk_reason": "destroy/rollback delete data.",
+      "cautions": [
+        "`zfs destroy` and `zfs rollback` are irreversible; -r destroys children.",
+        "Snapshot before risky operations."
+      ],
+      "explanation": "Manage datasets, snapshots, clones. See the flags and examples below, and run `man zfs` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "zfs list -t snapshot",
+          "desc": "Snapshots"
+        },
+        {
+          "cmd": "zfs snapshot pool/data@pre-change",
+          "desc": "Snapshot"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "zfs snapshot <pool>/<ds>@pre-change",
+          "why": "Snapshot first"
+        },
+        {
+          "cmd": "zfs destroy -nv <target>",
+          "why": "Dry run (-n)"
+        }
+      ],
+      "suggestions": [
+        "zpool"
+      ],
+      "low_when": [
+        "\\b(list|get|status|history)\\b"
+      ],
+      "low_unless": [
+        "destroy|rollback|set|create|send|receive"
+      ]
+    },
+    {
+      "name": "zpool",
+      "match": [
+        "zpool"
+      ],
+      "summary": "ZFS storage pools",
+      "risk": "high",
+      "risk_reason": "Wrong vdev operations destroy pools.",
+      "cautions": [
+        "`zpool destroy`, `labelclear` and vdev removal can lose the pool.",
+        "Mirrors/raidz cannot always be shrunk."
+      ],
+      "explanation": "Manage pools and vdevs. See the flags and examples below, and run `man zpool` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "zpool status -v",
+          "desc": "Health"
+        },
+        {
+          "cmd": "zpool scrub pool",
+          "desc": "Scrub"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "zpool status -v",
+          "why": "Check health first"
+        }
+      ],
+      "suggestions": [
+        "zfs"
+      ],
+      "low_when": [
+        "status|list|iostat|get|history"
+      ],
+      "low_unless": [
+        "destroy|create|add|remove|detach|offline|replace|labelclear"
+      ]
+    },
+    {
+      "name": "rclone",
+      "match": [
+        "rclone"
+      ],
+      "summary": "Sync files with cloud storage",
+      "risk": "high",
+      "risk_reason": "sync deletes destination files.",
+      "cautions": [
+        "`sync` makes the destination identical — a wrong direction erases the source of truth.",
+        "Always run with --dry-run first."
+      ],
+      "explanation": "rsync for cloud storage. See the flags and examples below, and run `man rclone` for the full reference.",
+      "flags": [
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Preview"
+        },
+        {
+          "flag": "sync",
+          "desc": "One-way mirror",
+          "caution": "Deletes extras at destination."
+        },
+        {
+          "flag": "copy",
+          "desc": "Copy without deleting"
+        },
+        {
+          "flag": "-P",
+          "desc": "Progress"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rclone copy ./dir remote:bucket --dry-run",
+          "desc": "Preview"
+        },
+        {
+          "cmd": "rclone ls remote:bucket",
+          "desc": "List"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "rclone sync <src> <dst> --dry-run",
+          "why": "Preview"
+        },
+        {
+          "cmd": "rclone copy",
+          "why": "Use copy to avoid deletes"
+        }
+      ],
+      "suggestions": [
+        "rsync",
+        "aws s3"
+      ],
+      "low_when": [
+        "\\b(ls|lsd|lsl|size|check|about|version)\\b|--dry-run"
+      ],
+      "low_unless": [
+        "\\b(sync|delete|purge|move|copy)\\b(?!.*--dry-run)"
+      ]
+    },
+    {
+      "name": "restic",
+      "match": [
+        "restic"
+      ],
+      "summary": "Encrypted backups",
+      "risk": "medium",
+      "risk_reason": "forget --prune deletes snapshots.",
+      "cautions": [
+        "Keep the repository password safe — without it backups are unreadable.",
+        "`forget --prune` deletes data; use --dry-run first."
+      ],
+      "explanation": "Deduplicated encrypted backup tool. See the flags and examples below, and run `man restic` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "restic snapshots",
+          "desc": "List"
+        },
+        {
+          "cmd": "restic backup /data",
+          "desc": "Back up"
+        },
+        {
+          "cmd": "restic check",
+          "desc": "Verify"
+        }
+      ],
+      "suggestions": [
+        "rsync",
+        "borg"
+      ],
+      "low_when": [
+        "snapshots|ls|stats|check|diff|find"
+      ],
+      "low_unless": [
+        "forget|prune|rewrite|backup|restore"
+      ]
+    },
+    {
+      "name": "borg",
+      "match": [
+        "borg"
+      ],
+      "summary": "Deduplicating backups",
+      "risk": "medium",
+      "risk_reason": "prune/delete remove archives.",
+      "cautions": [
+        "Use --dry-run for prune; protect the passphrase and key export."
+      ],
+      "explanation": "Borg backup. See the flags and examples below, and run `man borg` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "borg list repo",
+          "desc": "Archives"
+        },
+        {
+          "cmd": "borg prune --dry-run --keep-daily 7 repo",
+          "desc": "Preview retention"
+        }
+      ],
+      "suggestions": [
+        "restic"
+      ],
+      "low_when": [
+        "list|info|check|diff"
+      ],
+      "low_unless": [
+        "prune|delete|create|extract"
+      ]
+    }
+  ]
+}

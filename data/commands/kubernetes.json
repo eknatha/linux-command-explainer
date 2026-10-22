@@ -1,0 +1,2129 @@
+{
+  "category": "kubernetes",
+  "commands": [
+    {
+      "name": "kubectl",
+      "summary": "Command-line tool for controlling Kubernetes clusters.",
+      "risk": "medium",
+      "risk_reason": "Deleting resources or applying bad configs can disrupt production workloads.",
+      "cautions": [
+        "Confirm context and namespace first: kubectl config current-context.",
+        "`kubectl delete` has no undo — export objects and use --dry-run=server first.",
+        "Prefer declarative `apply -f` from Git over ad-hoc edit/patch, which causes drift."
+      ],
+      "explanation": "kubectl communicates with the Kubernetes API server to manage cluster resources. Always verify your current context with `kubectl config current-context` before running destructive commands in production.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--namespace",
+          "desc": "Specify Kubernetes namespace"
+        },
+        {
+          "flag": "--context",
+          "desc": "Use a specific kubeconfig context"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Output format: wide, yaml, json, jsonpath"
+        },
+        {
+          "flag": "--all-namespaces",
+          "desc": "Operate across all namespaces"
+        },
+        {
+          "flag": "-l",
+          "long": "--selector",
+          "desc": "Filter by label selector"
+        },
+        {
+          "flag": "--dry-run",
+          "desc": "Preview what would happen without applying"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl get pods -n production -o wide",
+          "desc": "List all production pods with node and IP info"
+        },
+        {
+          "cmd": "kubectl logs -f deployment/api-server -n production --tail=100",
+          "desc": "Follow API server deployment logs"
+        },
+        {
+          "cmd": "kubectl rollout restart deployment/frontend -n production",
+          "desc": "Perform a rolling restart of the frontend deployment"
+        }
+      ],
+      "suggestions": [
+        "helm",
+        "k9s",
+        "kubectx",
+        "kubeadm",
+        "stern"
+      ],
+      "pro_tip": "Set `kubectl config set-context --current --namespace=production` to avoid typing -n production on every command.",
+      "low_when": [
+        "\\b(get|describe|logs|top|explain|api-resources|api-versions|version|cluster-info|diff|events|auth can-i|config (view|get-contexts|current-context))\\b"
+      ],
+      "low_unless": [
+        "--force",
+        "delete",
+        "--all"
+      ]
+    },
+    {
+      "name": "kubectl get",
+      "summary": "List Kubernetes resources with flexible output options.",
+      "risk": "low",
+      "risk_reason": "Read-only unless combined with write operations.",
+      "explanation": "kubectl get is the primary read command for K8s. It lists resources with status. Output formats range from human-friendly tables to machine-parseable JSON/YAML. The -w flag watches for changes. Mastering -o and --field-selector transforms kubectl from a query tool into an automation backbone.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--namespace",
+          "desc": "Target namespace"
+        },
+        {
+          "flag": "-A",
+          "long": "--all-namespaces",
+          "desc": "All namespaces"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Format: json, yaml, wide, jsonpath, custom-columns"
+        },
+        {
+          "flag": "-w",
+          "long": "--watch",
+          "desc": "Watch for changes"
+        },
+        {
+          "flag": "--field-selector",
+          "desc": "Filter by field values"
+        },
+        {
+          "flag": "-l",
+          "long": "--selector",
+          "desc": "Filter by label"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl get pods -A -o wide",
+          "desc": "All pods across namespaces with node info"
+        },
+        {
+          "cmd": "kubectl get pods -l app=nginx -w",
+          "desc": "Watch nginx pods for changes"
+        },
+        {
+          "cmd": "kubectl get pods -o jsonpath='{.items[*].metadata.name}'",
+          "desc": "Extract pod names for scripting"
+        },
+        {
+          "cmd": "kubectl get nodes -o custom-columns=NODE:.metadata.name,STATUS:.status.conditions[-1].type",
+          "desc": "Custom columns output"
+        },
+        {
+          "cmd": "kubectl get events -A --sort-by='.lastTimestamp' | tail -20",
+          "desc": "Recent cluster events"
+        }
+      ],
+      "suggestions": [
+        "kubectl describe",
+        "kubectl logs",
+        "kubectl exec"
+      ],
+      "pro_tip": "Use `kubectl get pods -o json | jq -r '.items[] | select(.status.phase!=\"Running\") | .metadata.name'` to programmatically find non-running pods — far more reliable than parsing tabular output."
+    },
+    {
+      "name": "kubectl describe",
+      "summary": "Show detailed state and events for a Kubernetes resource.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "kubectl describe provides human-readable detail about any K8s resource: events, conditions, container specs, volume mounts, and more. The Events section at the bottom is the first place to look when a pod won't start — it shows exactly what Kubernetes tried and what failed.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--namespace",
+          "desc": "Target namespace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl describe pod mypod -n production",
+          "desc": "Full pod detail including events"
+        },
+        {
+          "cmd": "kubectl describe node mynode",
+          "desc": "Node capacity, allocatable resources, and conditions"
+        },
+        {
+          "cmd": "kubectl describe deployment myapp",
+          "desc": "Deployment strategy, rollout status, and events"
+        },
+        {
+          "cmd": "kubectl describe pvc my-claim",
+          "desc": "Persistent volume claim binding status"
+        }
+      ],
+      "suggestions": [
+        "kubectl get",
+        "kubectl logs",
+        "kubectl exec"
+      ],
+      "pro_tip": "When a pod is stuck in Pending/CrashLoopBackOff, always check `kubectl describe pod` first — the Events section usually tells you exactly why (image pull error, insufficient resources, PVC not bound)."
+    },
+    {
+      "name": "kubectl logs",
+      "summary": "Fetch logs from containers in Kubernetes pods.",
+      "risk": "low",
+      "risk_reason": "Read-only log access.",
+      "explanation": "kubectl logs streams container logs from pods. The -c flag targets a specific container in multi-container pods. --previous shows logs from the last terminated container — essential for debugging crashes. -f follows live.",
+      "flags": [
+        {
+          "flag": "-f",
+          "long": "--follow",
+          "desc": "Stream logs in real time"
+        },
+        {
+          "flag": "-c",
+          "long": "--container",
+          "desc": "Specific container in multi-container pod"
+        },
+        {
+          "flag": "--previous",
+          "desc": "Print logs from previously terminated container"
+        },
+        {
+          "flag": "--tail",
+          "desc": "Lines of recent log to show"
+        },
+        {
+          "flag": "--since",
+          "desc": "Show logs since duration (e.g., 1h)"
+        },
+        {
+          "flag": "-l",
+          "long": "--selector",
+          "desc": "Stream logs from all pods matching label"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl logs -f mypod -n production",
+          "desc": "Follow live pod logs"
+        },
+        {
+          "cmd": "kubectl logs mypod --previous",
+          "desc": "Logs from the crashed previous container"
+        },
+        {
+          "cmd": "kubectl logs -l app=nginx --all-containers --tail=50",
+          "desc": "Last 50 lines from all nginx pods"
+        },
+        {
+          "cmd": "kubectl logs deployment/myapp --since=1h | grep ERROR",
+          "desc": "Recent errors from a deployment"
+        }
+      ],
+      "suggestions": [
+        "kubectl describe",
+        "kubectl exec",
+        "journalctl"
+      ],
+      "pro_tip": "Use `kubectl logs --previous` immediately when a pod restarts — the current container starts fresh, and crash logs disappear if you wait too long (especially with short log rotation)."
+    },
+    {
+      "name": "kubectl exec",
+      "summary": "Execute commands inside a running Kubernetes container.",
+      "risk": "medium",
+      "risk_reason": "Direct container access; avoid in production when possible.",
+      "cautions": [
+        "Changes made inside the container vanish on restart and are not tracked.",
+        "In production prefer logs, metrics and `kubectl debug` with an ephemeral container.",
+        "Commands run with the container’s privileges — a root shell can modify mounted volumes."
+      ],
+      "explanation": "kubectl exec runs commands inside a running container, similar to docker exec. The -- separator is required before the command. Use for live debugging — testing DNS resolution, checking env vars, verifying file contents — without redeploying.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--stdin",
+          "desc": "Pass stdin to container"
+        },
+        {
+          "flag": "-t",
+          "long": "--tty",
+          "desc": "Allocate a TTY"
+        },
+        {
+          "flag": "-c",
+          "long": "--container",
+          "desc": "Target specific container"
+        },
+        {
+          "flag": "-n",
+          "long": "--namespace",
+          "desc": "Namespace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl exec -it mypod -- bash",
+          "desc": "Interactive bash shell in pod"
+        },
+        {
+          "cmd": "kubectl exec mypod -- env | grep DB",
+          "desc": "Check environment variables"
+        },
+        {
+          "cmd": "kubectl exec mypod -c sidecar -- cat /etc/config.yaml",
+          "desc": "Read file from specific container"
+        },
+        {
+          "cmd": "kubectl exec mypod -- curl -s http://other-service/health",
+          "desc": "Test service connectivity from inside cluster"
+        }
+      ],
+      "suggestions": [
+        "kubectl logs",
+        "kubectl describe",
+        "kubectl get"
+      ],
+      "pro_tip": "Use `kubectl exec pod -- curl http://service.namespace.svc.cluster.local` to test service DNS and connectivity from within the cluster network — the most reliable way to verify network policies."
+    },
+    {
+      "name": "kubectl apply",
+      "summary": "Apply a Kubernetes manifest to create or update resources.",
+      "risk": "medium",
+      "risk_reason": "Modifies live cluster state; validate manifests before applying.",
+      "cautions": [
+        "Applies immediately — run `kubectl diff -f` first.",
+        "A manifest with the wrong namespace or an old image tag can roll production back.",
+        "--prune and --force can delete or recreate objects."
+      ],
+      "explanation": "kubectl apply declaratively applies resource manifests from files or directories. It creates resources if they don't exist, and updates them if they do — using server-side merge. Always dry-run first in production with --dry-run=server.",
+      "flags": [
+        {
+          "flag": "-f",
+          "long": "--filename",
+          "desc": "File, directory, or URL"
+        },
+        {
+          "flag": "-R",
+          "long": "--recursive",
+          "desc": "Process directories recursively"
+        },
+        {
+          "flag": "--dry-run",
+          "desc": "client or server — preview without applying"
+        },
+        {
+          "flag": "--validate",
+          "desc": "Validate manifest before applying"
+        },
+        {
+          "flag": "--force",
+          "desc": "Force apply by deleting and recreating"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl apply -f deployment.yaml",
+          "desc": "Apply a single manifest"
+        },
+        {
+          "cmd": "kubectl apply -f ./manifests/ -R",
+          "desc": "Apply all manifests in a directory"
+        },
+        {
+          "cmd": "kubectl apply -f deployment.yaml --dry-run=server",
+          "desc": "Server-side dry run (validates against API)"
+        },
+        {
+          "cmd": "kubectl apply -k ./overlays/production",
+          "desc": "Apply Kustomize overlay"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl diff -f manifest.yaml",
+          "why": "See exactly what would change."
+        },
+        {
+          "cmd": "kubectl apply -f manifest.yaml --dry-run=server",
+          "why": "Validate against the API server and admission webhooks."
+        }
+      ],
+      "suggestions": [
+        "kubectl get",
+        "kubectl describe",
+        "helm"
+      ],
+      "pro_tip": "Always use `--dry-run=server` not `--dry-run=client` — server-side dry run runs full validation including admission webhooks, catching errors that client-side validation misses."
+    },
+    {
+      "name": "kubectl rollout",
+      "summary": "Manage and monitor Kubernetes deployment rollouts.",
+      "risk": "medium",
+      "risk_reason": "Rollback can revert production to a previous state.",
+      "cautions": [
+        "`rollout undo` reverts to the previous ReplicaSet, which might not be the version you expect — check `rollout history` first.",
+        "`rollout restart` replaces every pod; make sure readiness probes and PodDisruptionBudgets are in place.",
+        "A forgotten `rollout pause` leaves the workload half-updated."
+      ],
+      "explanation": "kubectl rollout manages deployment rollouts: checking status, viewing history, pausing, resuming, and rolling back. Essential for zero-downtime deployments and incident response — a bad deploy can be reverted in seconds with rollout undo.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl rollout status deployment/myapp",
+          "desc": "Watch rollout progress until complete"
+        },
+        {
+          "cmd": "kubectl rollout history deployment/myapp",
+          "desc": "View rollout history and revisions"
+        },
+        {
+          "cmd": "kubectl rollout undo deployment/myapp",
+          "desc": "Rollback to previous revision"
+        },
+        {
+          "cmd": "kubectl rollout undo deployment/myapp --to-revision=3",
+          "desc": "Rollback to specific revision"
+        },
+        {
+          "cmd": "kubectl rollout restart deployment/myapp",
+          "desc": "Rolling restart of all pods"
+        }
+      ],
+      "suggestions": [
+        "kubectl get",
+        "kubectl apply",
+        "kubectl describe"
+      ],
+      "pro_tip": "Run `kubectl rollout status deployment/myapp --timeout=5m` in CI/CD pipelines — it blocks until the rollout completes (or fails), making the pipeline accurately reflect deploy success."
+    },
+    {
+      "name": "helm",
+      "summary": "Kubernetes package manager: install, upgrade, and manage chart releases.",
+      "risk": "medium",
+      "risk_reason": "Manages production workloads; test with --dry-run first.",
+      "cautions": [
+        "Use `--dry-run --debug` or `helm diff upgrade` before upgrade/install.",
+        "`helm uninstall` deletes all release resources.",
+        "Pin chart versions (--version) so upgrades are reproducible."
+      ],
+      "explanation": "Helm manages Kubernetes applications as charts — versioned packages of manifests with configurable values. It handles install, upgrade, rollback, and uninstall with release tracking. The --dry-run flag and diff plugin are essential for safe production operations.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "helm install myrelease ./mychart -f values-prod.yaml",
+          "desc": "Install chart with production values"
+        },
+        {
+          "cmd": "helm upgrade --install myrelease ./mychart -f values.yaml",
+          "desc": "Idempotent install-or-upgrade"
+        },
+        {
+          "cmd": "helm list -A",
+          "desc": "List all releases across namespaces"
+        },
+        {
+          "cmd": "helm rollback myrelease 1",
+          "desc": "Rollback release to revision 1"
+        },
+        {
+          "cmd": "helm upgrade myrelease ./mychart --dry-run --debug",
+          "desc": "Preview rendered manifests without applying"
+        },
+        {
+          "cmd": "helm get values myrelease",
+          "desc": "Show currently applied values for a release"
+        }
+      ],
+      "suggestions": [
+        "kubectl apply",
+        "kubectl rollout",
+        "yq"
+      ],
+      "pro_tip": "Install the helm-diff plugin (`helm plugin install https://github.com/databus23/helm-diff`) and use `helm diff upgrade` before every upgrade — shows exactly what will change in the cluster.",
+      "low_when": [
+        "\\b(list|ls|status|get|history|show|search|repo list|template|lint|diff|version|env)\\b"
+      ],
+      "low_unless": [
+        "uninstall|delete|upgrade|install|rollback"
+      ]
+    },
+    {
+      "name": "kubectl top",
+      "summary": "Show CPU and memory resource usage for nodes and pods.",
+      "risk": "low",
+      "risk_reason": "Read-only; requires metrics-server installed.",
+      "explanation": "kubectl top shows real-time CPU and memory usage for nodes and pods, powered by the metrics-server addon. Unlike kubectl get (which shows requests/limits), top shows actual consumption. Essential for identifying resource-hungry pods and right-sizing requests.",
+      "flags": [
+        {
+          "flag": "--sort-by",
+          "desc": "Sort by cpu or memory"
+        },
+        {
+          "flag": "--containers",
+          "desc": "Show per-container usage within pods"
+        },
+        {
+          "flag": "-A",
+          "long": "--all-namespaces",
+          "desc": "Show across all namespaces"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl top nodes",
+          "desc": "Node CPU and memory usage"
+        },
+        {
+          "cmd": "kubectl top pods -A --sort-by=memory",
+          "desc": "Most memory-hungry pods across all namespaces"
+        },
+        {
+          "cmd": "kubectl top pods --containers -n production",
+          "desc": "Per-container resource usage in production"
+        },
+        {
+          "cmd": "watch kubectl top pods -A --sort-by=cpu",
+          "desc": "Live top CPU consumers across cluster"
+        }
+      ],
+      "suggestions": [
+        "kubectl get",
+        "kubectl describe",
+        "kubectl logs"
+      ],
+      "pro_tip": "Use `kubectl top pods --sort-by=memory` before scaling — it often reveals one rogue pod consuming 10x expected memory, letting you target the fix rather than scaling everything."
+    },
+    {
+      "name": "kubectl debug",
+      "summary": "Debug pods and nodes by attaching ephemeral containers.",
+      "risk": "low",
+      "risk_reason": "Adds temporary containers to live pods.",
+      "explanation": "kubectl debug creates ephemeral debug containers in running pods (K8s 1.23+), copies pods with different images, or attaches a shell to a node. The solution to debugging distroless/scratch images that have no shell or tools.",
+      "flags": [
+        {
+          "flag": "-it",
+          "desc": "Interactive terminal"
+        },
+        {
+          "flag": "--image",
+          "desc": "Debug container image"
+        },
+        {
+          "flag": "--copy-to",
+          "desc": "Create a debug copy of the pod"
+        },
+        {
+          "flag": "--target",
+          "desc": "Target container to share process namespace with"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl debug -it mypod --image=busybox --target=mycontainer",
+          "desc": "Add busybox debug container sharing target's process namespace"
+        },
+        {
+          "cmd": "kubectl debug node/mynode -it --image=ubuntu",
+          "desc": "Debug a cluster node with ubuntu container"
+        },
+        {
+          "cmd": "kubectl debug -it mypod --copy-to=mypod-debug --image=ubuntu -- bash",
+          "desc": "Create a debuggable copy of a pod"
+        }
+      ],
+      "suggestions": [
+        "kubectl exec",
+        "kubectl logs",
+        "kubectl describe"
+      ],
+      "pro_tip": "Use `kubectl debug` with `--image=nicolaka/netshoot` — the netshoot image has tcpdump, curl, dig, ss, and 50+ network tools pre-installed, perfect for K8s network debugging."
+    },
+    {
+      "name": "helm diff",
+      "summary": "Preview Helm upgrade changes before applying with helm-diff plugin.",
+      "risk": "low",
+      "risk_reason": "Read-only diff preview.",
+      "explanation": "The helm-diff plugin (install separately) shows a diff of what `helm upgrade` would change in the cluster — like `terraform plan` for Helm. Shows which Kubernetes resources will be added, modified, or deleted, and the exact field changes.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "helm plugin install https://github.com/databus23/helm-diff",
+          "desc": "Install the helm-diff plugin"
+        },
+        {
+          "cmd": "helm diff upgrade myrelease ./chart -f values.yaml",
+          "desc": "Preview what upgrade would change"
+        },
+        {
+          "cmd": "helm diff upgrade myrelease ./chart -f values.yaml --context 5",
+          "desc": "Show 5 lines of context around changes"
+        },
+        {
+          "cmd": "helm diff revision myrelease 3 4",
+          "desc": "Diff between two specific release revisions"
+        }
+      ],
+      "suggestions": [
+        "helm",
+        "kubectl apply",
+        "diff"
+      ],
+      "pro_tip": "Make `helm diff upgrade` a mandatory step in your CI/CD review process — anyone approving a Helm upgrade should see the diff, not just the values file change."
+    },
+    {
+      "name": "kubeconfig",
+      "kind": "topic",
+      "match": [
+        "kubectl config"
+      ],
+      "parent": "kubectl",
+      "summary": "Manage Kubernetes contexts and clusters in kubeconfig.",
+      "risk": "medium",
+      "risk_reason": "Switching context applies all commands to a different cluster.",
+      "cautions": [
+        "The active context decides which cluster receives your next command — the classic way to hit production by mistake.",
+        "Kubeconfig files contain credentials: keep permissions 600 and never commit them.",
+        "`kubectl config use-context` is persistent; prefer --context per command for risky operations."
+      ],
+      "explanation": "kubectl uses kubeconfig (~/.kube/config) to store cluster credentials and contexts. A context pairs a cluster with credentials and a namespace. Managing multiple clusters requires switching contexts — and verifying you're in the right one before destructive operations.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl config get-contexts",
+          "desc": "List all available contexts"
+        },
+        {
+          "cmd": "kubectl config current-context",
+          "desc": "Show the active context"
+        },
+        {
+          "cmd": "kubectl config use-context prod-cluster",
+          "desc": "Switch to production cluster context"
+        },
+        {
+          "cmd": "kubectl config set-context --current --namespace=production",
+          "desc": "Set default namespace for current context"
+        },
+        {
+          "cmd": "KUBECONFIG=~/.kube/cluster1:~/.kube/cluster2 kubectl config view --merge --flatten > ~/.kube/config",
+          "desc": "Merge multiple kubeconfig files"
+        }
+      ],
+      "suggestions": [
+        "kubectl get",
+        "kubectl apply",
+        "kubectl rollout"
+      ],
+      "pro_tip": "Install kubectx and kubens (`brew install kubectx`) for fast context/namespace switching. Set a PS1 prompt that shows current context — catching wrong-cluster mistakes before they happen.",
+      "low_when": [
+        "view|get-contexts|current-context|get-clusters"
+      ],
+      "low_unless": [
+        "use-context|set|delete|unset"
+      ]
+    },
+    {
+      "name": "crictl",
+      "summary": "CLI for CRI-compatible container runtimes (containerd, CRI-O).",
+      "risk": "medium",
+      "risk_reason": "Low-level runtime access; bypasses Kubernetes scheduling.",
+      "cautions": [
+        "Bypasses the Kubernetes API — removing containers/pods with crictl leaves the kubelet and API server inconsistent.",
+        "Usually requires root on the node; mistakes affect every pod on that node."
+      ],
+      "explanation": "crictl is the kubectl-equivalent for the Container Runtime Interface layer — directly managing containers and images in containerd or CRI-O without going through Kubernetes. Essential on K8s nodes when kubelet is broken or for low-level debugging.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "crictl ps",
+          "desc": "List running containers on the node"
+        },
+        {
+          "cmd": "crictl ps -a",
+          "desc": "List all containers including stopped"
+        },
+        {
+          "cmd": "crictl logs <container-id>",
+          "desc": "Get logs from a container by runtime ID"
+        },
+        {
+          "cmd": "crictl images",
+          "desc": "List images on the node"
+        },
+        {
+          "cmd": "crictl inspect <container-id>",
+          "desc": "Detailed container info at runtime level"
+        },
+        {
+          "cmd": "crictl exec -it <container-id> sh",
+          "desc": "Shell into container via runtime directly"
+        }
+      ],
+      "suggestions": [
+        "kubectl exec",
+        "nsenter",
+        "docker exec"
+      ],
+      "pro_tip": "Use crictl when kubelet is down or a pod won't schedule but the container exists — `crictl ps -a` shows all containers at the runtime level regardless of Kubernetes state.",
+      "low_when": [
+        "\\b(ps|images|logs|inspect|info|pods|stats|version)\\b"
+      ],
+      "low_unless": [
+        "rm|rmi|stop|kill|run"
+      ]
+    },
+    {
+      "name": "flux",
+      "summary": "GitOps tool for continuous delivery to Kubernetes from Git.",
+      "risk": "medium",
+      "risk_reason": "Automates cluster changes; misconfigured sources apply incorrect state.",
+      "cautions": [
+        "Reconciliation applies whatever is in Git — a bad commit rolls out automatically.",
+        "`flux suspend/resume/delete` change how production is reconciled; check `flux get all -A` first.",
+        "Bootstrap writes to your Git repository and cluster — double-check the target repo and branch."
+      ],
+      "explanation": "Flux implements GitOps for Kubernetes — it continuously reconciles cluster state with Git repositories. Any manifests committed to the configured repo are automatically applied to the cluster. The flux CLI manages sources, kustomizations, helm releases, and reconciliation.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "flux check",
+          "desc": "Verify flux prerequisites and installation"
+        },
+        {
+          "cmd": "flux get all",
+          "desc": "Show status of all flux resources"
+        },
+        {
+          "cmd": "flux reconcile kustomization flux-system",
+          "desc": "Force immediate reconciliation"
+        },
+        {
+          "cmd": "flux get helmreleases -A",
+          "desc": "List all Helm releases managed by Flux"
+        },
+        {
+          "cmd": "flux logs --follow",
+          "desc": "Stream Flux controller logs"
+        }
+      ],
+      "suggestions": [
+        "helm",
+        "kubectl apply",
+        "git"
+      ],
+      "pro_tip": "Use `flux reconcile source git flux-system` before `flux reconcile kustomization` — forces a fresh git pull first, so you're reconciling against the latest committed state.",
+      "low_when": [
+        "\\b(get|check|logs|stats|tree|trace)\\b"
+      ],
+      "low_unless": [
+        "suspend|resume|delete|bootstrap|reconcile|uninstall"
+      ]
+    },
+    {
+      "name": "argocd",
+      "summary": "GitOps continuous delivery tool for Kubernetes.",
+      "risk": "medium",
+      "risk_reason": "Syncing applications applies cluster changes immediately.",
+      "cautions": [
+        "`argocd app sync` applies changes immediately (and --prune deletes resources not in Git).",
+        "Check `argocd app diff <app>` first.",
+        "Auto-sync with self-heal reverts manual cluster changes."
+      ],
+      "explanation": "ArgoCD is a declarative GitOps CD tool for Kubernetes. It monitors Git repositories and ensures cluster state matches. The CLI manages applications, syncs state, and rolls back. Applications show as Synced/OutOfSync and Healthy/Degraded.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "argocd app list",
+          "desc": "List all applications and their sync status"
+        },
+        {
+          "cmd": "argocd app sync myapp",
+          "desc": "Trigger immediate sync for an application"
+        },
+        {
+          "cmd": "argocd app diff myapp",
+          "desc": "Show diff between live state and desired state"
+        },
+        {
+          "cmd": "argocd app rollback myapp 3",
+          "desc": "Roll back to a specific revision"
+        },
+        {
+          "cmd": "argocd app set myapp --sync-policy automated",
+          "desc": "Enable auto-sync for an application"
+        }
+      ],
+      "suggestions": [
+        "helm",
+        "kubectl rollout",
+        "git"
+      ],
+      "pro_tip": "Use `argocd app diff` before every manual sync in production — it shows the exact Kubernetes resource changes, equivalent to `terraform plan` for your GitOps workflow.",
+      "low_when": [
+        "\\b(app (list|get|diff|history)|list|get|version|diff)\\b"
+      ],
+      "low_unless": [
+        "sync|delete|rollback|set|patch"
+      ]
+    },
+    {
+      "name": "velero",
+      "summary": "Backup, restore, and migrate Kubernetes cluster resources and persistent volumes.",
+      "risk": "medium",
+      "risk_reason": "Restores overwrite existing resources; test in non-production first.",
+      "cautions": [
+        "`velero restore` can overwrite existing resources and PVC data.",
+        "Check `velero backup describe` / `logs` and restore into a test namespace first.",
+        "Backups do not include volume data unless snapshots or file-system backup are configured."
+      ],
+      "explanation": "Velero backs up Kubernetes cluster state and persistent volume data to object storage (S3, GCS, Azure Blob). Enables disaster recovery, cluster migration, and namespace-level restore. Backups include all K8s objects and optionally PV snapshots.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "velero backup create my-backup --include-namespaces production",
+          "desc": "Backup a specific namespace"
+        },
+        {
+          "cmd": "velero backup get",
+          "desc": "List all backups and their status"
+        },
+        {
+          "cmd": "velero backup describe my-backup --details",
+          "desc": "Detailed backup contents and status"
+        },
+        {
+          "cmd": "velero restore create --from-backup my-backup",
+          "desc": "Restore from a backup"
+        },
+        {
+          "cmd": "velero schedule create daily-backup --schedule='0 2 * * *' --include-namespaces production",
+          "desc": "Schedule daily backups"
+        }
+      ],
+      "suggestions": [
+        "kubectl apply",
+        "helm",
+        "rsync"
+      ],
+      "pro_tip": "Always test restores, not just backups. Schedule a monthly `velero restore create --from-backup latest --include-namespaces test` in a non-prod cluster to verify backup integrity.",
+      "low_when": [
+        "\\b(get|describe|logs|version)\\b"
+      ],
+      "low_unless": [
+        "delete|restore|create"
+      ]
+    },
+    {
+      "name": "kubectl delete",
+      "match": [
+        "kubectl delete"
+      ],
+      "summary": "Delete Kubernetes resources",
+      "risk": "high",
+      "risk_reason": "Removes objects immediately; PVC/namespace deletion removes data.",
+      "cautions": [
+        "Check context + namespace first: kubectl config current-context.",
+        "`delete ns` removes every resource inside — including PVCs and data.",
+        "--all and label selectors can match more than you expect — run `kubectl get` with the same selector first.",
+        "--force --grace-period=0 skips cleanup and can corrupt stateful workloads."
+      ],
+      "explanation": "Deletes resources by name, label, file or --all.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Namespace"
+        },
+        {
+          "flag": "--all",
+          "long": "--all",
+          "desc": "Everything of that kind",
+          "caution": "Deletes every object in the namespace."
+        },
+        {
+          "flag": "-l",
+          "desc": "Label selector"
+        },
+        {
+          "flag": "--force",
+          "long": "--force",
+          "desc": "Skip graceful deletion",
+          "caution": "Can leave orphaned state."
+        },
+        {
+          "flag": "--grace-period=0",
+          "long": "--grace-period=0",
+          "desc": "Immediate kill"
+        },
+        {
+          "flag": "--dry-run=server",
+          "long": "--dry-run=server",
+          "desc": "Simulate"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl delete pod web-1 -n staging",
+          "desc": "Delete a pod"
+        },
+        {
+          "cmd": "kubectl delete -f manifest.yaml --dry-run=server",
+          "desc": "Simulate"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl get <kind> -l <selector> -n <ns>",
+          "why": "Preview what matches"
+        },
+        {
+          "cmd": "kubectl delete <kind> <name> -n <ns> --dry-run=server",
+          "why": "Simulate server-side"
+        },
+        {
+          "cmd": "kubectl get <kind> <name> -n <ns> -o yaml > backup.yaml",
+          "why": "Back up the object"
+        }
+      ],
+      "suggestions": [
+        "kubectl",
+        "kubectl apply"
+      ]
+    },
+    {
+      "name": "kubectl scale",
+      "match": [
+        "kubectl scale"
+      ],
+      "summary": "Change replica count",
+      "risk": "high",
+      "risk_reason": "Scaling to 0 stops the workload; scaling up consumes capacity.",
+      "cautions": [
+        "--replicas=0 takes the service down.",
+        "GitOps controllers may revert manual scaling.",
+        "Scaling StatefulSets changes storage claims."
+      ],
+      "explanation": "Sets replicas of deployments/statefulsets.",
+      "flags": [
+        {
+          "flag": "--replicas",
+          "long": "--replicas",
+          "desc": "Desired count"
+        },
+        {
+          "flag": "--current-replicas",
+          "long": "--current-replicas",
+          "desc": "Precondition"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl scale deploy/web --replicas=5",
+          "desc": "Scale up"
+        },
+        {
+          "cmd": "kubectl scale deploy/web --replicas=0",
+          "desc": "Stop (outage!)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl get deploy/<name> -o jsonpath=\"{.spec.replicas}\"",
+          "why": "Record the current value"
+        },
+        {
+          "cmd": "kubectl scale deploy/<name> --replicas=<n> --current-replicas=<old>",
+          "why": "Use a precondition"
+        }
+      ],
+      "suggestions": [
+        "kubectl rollout",
+        "kubectl autoscale"
+      ]
+    },
+    {
+      "name": "kubectl drain",
+      "match": [
+        "kubectl drain"
+      ],
+      "summary": "Evict pods from a node",
+      "risk": "high",
+      "risk_reason": "Evicts workloads and cordons the node; can cause outages if PDBs/replicas are insufficient.",
+      "cautions": [
+        "Drain one node at a time and verify PodDisruptionBudgets.",
+        "--force deletes pods without controllers permanently.",
+        "--delete-emptydir-data destroys local emptyDir contents."
+      ],
+      "explanation": "Prepares a node for maintenance. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [
+        {
+          "flag": "--ignore-daemonsets",
+          "long": "--ignore-daemonsets",
+          "desc": "Skip DaemonSets"
+        },
+        {
+          "flag": "--delete-emptydir-data",
+          "long": "--delete-emptydir-data",
+          "desc": "Delete emptyDir data",
+          "caution": "Local data is lost."
+        },
+        {
+          "flag": "--force",
+          "long": "--force",
+          "desc": "Evict unmanaged pods",
+          "caution": "Pods are deleted permanently."
+        },
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Preview"
+        },
+        {
+          "flag": "--grace-period",
+          "long": "--grace-period",
+          "desc": "Termination grace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl drain node1 --ignore-daemonsets --dry-run=server",
+          "desc": "Preview"
+        },
+        {
+          "cmd": "kubectl uncordon node1",
+          "desc": "Allow scheduling again"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl drain <node> --ignore-daemonsets --dry-run=server",
+          "why": "Preview first"
+        },
+        {
+          "cmd": "kubectl get pdb -A",
+          "why": "Check disruption budgets"
+        }
+      ],
+      "suggestions": [
+        "kubectl cordon",
+        "kubectl uncordon"
+      ]
+    },
+    {
+      "name": "kubectl cordon",
+      "match": [
+        "kubectl cordon"
+      ],
+      "summary": "Mark a node unschedulable",
+      "risk": "medium",
+      "risk_reason": "No new pods land on the node; capacity shrinks.",
+      "cautions": [
+        "Remember to uncordon after maintenance."
+      ],
+      "explanation": "Prevents scheduling without evicting running pods.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl cordon node1",
+          "desc": "Stop scheduling"
+        }
+      ],
+      "suggestions": [
+        "kubectl drain",
+        "kubectl uncordon"
+      ]
+    },
+    {
+      "name": "kubectl uncordon",
+      "match": [
+        "kubectl uncordon"
+      ],
+      "summary": "Allow scheduling on a node",
+      "risk": "low",
+      "risk_reason": "Resumes scheduling.",
+      "explanation": "Reverses cordon/drain. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl uncordon node1",
+          "desc": "Re-enable the node"
+        }
+      ],
+      "suggestions": [
+        "kubectl cordon"
+      ]
+    },
+    {
+      "name": "kubectl edit",
+      "match": [
+        "kubectl edit"
+      ],
+      "summary": "Edit a live object",
+      "risk": "high",
+      "risk_reason": "Changes take effect immediately and bypass Git review.",
+      "cautions": [
+        "Production edits drift from Git; GitOps tools may revert them.",
+        "A YAML mistake can roll out a broken pod template instantly."
+      ],
+      "explanation": "Opens the live object in $EDITOR. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl edit deploy/web -n prod",
+          "desc": "Edit a deployment"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl get deploy/<name> -o yaml > backup.yaml",
+          "why": "Back up first"
+        },
+        {
+          "cmd": "kubectl diff -f <manifest>",
+          "why": "Change via a reviewed manifest instead"
+        }
+      ],
+      "suggestions": [
+        "kubectl apply",
+        "kubectl patch"
+      ]
+    },
+    {
+      "name": "kubectl patch",
+      "match": [
+        "kubectl patch"
+      ],
+      "summary": "Patch a live object",
+      "risk": "high",
+      "risk_reason": "Applies a partial change immediately.",
+      "cautions": [
+        "Quoting mistakes silently patch the wrong field.",
+        "Drift from Git."
+      ],
+      "explanation": "Strategic-merge, merge or JSON patches. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [
+        {
+          "flag": "-p",
+          "desc": "Patch body"
+        },
+        {
+          "flag": "--type",
+          "long": "--type",
+          "desc": "merge | json | strategic"
+        },
+        {
+          "flag": "--dry-run=server",
+          "long": "--dry-run=server",
+          "desc": "Simulate"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl patch deploy web -p '{\"spec\":{\"replicas\":3}}'",
+          "desc": "Set replicas"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl patch <res> -p '<patch>' --dry-run=server -o yaml",
+          "why": "Preview the result"
+        }
+      ],
+      "suggestions": [
+        "kubectl edit",
+        "kubectl apply"
+      ]
+    },
+    {
+      "name": "kubectl label",
+      "match": [
+        "kubectl label"
+      ],
+      "summary": "Add or change labels",
+      "risk": "high",
+      "risk_reason": "Label changes can detach pods from Services/ReplicaSets.",
+      "cautions": [
+        "Changing a pod’s labels can orphan it from its controller or Service selector.",
+        "Node labels affect scheduling."
+      ],
+      "explanation": "Edits labels on objects. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [
+        {
+          "flag": "--overwrite",
+          "long": "--overwrite",
+          "desc": "Replace existing label"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl label node n1 role=gpu",
+          "desc": "Label a node"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl get <res> --show-labels",
+          "why": "Review current labels"
+        }
+      ],
+      "suggestions": [
+        "kubectl annotate"
+      ]
+    },
+    {
+      "name": "kubectl annotate",
+      "match": [
+        "kubectl annotate"
+      ],
+      "summary": "Add annotations",
+      "risk": "medium",
+      "risk_reason": "Annotations can change controller behaviour.",
+      "cautions": [
+        "Some annotations toggle critical behaviour (ingress, autoscaler)."
+      ],
+      "explanation": "Edits annotations. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl annotate ing web nginx.ingress.kubernetes.io/ssl-redirect=true",
+          "desc": "Annotate"
+        }
+      ],
+      "suggestions": [
+        "kubectl label"
+      ]
+    },
+    {
+      "name": "kubectl taint",
+      "match": [
+        "kubectl taint"
+      ],
+      "summary": "Taint nodes",
+      "risk": "high",
+      "risk_reason": "Can evict pods (NoExecute) or block scheduling.",
+      "cautions": [
+        "NoExecute evicts existing pods immediately."
+      ],
+      "explanation": "Adds/removes taints. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl taint nodes n1 dedicated=gpu:NoSchedule",
+          "desc": "Add"
+        },
+        {
+          "cmd": "kubectl taint nodes n1 dedicated-",
+          "desc": "Remove"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl describe node <node> | grep -i taint",
+          "why": "Check existing taints"
+        }
+      ],
+      "suggestions": [
+        "kubectl drain"
+      ]
+    },
+    {
+      "name": "kubectl port-forward",
+      "match": [
+        "kubectl port-forward"
+      ],
+      "summary": "Forward a local port",
+      "risk": "medium",
+      "risk_reason": "Exposes in-cluster services to your machine.",
+      "cautions": [
+        "Binding to 0.0.0.0 (--address) exposes the cluster service to your network.",
+        "Direct DB access in prod bypasses audit."
+      ],
+      "explanation": "Tunnel to a pod/service port. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl port-forward svc/db 5432:5432 -n prod",
+          "desc": "Forward a DB port"
+        }
+      ],
+      "suggestions": [
+        "kubectl exec"
+      ]
+    },
+    {
+      "name": "kubectl cp",
+      "match": [
+        "kubectl cp"
+      ],
+      "summary": "Copy files to/from pods",
+      "risk": "medium",
+      "risk_reason": "Overwrites files inside containers.",
+      "cautions": [
+        "Requires tar in the image; copying into pods bypasses deployment pipelines."
+      ],
+      "explanation": "Copies between local and a pod using tar.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl cp prod/web-1:/var/log/app.log ./app.log",
+          "desc": "Copy out"
+        }
+      ],
+      "suggestions": [
+        "kubectl exec"
+      ]
+    },
+    {
+      "name": "kubectl create",
+      "match": [
+        "kubectl create"
+      ],
+      "summary": "Create resources imperatively",
+      "risk": "medium",
+      "risk_reason": "Creates live objects outside GitOps.",
+      "cautions": [
+        "Secrets created with literals appear in shell history.",
+        "Prefer declarative manifests in Git."
+      ],
+      "explanation": "Creates deployments, secrets, namespaces etc.",
+      "flags": [
+        {
+          "flag": "--dry-run=client",
+          "long": "--dry-run=client",
+          "desc": "Simulate"
+        },
+        {
+          "flag": "-o yaml",
+          "desc": "Print the manifest"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl create deploy web --image=nginx --dry-run=client -o yaml",
+          "desc": "Generate YAML"
+        }
+      ],
+      "suggestions": [
+        "kubectl apply"
+      ]
+    },
+    {
+      "name": "kubectl set image",
+      "match": [
+        "kubectl set image"
+      ],
+      "summary": "Change a container image",
+      "risk": "high",
+      "risk_reason": "Triggers a rollout immediately.",
+      "cautions": [
+        "Rollout replaces pods; a bad tag causes ImagePullBackOff outage.",
+        "Use pinned versions."
+      ],
+      "explanation": "Updates a workload’s image. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl set image deploy/web web=nginx:1.27",
+          "desc": "Update"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl rollout status deploy/<name>",
+          "why": "Watch the rollout"
+        },
+        {
+          "cmd": "kubectl rollout undo deploy/<name>",
+          "why": "Roll back"
+        }
+      ],
+      "suggestions": [
+        "kubectl rollout"
+      ]
+    },
+    {
+      "name": "kubectl autoscale",
+      "match": [
+        "kubectl autoscale"
+      ],
+      "summary": "Create an HPA",
+      "risk": "medium",
+      "risk_reason": "Changes replica counts automatically.",
+      "cautions": [
+        "A too-high max can exhaust cluster capacity and budget."
+      ],
+      "explanation": "Creates a HorizontalPodAutoscaler. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl autoscale deploy web --min=2 --max=10 --cpu-percent=70",
+          "desc": "Create HPA"
+        }
+      ],
+      "suggestions": [
+        "kubectl scale"
+      ]
+    },
+    {
+      "name": "kubectl auth can-i",
+      "match": [
+        "kubectl auth can-i"
+      ],
+      "summary": "Check permissions",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Tests whether an action is allowed. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl auth can-i delete pods -n prod",
+          "desc": "Check access"
+        },
+        {
+          "cmd": "kubectl auth can-i --list",
+          "desc": "All permissions"
+        }
+      ],
+      "suggestions": [
+        "kubectl"
+      ]
+    },
+    {
+      "name": "kubectl config",
+      "match": [
+        "kubectl config"
+      ],
+      "summary": "Manage kubeconfig",
+      "risk": "medium",
+      "risk_reason": "`use-context` changes the target cluster for later commands.",
+      "cautions": [
+        "Always confirm the context before destructive commands.",
+        "Kubeconfig contains credentials."
+      ],
+      "explanation": "View and switch contexts. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [
+        {
+          "flag": "get-contexts",
+          "desc": "List"
+        },
+        {
+          "flag": "current-context",
+          "desc": "Show"
+        },
+        {
+          "flag": "use-context",
+          "desc": "Switch"
+        },
+        {
+          "flag": "set-context --current --namespace",
+          "desc": "Set default namespace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl config get-contexts",
+          "desc": "List contexts"
+        }
+      ],
+      "suggestions": [
+        "kubeconfig"
+      ],
+      "low_when": [
+        "get-contexts|current-context|view"
+      ],
+      "low_unless": [
+        "use-context|set|delete|unset"
+      ]
+    },
+    {
+      "name": "kubectl events",
+      "match": [
+        "kubectl events"
+      ],
+      "summary": "List events",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Cluster events, useful for scheduling and pull errors.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl events -n prod --for pod/web-1",
+          "desc": "Events of a pod"
+        }
+      ],
+      "suggestions": [
+        "kubectl describe"
+      ]
+    },
+    {
+      "name": "kubectl wait",
+      "match": [
+        "kubectl wait"
+      ],
+      "summary": "Wait for a condition",
+      "risk": "low",
+      "risk_reason": "Read-only wait.",
+      "explanation": "Blocks until a condition is met. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl wait --for=condition=Ready pod -l app=web --timeout=120s",
+          "desc": "Wait for readiness"
+        }
+      ],
+      "suggestions": [
+        "kubectl rollout"
+      ]
+    },
+    {
+      "name": "kubectl replace",
+      "match": [
+        "kubectl replace"
+      ],
+      "summary": "Replace a live object",
+      "risk": "high",
+      "risk_reason": "Overwrites the whole object; --force deletes and recreates.",
+      "cautions": [
+        "--force deletes the resource first — downtime and data loss for PVCs."
+      ],
+      "explanation": "Replaces an object from a file. See the flags and examples below, and run `man kubectl` for the full reference.",
+      "flags": [
+        {
+          "flag": "--force",
+          "long": "--force",
+          "desc": "Delete and recreate",
+          "caution": "Causes downtime."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl replace -f deploy.yaml",
+          "desc": "Replace"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "kubectl diff -f <file>",
+          "why": "Diff first"
+        },
+        {
+          "cmd": "kubectl apply -f <file>",
+          "why": "Prefer apply"
+        }
+      ],
+      "suggestions": [
+        "kubectl apply"
+      ]
+    },
+    {
+      "name": "kubectl certificate",
+      "match": [
+        "kubectl certificate"
+      ],
+      "summary": "Approve CSRs",
+      "risk": "high",
+      "risk_reason": "Approving a CSR grants credentials.",
+      "cautions": [
+        "Only approve CSRs you can attribute to a trusted requester."
+      ],
+      "explanation": "Approve or deny CertificateSigningRequests.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectl certificate approve my-csr",
+          "desc": "Approve"
+        }
+      ],
+      "suggestions": [
+        "openssl"
+      ]
+    },
+    {
+      "name": "kubeadm",
+      "summary": "Bootstrap and manage clusters",
+      "risk": "high",
+      "risk_reason": "Init/reset/upgrade modify the entire control plane.",
+      "cautions": [
+        "`kubeadm reset` removes cluster membership and local etcd data.",
+        "Upgrade one minor version at a time, control plane first, with etcd backup.",
+        "Expired certificates take down the API server."
+      ],
+      "explanation": "Cluster lifecycle tool for init, join, upgrade and certificate renewal.",
+      "flags": [
+        {
+          "flag": "init",
+          "desc": "Create a control plane"
+        },
+        {
+          "flag": "join",
+          "desc": "Join a node"
+        },
+        {
+          "flag": "reset",
+          "desc": "Wipe kubeadm changes",
+          "caution": "Destroys cluster state on that node."
+        },
+        {
+          "flag": "upgrade plan",
+          "desc": "Check upgrade path"
+        },
+        {
+          "flag": "certs check-expiration",
+          "desc": "Certificate expiry"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubeadm certs check-expiration",
+          "desc": "Check certificates"
+        },
+        {
+          "cmd": "kubeadm upgrade plan",
+          "desc": "See available upgrades"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "etcdctl snapshot save backup.db",
+          "why": "Back up etcd before upgrades"
+        },
+        {
+          "cmd": "kubeadm upgrade plan",
+          "why": "Plan first"
+        }
+      ],
+      "suggestions": [
+        "kubectl",
+        "etcdctl"
+      ],
+      "low_when": [
+        "upgrade plan|certs check-expiration|version|config print"
+      ],
+      "low_unless": [
+        "reset|init|join|apply"
+      ]
+    },
+    {
+      "name": "etcdctl",
+      "summary": "etcd client",
+      "risk": "high",
+      "risk_reason": "etcd holds all cluster state; deletes or restores can wipe the cluster.",
+      "cautions": [
+        "Never write/delete keys directly in a Kubernetes etcd.",
+        "Test snapshot restores regularly.",
+        "Protect certs; etcd contains Secrets in clear unless encryption at rest is on."
+      ],
+      "explanation": "Reads/writes etcd keys and manages snapshots/members.",
+      "flags": [
+        {
+          "flag": "snapshot save",
+          "desc": "Back up"
+        },
+        {
+          "flag": "snapshot restore",
+          "desc": "Restore",
+          "caution": "Replaces cluster state."
+        },
+        {
+          "flag": "member list",
+          "desc": "Members"
+        },
+        {
+          "flag": "del",
+          "desc": "Delete keys",
+          "caution": "Direct deletion corrupts the cluster."
+        },
+        {
+          "flag": "--endpoints",
+          "desc": "Endpoints"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ETCDCTL_API=3 etcdctl snapshot save /backup/etcd.db",
+          "desc": "Back up etcd"
+        },
+        {
+          "cmd": "etcdctl endpoint health",
+          "desc": "Health"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "etcdctl snapshot save <file>",
+          "why": "Back up first"
+        }
+      ],
+      "suggestions": [
+        "kubeadm"
+      ],
+      "low_when": [
+        "snapshot save|member list|endpoint|get\\b|version"
+      ],
+      "low_unless": [
+        "del|put|restore|remove|add"
+      ]
+    },
+    {
+      "name": "kubectx",
+      "summary": "Switch Kubernetes contexts quickly",
+      "risk": "medium",
+      "risk_reason": "Switching context changes the cluster later commands hit.",
+      "cautions": [
+        "Show the context in your prompt to avoid running commands on the wrong cluster."
+      ],
+      "explanation": "Fast context/namespace switcher (kubens for namespaces).",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubectx",
+          "desc": "List"
+        },
+        {
+          "cmd": "kubectx prod",
+          "desc": "Switch"
+        }
+      ],
+      "suggestions": [
+        "kubectl config"
+      ]
+    },
+    {
+      "name": "k9s",
+      "summary": "Terminal UI for Kubernetes",
+      "risk": "medium",
+      "risk_reason": "Delete/edit shortcuts act on live objects.",
+      "cautions": [
+        "Ctrl-d deletes the highlighted resource.",
+        "Use --readonly for production."
+      ],
+      "explanation": "Interactive cluster browser. Ctrl-d deletes, e edits, s opens a shell.",
+      "flags": [
+        {
+          "flag": "--readonly",
+          "long": "--readonly",
+          "desc": "Disable modifying commands"
+        },
+        {
+          "flag": "--context",
+          "long": "--context",
+          "desc": "Cluster"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "k9s --readonly",
+          "desc": "Safe browsing"
+        },
+        {
+          "cmd": "k9s -n prod",
+          "desc": "Namespace"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "k9s --readonly",
+          "why": "Read-only mode"
+        }
+      ],
+      "suggestions": [
+        "kubectl"
+      ]
+    },
+    {
+      "name": "stern",
+      "summary": "Tail logs from multiple pods",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "cautions": [
+        "High-fanout tails can overload the API server."
+      ],
+      "explanation": "Streams logs by regex across pods. See the flags and examples below, and run `man stern` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "stern web -n prod --since 10m",
+          "desc": "Tail all web pods"
+        }
+      ],
+      "suggestions": [
+        "kubectl logs"
+      ]
+    },
+    {
+      "name": "kustomize",
+      "summary": "Customize Kubernetes manifests",
+      "risk": "low",
+      "risk_reason": "Rendering is read-only; applying changes the cluster.",
+      "cautions": [
+        "Always review rendered output before applying."
+      ],
+      "explanation": "Builds overlays of YAML. See the flags and examples below, and run `man kustomize` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kustomize build overlays/prod",
+          "desc": "Render"
+        },
+        {
+          "cmd": "kubectl apply -k overlays/prod --dry-run=server",
+          "desc": "Validate"
+        }
+      ],
+      "suggestions": [
+        "kubectl apply",
+        "helm"
+      ]
+    },
+    {
+      "name": "kind",
+      "summary": "Kubernetes in Docker",
+      "risk": "low",
+      "risk_reason": "Creates local clusters and containers.",
+      "cautions": [
+        "Check kubectl context afterwards so you do not mix local and real clusters."
+      ],
+      "explanation": "Spins up local test clusters. See the flags and examples below, and run `man kind` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kind create cluster",
+          "desc": "Create"
+        },
+        {
+          "cmd": "kind delete cluster",
+          "desc": "Delete"
+        }
+      ],
+      "suggestions": [
+        "minikube",
+        "kubectl"
+      ]
+    },
+    {
+      "name": "minikube",
+      "summary": "Local Kubernetes",
+      "risk": "low",
+      "risk_reason": "Local VM/container; changes kubectl context.",
+      "cautions": [
+        "It switches your kubectl context."
+      ],
+      "explanation": "Runs a local cluster. See the flags and examples below, and run `man minikube` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "minikube start",
+          "desc": "Start"
+        },
+        {
+          "cmd": "minikube delete",
+          "desc": "Delete"
+        }
+      ],
+      "suggestions": [
+        "kind"
+      ]
+    },
+    {
+      "name": "helm install",
+      "match": [
+        "helm install"
+      ],
+      "summary": "Install a chart",
+      "risk": "high",
+      "risk_reason": "Creates cluster resources immediately.",
+      "cautions": [
+        "Verify the kube context and namespace.",
+        "Pin chart versions; review values."
+      ],
+      "explanation": "Installs a chart as a release. See the flags and examples below, and run `man helm` for the full reference.",
+      "flags": [
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Render without installing"
+        },
+        {
+          "flag": "--namespace",
+          "long": "--namespace",
+          "desc": "Target namespace"
+        },
+        {
+          "flag": "--create-namespace",
+          "long": "--create-namespace",
+          "desc": "Create it"
+        },
+        {
+          "flag": "-f",
+          "desc": "Values file"
+        },
+        {
+          "flag": "--version",
+          "long": "--version",
+          "desc": "Chart version"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "helm install web ./chart -n prod --dry-run --debug",
+          "desc": "Preview"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "helm install <rel> <chart> --dry-run --debug",
+          "why": "Preview manifests"
+        },
+        {
+          "cmd": "helm template <rel> <chart> | kubectl diff -f -",
+          "why": "Diff against the cluster"
+        }
+      ],
+      "suggestions": [
+        "helm",
+        "helm upgrade"
+      ]
+    },
+    {
+      "name": "helm upgrade",
+      "match": [
+        "helm upgrade"
+      ],
+      "summary": "Upgrade a release",
+      "risk": "high",
+      "risk_reason": "Changes live resources; --install may create new ones.",
+      "cautions": [
+        "Use helm diff upgrade to see changes.",
+        "--reuse-values can carry over stale settings.",
+        "CRD changes are not upgraded by Helm."
+      ],
+      "explanation": "Applies a new chart version or values. See the flags and examples below, and run `man helm` for the full reference.",
+      "flags": [
+        {
+          "flag": "--install",
+          "long": "--install",
+          "desc": "Install if missing"
+        },
+        {
+          "flag": "--atomic",
+          "long": "--atomic",
+          "desc": "Roll back automatically on failure"
+        },
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Preview"
+        },
+        {
+          "flag": "--reuse-values",
+          "long": "--reuse-values",
+          "desc": "Keep previous values",
+          "caution": "Can hide new defaults."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "helm upgrade --install web ./chart -n prod --atomic --timeout 5m",
+          "desc": "Upgrade with rollback"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "helm diff upgrade <rel> <chart> -f values.yaml",
+          "why": "Preview the diff"
+        },
+        {
+          "cmd": "helm upgrade … --atomic",
+          "why": "Auto-rollback on failure"
+        }
+      ],
+      "suggestions": [
+        "helm diff",
+        "helm rollback"
+      ]
+    },
+    {
+      "name": "helm uninstall",
+      "match": [
+        "helm uninstall",
+        "helm delete"
+      ],
+      "summary": "Remove a release",
+      "risk": "high",
+      "risk_reason": "Deletes every resource of the release.",
+      "cautions": [
+        "Deletes Deployments/Services/Ingresses; check PVC retention.",
+        "Confirm namespace and release."
+      ],
+      "explanation": "Uninstalls a release; PVCs may or may not be removed.",
+      "flags": [
+        {
+          "flag": "--keep-history",
+          "long": "--keep-history",
+          "desc": "Keep release history"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "helm uninstall web -n prod",
+          "desc": "Remove"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "helm get manifest <rel> -n <ns>",
+          "why": "See what exists"
+        },
+        {
+          "cmd": "helm get values <rel> -n <ns> > values.bak",
+          "why": "Save values"
+        }
+      ],
+      "suggestions": [
+        "helm"
+      ]
+    },
+    {
+      "name": "helm rollback",
+      "match": [
+        "helm rollback"
+      ],
+      "summary": "Roll back a release",
+      "risk": "high",
+      "risk_reason": "Reverts live resources to an earlier revision.",
+      "cautions": [
+        "Rolling back does not roll back databases or CRDs."
+      ],
+      "explanation": "Rolls back to a previous release revision.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "helm history web",
+          "desc": "List revisions"
+        },
+        {
+          "cmd": "helm rollback web 3",
+          "desc": "Go to revision 3"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "helm history <rel>",
+          "why": "Pick the revision"
+        },
+        {
+          "cmd": "helm rollback <rel> <rev> --dry-run",
+          "why": "Preview"
+        }
+      ],
+      "suggestions": [
+        "helm history"
+      ]
+    },
+    {
+      "name": "helm repo",
+      "match": [
+        "helm repo"
+      ],
+      "summary": "Manage chart repositories",
+      "risk": "low",
+      "risk_reason": "Adds third-party sources.",
+      "cautions": [
+        "Only add repositories you trust; charts run with cluster privileges."
+      ],
+      "explanation": "Add/update chart repos. See the flags and examples below, and run `man helm` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "helm repo add bitnami https://charts.bitnami.com/bitnami",
+          "desc": "Add"
+        },
+        {
+          "cmd": "helm repo update",
+          "desc": "Refresh"
+        }
+      ],
+      "suggestions": [
+        "helm"
+      ]
+    },
+    {
+      "name": "helm template",
+      "match": [
+        "helm template"
+      ],
+      "summary": "Render a chart locally",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Outputs manifests without installing. See the flags and examples below, and run `man helm` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "helm template web ./chart -f values.yaml | kubectl diff -f -",
+          "desc": "Diff"
+        }
+      ],
+      "suggestions": [
+        "helm install"
+      ]
+    },
+    {
+      "name": "kubens",
+      "summary": "Switch namespaces",
+      "risk": "low",
+      "risk_reason": "Changes default namespace for your context.",
+      "cautions": [
+        "A default namespace can hide that you act in production."
+      ],
+      "explanation": "Sets the default namespace in kubeconfig.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "kubens kube-system",
+          "desc": "Switch"
+        }
+      ],
+      "suggestions": [
+        "kubectx"
+      ]
+    },
+    {
+      "name": "istioctl",
+      "summary": "Istio service mesh CLI",
+      "risk": "high",
+      "risk_reason": "Mesh config changes affect all traffic.",
+      "cautions": [
+        "Install/uninstall and mTLS changes affect production traffic."
+      ],
+      "explanation": "Install, analyze and debug Istio. See the flags and examples below, and run `man istioctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "istioctl analyze",
+          "desc": "Check config"
+        },
+        {
+          "cmd": "istioctl proxy-status",
+          "desc": "Sidecar sync"
+        }
+      ],
+      "suggestions": [
+        "kubectl"
+      ],
+      "low_when": [
+        "analyze|proxy-status|version|x describe"
+      ],
+      "low_unless": [
+        "install|uninstall|manifest"
+      ]
+    }
+  ]
+}

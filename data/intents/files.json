@@ -1,0 +1,778 @@
+{
+  "intents": [
+    {
+      "id": "find-big-files",
+      "title": "Find files larger than a size",
+      "match": [
+        [
+          "find",
+          "search",
+          "list",
+          "show",
+          "locate"
+        ],
+        [
+          "large",
+          "larger",
+          "big",
+          "bigger",
+          "biggest",
+          "size",
+          "greater"
+        ],
+        [
+          "file",
+          "files"
+        ]
+      ],
+      "say": [
+        "find files larger than 100M"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": ".",
+          "label": "path"
+        },
+        "size": {
+          "from": "size",
+          "default": "100M",
+          "label": "size"
+        }
+      },
+      "cmd": "find {path} -type f -size +{size} -exec ls -lh {} +",
+      "notes": "Add -xdev to stay on one filesystem; scope the path on production disks.",
+      "alts": [
+        {
+          "cmd": "du -ah {path} | sort -rh | head -20",
+          "desc": "Top 20 largest files and directories"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "find-old-files",
+      "title": "Find files older than N days",
+      "match": [
+        [
+          "find",
+          "list",
+          "show",
+          "search"
+        ],
+        [
+          "older",
+          "modified",
+          "old",
+          "untouched"
+        ],
+        [
+          "days",
+          "day",
+          "week"
+        ]
+      ],
+      "say": [
+        "find files older than n days"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": ".",
+          "label": "path"
+        },
+        "days": {
+          "from": "days",
+          "default": "30",
+          "label": "days"
+        }
+      },
+      "cmd": "find {path} -type f -mtime +{days} -print",
+      "notes": "Review the list before adding -delete.",
+      "alts": [
+        {
+          "cmd": "find {path} -type f -mtime +{days} -delete",
+          "desc": "Delete them (irreversible — run the -print version first)"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "delete-old-files",
+      "title": "Delete files older than N days",
+      "match": [
+        [
+          "delete",
+          "remove",
+          "clean",
+          "purge",
+          "rm"
+        ],
+        [
+          "older",
+          "old",
+          "days",
+          "day"
+        ],
+        [
+          "file",
+          "files",
+          "log",
+          "logs"
+        ]
+      ],
+      "say": [
+        "delete log files older than 30 days"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "/var/log",
+          "label": "path"
+        },
+        "days": {
+          "from": "days",
+          "default": "30",
+          "label": "days"
+        }
+      },
+      "cmd": "find {path} -type f -mtime +{days} -print",
+      "notes": "Shown as a preview (-print). Replace -print with -delete only after checking the list.",
+      "alts": [
+        {
+          "cmd": "find {path} -type f -mtime +{days} -delete",
+          "desc": "The actual delete"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "find-by-name",
+      "title": "Find files by name",
+      "match": [
+        [
+          "find",
+          "search",
+          "locate",
+          "look"
+        ],
+        [
+          "name",
+          "named",
+          "called",
+          "file",
+          "files",
+          "*."
+        ]
+      ],
+      "say": [
+        "find files by name"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": ".",
+          "label": "path"
+        },
+        "ext": {
+          "from": "ext",
+          "default": "log",
+          "label": "extension"
+        }
+      },
+      "cmd": "find {path} -type f -name \"*.{ext}\"",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "find {path} -type f -iname \"*{ext}*\"",
+          "desc": "Case-insensitive match"
+        },
+        {
+          "cmd": "locate -i \"{ext}\"",
+          "desc": "Fast, from the locate index (may be stale)"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "find-by-content",
+      "title": "Search inside files for text",
+      "match": [
+        [
+          "search",
+          "find",
+          "grep",
+          "look"
+        ],
+        [
+          "text",
+          "string",
+          "word",
+          "content",
+          "containing",
+          "inside",
+          "contains"
+        ]
+      ],
+      "say": [
+        "search inside files for text"
+      ],
+      "slots": {
+        "text": {
+          "from": "text",
+          "label": "text"
+        },
+        "path": {
+          "from": "path",
+          "default": ".",
+          "label": "path"
+        }
+      },
+      "cmd": "grep -rn --include=\"*\" \"{text}\" {path}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "grep -rniI \"{text}\" {path}",
+          "desc": "Case-insensitive, skip binary files"
+        },
+        {
+          "cmd": "rg -n \"{text}\" {path}",
+          "desc": "ripgrep (faster, respects .gitignore)"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "disk-usage-dirs",
+      "title": "Disk usage by folder",
+      "match": [
+        [
+          "disk",
+          "space",
+          "usage",
+          "size"
+        ],
+        [
+          "folder",
+          "folders",
+          "directory",
+          "directories",
+          "dir",
+          "biggest",
+          "largest",
+          "top",
+          "which"
+        ]
+      ],
+      "say": [
+        "check disk usage by folder"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": ".",
+          "label": "path"
+        }
+      },
+      "cmd": "du -h --max-depth=1 {path} 2>/dev/null | sort -rh | head -20",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "ncdu {path}",
+          "desc": "Interactive browser (install ncdu)"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "disk-free",
+      "title": "Show free disk space",
+      "match": [
+        [
+          "free",
+          "available",
+          "left",
+          "remaining",
+          "disk",
+          "space"
+        ],
+        [
+          "disk",
+          "filesystem",
+          "storage",
+          "drive",
+          "space"
+        ]
+      ],
+      "say": [
+        "show free disk space"
+      ],
+      "slots": {},
+      "cmd": "df -hT",
+      "notes": "If df shows space but writes fail, check inodes: df -i.",
+      "alts": [
+        {
+          "cmd": "df -i",
+          "desc": "Inode usage"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "tar-create",
+      "title": "Compress a folder into tar.gz",
+      "match": [
+        [
+          "compress",
+          "archive",
+          "tar",
+          "pack",
+          "zip",
+          "backup"
+        ],
+        [
+          "folder",
+          "directory",
+          "dir",
+          "tar.gz",
+          "tgz",
+          "gz"
+        ]
+      ],
+      "say": [
+        "compress a folder into tar.gz"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "./folder",
+          "label": "folder"
+        }
+      },
+      "cmd": "tar -czf archive.tar.gz {path}",
+      "notes": "Check free space first. Add -v to list files as they are added.",
+      "alts": [
+        {
+          "cmd": "tar -tzf {file}",
+          "desc": "List the archive afterwards"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "tar-extract",
+      "title": "Extract a tar.gz archive",
+      "match": [
+        [
+          "extract",
+          "unpack",
+          "untar",
+          "decompress",
+          "uncompress",
+          "open"
+        ],
+        [
+          "tar",
+          "tar.gz",
+          "tgz",
+          "archive",
+          "gz"
+        ]
+      ],
+      "say": [
+        "extract a tar.gz archive"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "archive.tar.gz",
+          "label": "archive"
+        },
+        "path": {
+          "from": "path",
+          "default": ".",
+          "label": "target dir"
+        }
+      },
+      "cmd": "tar -tzf {file} | head && tar -xzf {file} -C {path}",
+      "notes": "Lists contents first; extraction overwrites existing files silently.",
+      "alts": [],
+      "min": 2,
+      "category": "files"
+    },
+    {
+      "id": "zip-folder",
+      "title": "Zip a folder",
+      "match": [
+        [
+          "zip"
+        ],
+        [
+          "folder",
+          "directory",
+          "dir",
+          "files"
+        ]
+      ],
+      "say": [
+        "zip a folder"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "./folder",
+          "label": "folder"
+        }
+      },
+      "cmd": "zip -r archive.zip {path}",
+      "notes": "",
+      "alts": [],
+      "category": "files"
+    },
+    {
+      "id": "unzip",
+      "title": "Unzip a file",
+      "match": [
+        [
+          "unzip",
+          "extract",
+          "open"
+        ],
+        [
+          "zip"
+        ]
+      ],
+      "say": [
+        "unzip a file"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "archive.zip",
+          "label": "zip file"
+        },
+        "path": {
+          "from": "path",
+          "default": "./out",
+          "label": "target dir"
+        }
+      },
+      "cmd": "unzip -l {file} && unzip {file} -d {path}",
+      "notes": "",
+      "alts": [],
+      "min": 2,
+      "category": "files"
+    },
+    {
+      "id": "copy-remote",
+      "title": "Copy files to a remote server",
+      "match": [
+        [
+          "copy",
+          "sync",
+          "upload",
+          "send",
+          "transfer",
+          "push"
+        ],
+        [
+          "remote",
+          "server",
+          "host",
+          "ssh",
+          "rsync",
+          "scp"
+        ]
+      ],
+      "say": [
+        "copy files to a remote server"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "./dir/",
+          "label": "source"
+        },
+        "host": {
+          "from": "host",
+          "default": "user@host",
+          "label": "host"
+        }
+      },
+      "cmd": "rsync -avzn --progress {path} {host}:/tmp/",
+      "notes": "-n is a dry run; remove it to actually copy. A trailing slash on the source copies its contents.",
+      "alts": [
+        {
+          "cmd": "scp -r {path} {host}:/tmp/",
+          "desc": "Simple copy (overwrites silently)"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "count-lines",
+      "title": "Count lines in a file",
+      "match": [
+        [
+          "count",
+          "how many",
+          "number"
+        ],
+        [
+          "lines",
+          "line",
+          "rows"
+        ]
+      ],
+      "say": [
+        "count lines in a file"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "file.txt",
+          "label": "file"
+        }
+      },
+      "cmd": "wc -l {file}",
+      "notes": "",
+      "alts": [],
+      "category": "files"
+    },
+    {
+      "id": "tail-follow",
+      "title": "Follow a log file live",
+      "match": [
+        [
+          "follow",
+          "tail",
+          "watch",
+          "stream",
+          "live",
+          "monitor"
+        ],
+        [
+          "log",
+          "logs",
+          "file",
+          "output"
+        ]
+      ],
+      "say": [
+        "follow a log file live"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "/var/log/syslog",
+          "label": "log file"
+        }
+      },
+      "cmd": "tail -f {path}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "tail -F {path}",
+          "desc": "Keeps following after log rotation"
+        },
+        {
+          "cmd": "journalctl -f",
+          "desc": "Follow the systemd journal"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "show-lines",
+      "title": "Show the first/last N lines",
+      "match": [
+        [
+          "show",
+          "print",
+          "display",
+          "view"
+        ],
+        [
+          "first",
+          "last",
+          "top",
+          "head",
+          "tail"
+        ],
+        [
+          "lines",
+          "line"
+        ]
+      ],
+      "say": [
+        "show the first/last n lines"
+      ],
+      "slots": {
+        "lines": {
+          "from": "lines",
+          "default": "50",
+          "label": "lines"
+        },
+        "file": {
+          "from": "file",
+          "default": "file.log",
+          "label": "file"
+        }
+      },
+      "cmd": "tail -n {lines} {file}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "head -n {lines} {file}",
+          "desc": "First lines instead"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "permissions-show",
+      "title": "Show file permissions",
+      "match": [
+        [
+          "show",
+          "list",
+          "check",
+          "see",
+          "view"
+        ],
+        [
+          "permission",
+          "permissions",
+          "owner",
+          "ownership",
+          "mode",
+          "chmod"
+        ]
+      ],
+      "say": [
+        "show file permissions"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "file",
+          "label": "path"
+        }
+      },
+      "cmd": "ls -l {path} && stat -c \"%a %U:%G %n\" {path}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "namei -l {path}",
+          "desc": "Permissions on every directory in the path"
+        }
+      ],
+      "category": "files"
+    },
+    {
+      "id": "chmod-exec",
+      "title": "Make a file executable",
+      "match": [
+        [
+          "make",
+          "set",
+          "add",
+          "chmod"
+        ],
+        [
+          "executable",
+          "exec",
+          "run",
+          "x"
+        ]
+      ],
+      "say": [
+        "make a file executable"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "script.sh",
+          "label": "file"
+        }
+      },
+      "cmd": "chmod u+x {file}",
+      "notes": "Avoid chmod 777 — it is almost never the right fix.",
+      "alts": [],
+      "category": "files"
+    },
+    {
+      "id": "chown-recursive",
+      "title": "Change owner of a directory",
+      "match": [
+        [
+          "change",
+          "set",
+          "chown",
+          "give"
+        ],
+        [
+          "owner",
+          "ownership",
+          "chown"
+        ]
+      ],
+      "say": [
+        "change owner of a directory"
+      ],
+      "slots": {
+        "user": {
+          "from": "user",
+          "default": "appuser",
+          "label": "user"
+        },
+        "path": {
+          "from": "path",
+          "default": "/srv/app",
+          "label": "path"
+        }
+      },
+      "cmd": "chown -R {user}:{user} {path}",
+      "notes": "Recursive ownership changes on system paths can break services. Back up ACLs first: getfacl -R path > acl.bak.",
+      "alts": [],
+      "category": "files"
+    },
+    {
+      "id": "symlink",
+      "title": "Create a symlink",
+      "match": [
+        [
+          "create",
+          "make",
+          "link",
+          "symlink",
+          "symbolic"
+        ],
+        [
+          "link",
+          "symlink",
+          "symbolic"
+        ]
+      ],
+      "say": [
+        "create a symlink"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "/path/to/target",
+          "label": "target"
+        },
+        "file": {
+          "from": "file",
+          "default": "linkname",
+          "label": "link name"
+        }
+      },
+      "cmd": "ln -s {path} {file}",
+      "notes": "",
+      "alts": [],
+      "category": "files"
+    }
+  ]
+}

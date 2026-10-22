@@ -1,0 +1,234 @@
+{
+  "intents": [
+    {
+      "id": "add-user",
+      "title": "Create a user",
+      "match": [
+        [
+          "create",
+          "add",
+          "new",
+          "make"
+        ],
+        [
+          "user",
+          "account",
+          "username"
+        ]
+      ],
+      "say": [
+        "create a user"
+      ],
+      "slots": {
+        "user": {
+          "from": "user",
+          "default": "newuser",
+          "label": "username"
+        }
+      },
+      "cmd": "useradd -m -s /bin/bash {user}",
+      "notes": "Set a password with passwd; adding to sudo/wheel gives root-equivalent access.",
+      "alts": [],
+      "category": "users"
+    },
+    {
+      "id": "add-sudo",
+      "title": "Give a user sudo",
+      "match": [
+        [
+          "sudo",
+          "admin",
+          "root",
+          "wheel"
+        ],
+        [
+          "give",
+          "add",
+          "grant",
+          "allow"
+        ]
+      ],
+      "say": [
+        "give a user sudo"
+      ],
+      "slots": {
+        "user": {
+          "from": "user",
+          "label": "username"
+        }
+      },
+      "cmd": "usermod -aG sudo {user}   # RHEL family: wheel",
+      "notes": "This grants administrator rights — grant least privilege where possible and edit sudoers only with visudo.",
+      "alts": [],
+      "category": "users"
+    },
+    {
+      "id": "user-groups",
+      "title": "Show a user’s groups",
+      "match": [
+        [
+          "groups",
+          "group",
+          "membership"
+        ],
+        [
+          "user",
+          "show",
+          "which",
+          "list"
+        ]
+      ],
+      "say": [
+        "show a user’s groups"
+      ],
+      "slots": {
+        "user": {
+          "from": "user",
+          "default": "",
+          "label": "username"
+        }
+      },
+      "cmd": "id {user}",
+      "notes": "",
+      "alts": [],
+      "category": "users"
+    },
+    {
+      "id": "lock-user",
+      "title": "Lock a user account",
+      "match": [
+        [
+          "lock",
+          "disable",
+          "suspend"
+        ],
+        [
+          "user",
+          "account"
+        ]
+      ],
+      "say": [
+        "lock a user account"
+      ],
+      "slots": {
+        "user": {
+          "from": "user",
+          "label": "username"
+        }
+      },
+      "cmd": "usermod -L {user} && chage -E0 {user}",
+      "notes": "Do not lock the only admin account on a remote host.",
+      "alts": [],
+      "category": "users"
+    },
+    {
+      "id": "failed-logins",
+      "title": "Failed login attempts",
+      "match": [
+        [
+          "failed",
+          "failure",
+          "brute",
+          "invalid"
+        ],
+        [
+          "login",
+          "logins",
+          "ssh",
+          "authentication",
+          "attempts"
+        ]
+      ],
+      "say": [
+        "failed login attempts"
+      ],
+      "slots": {},
+      "cmd": "journalctl -u ssh -u sshd --no-pager | grep -i \"failed password\" | tail -50",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "lastb | head -20",
+          "desc": "Failed logins from btmp"
+        }
+      ],
+      "category": "users"
+    },
+    {
+      "id": "find-suid",
+      "title": "Find SUID binaries",
+      "match": [
+        [
+          "find",
+          "list",
+          "search",
+          "audit"
+        ],
+        [
+          "suid",
+          "setuid",
+          "sgid"
+        ]
+      ],
+      "say": [
+        "find suid binaries"
+      ],
+      "slots": {},
+      "cmd": "find / -xdev -perm -4000 -type f 2>/dev/null",
+      "notes": "",
+      "alts": [],
+      "category": "users"
+    },
+    {
+      "id": "world-writable",
+      "title": "Find world-writable files",
+      "match": [
+        [
+          "find",
+          "list",
+          "audit",
+          "search"
+        ],
+        [
+          "world writable",
+          "world-writable",
+          "777",
+          "writable"
+        ]
+      ],
+      "say": [
+        "find world-writable files"
+      ],
+      "slots": {},
+      "cmd": "find / -xdev -type f -perm -0002 2>/dev/null | head -50",
+      "notes": "",
+      "alts": [],
+      "category": "users"
+    },
+    {
+      "id": "generate-password",
+      "title": "Generate a random password",
+      "match": [
+        [
+          "generate",
+          "create",
+          "random",
+          "make"
+        ],
+        [
+          "password",
+          "secret",
+          "token",
+          "passphrase"
+        ]
+      ],
+      "say": [
+        "generate a random password"
+      ],
+      "slots": {},
+      "cmd": "openssl rand -base64 24",
+      "notes": "",
+      "alts": [],
+      "category": "users"
+    }
+  ]
+}

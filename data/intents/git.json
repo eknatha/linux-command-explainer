@@ -1,0 +1,282 @@
+{
+  "intents": [
+    {
+      "id": "git-undo-commit",
+      "title": "Undo the last commit",
+      "match": [
+        [
+          "undo",
+          "revert",
+          "remove",
+          "uncommit",
+          "cancel"
+        ],
+        [
+          "commit",
+          "last commit",
+          "git"
+        ]
+      ],
+      "say": [
+        "undo last git commit"
+      ],
+      "slots": {},
+      "cmd": "git reset --soft HEAD~1",
+      "notes": "--soft keeps your changes staged. Never use --hard unless you intend to discard work; if the commit is already pushed use `git revert HEAD` instead.",
+      "alts": [
+        {
+          "cmd": "git revert HEAD",
+          "desc": "Safe for pushed commits (creates a new commit)"
+        },
+        {
+          "cmd": "git reflog",
+          "desc": "Find lost commits"
+        }
+      ],
+      "category": "git"
+    },
+    {
+      "id": "git-discard-changes",
+      "title": "Discard local changes",
+      "match": [
+        [
+          "discard",
+          "throw away",
+          "reset",
+          "undo",
+          "revert"
+        ],
+        [
+          "changes",
+          "local",
+          "working",
+          "file"
+        ]
+      ],
+      "say": [
+        "discard local changes"
+      ],
+      "slots": {},
+      "cmd": "git stash push -u -m \"backup before discard\"",
+      "notes": "Stash keeps a backup. `git checkout -- file` / `git reset --hard` are irreversible for uncommitted work.",
+      "alts": [
+        {
+          "cmd": "git restore {file}",
+          "desc": "Discard changes in one file"
+        }
+      ],
+      "category": "git"
+    },
+    {
+      "id": "git-branch-create",
+      "title": "Create a branch",
+      "match": [
+        [
+          "create",
+          "new",
+          "make",
+          "switch"
+        ],
+        [
+          "branch"
+        ]
+      ],
+      "say": [
+        "create a branch"
+      ],
+      "slots": {
+        "branch": {
+          "from": "branch",
+          "default": "feature/my-change",
+          "label": "branch"
+        }
+      },
+      "cmd": "git switch -c {branch}",
+      "notes": "",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-delete-branch",
+      "title": "Delete a branch",
+      "match": [
+        [
+          "delete",
+          "remove"
+        ],
+        [
+          "branch"
+        ]
+      ],
+      "say": [
+        "delete a branch"
+      ],
+      "slots": {
+        "branch": {
+          "from": "branch",
+          "default": "old-branch",
+          "label": "branch"
+        }
+      },
+      "cmd": "git branch -d {branch}",
+      "notes": "-d refuses unmerged branches (safe). Avoid -D unless you are sure.",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-history",
+      "title": "Show commit history",
+      "match": [
+        [
+          "show",
+          "view",
+          "list"
+        ],
+        [
+          "history",
+          "log",
+          "commits",
+          "commit"
+        ]
+      ],
+      "say": [
+        "show commit history"
+      ],
+      "slots": {},
+      "cmd": "git log --oneline --graph --decorate -20",
+      "notes": "",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-who-changed",
+      "title": "Who changed a line",
+      "match": [
+        [
+          "who",
+          "blame"
+        ],
+        [
+          "changed",
+          "wrote",
+          "line",
+          "file",
+          "blame"
+        ]
+      ],
+      "say": [
+        "who changed a line"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "file.txt",
+          "label": "file"
+        }
+      },
+      "cmd": "git blame -L 1,40 {file}",
+      "notes": "",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-force-push",
+      "title": "Force push safely",
+      "match": [
+        [
+          "force"
+        ],
+        [
+          "push"
+        ]
+      ],
+      "say": [
+        "force push safely"
+      ],
+      "slots": {},
+      "cmd": "git push --force-with-lease",
+      "notes": "Plain --force can destroy teammates’ commits; --force-with-lease refuses if the remote moved. Never force-push shared branches (main/master).",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-tag",
+      "title": "Create a tag",
+      "match": [
+        [
+          "create",
+          "add",
+          "make"
+        ],
+        [
+          "tag",
+          "release",
+          "version"
+        ]
+      ],
+      "say": [
+        "create a tag"
+      ],
+      "slots": {
+        "tag": {
+          "from": "tag",
+          "default": "v1.0.0",
+          "label": "tag"
+        }
+      },
+      "cmd": "git tag -a {tag} -m \"release {tag}\" && git push origin {tag}",
+      "notes": "",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-find-bug",
+      "title": "Find the commit that broke it",
+      "match": [
+        [
+          "find",
+          "which",
+          "bisect"
+        ],
+        [
+          "commit",
+          "bug",
+          "broke",
+          "regression",
+          "broken"
+        ]
+      ],
+      "say": [
+        "find the commit that broke it"
+      ],
+      "slots": {},
+      "cmd": "git bisect start && git bisect bad && git bisect good <known-good-commit>",
+      "notes": "",
+      "alts": [],
+      "category": "git"
+    },
+    {
+      "id": "git-clean-untracked",
+      "title": "Remove untracked files",
+      "match": [
+        [
+          "remove",
+          "delete",
+          "clean"
+        ],
+        [
+          "untracked",
+          "new files"
+        ]
+      ],
+      "say": [
+        "remove untracked files"
+      ],
+      "slots": {},
+      "cmd": "git clean -nd",
+      "notes": "-n is a dry run. Re-run with -f only after reviewing the list — deleted untracked files cannot be recovered.",
+      "alts": [],
+      "category": "git"
+    }
+  ]
+}

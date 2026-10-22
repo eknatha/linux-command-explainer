@@ -1,0 +1,723 @@
+{
+  "category": "databases",
+  "commands": [
+    {
+      "name": "psql",
+      "summary": "PostgreSQL interactive terminal and query tool.",
+      "risk": "high",
+      "risk_reason": "Direct database access; queries can modify or drop data.",
+      "cautions": [
+        "Autocommit is on: an UPDATE/DELETE without WHERE is applied immediately. Wrap manual changes in BEGIN; … COMMIT/ROLLBACK.",
+        "Check where you are connected first: select current_database(), inet_server_addr();",
+        "Do not pass passwords on the command line — use ~/.pgpass or PGPASSFILE."
+      ],
+      "explanation": "psql is the interactive terminal for PostgreSQL. Beyond running queries, it supports meta-commands (\\d, \\l, \\c) for schema inspection, bulk loading with \\copy, and scripting with -c and -f flags. Essential for database administration and debugging.",
+      "flags": [
+        {
+          "flag": "-h",
+          "long": "--host",
+          "desc": "Database host"
+        },
+        {
+          "flag": "-U",
+          "long": "--username",
+          "desc": "Database user"
+        },
+        {
+          "flag": "-d",
+          "long": "--dbname",
+          "desc": "Database name"
+        },
+        {
+          "flag": "-c",
+          "long": "--command",
+          "desc": "Run a single SQL command"
+        },
+        {
+          "flag": "-f",
+          "long": "--file",
+          "desc": "Execute SQL from file"
+        },
+        {
+          "flag": "-t",
+          "long": "--tuples-only",
+          "desc": "Print only data rows (no headers)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "psql -h localhost -U postgres -d mydb -c 'SELECT count(*) FROM users;'",
+          "desc": "Run quick query from shell"
+        },
+        {
+          "cmd": "psql -h db.prod -U readonly -d app -f report.sql",
+          "desc": "Run SQL script against production (read-only user)"
+        },
+        {
+          "cmd": "psql -U postgres -c \"SELECT pid, query, state, wait_event FROM pg_stat_activity WHERE state='active';\"",
+          "desc": "Check active queries"
+        },
+        {
+          "cmd": "psql -U postgres -t -c 'SELECT datname FROM pg_database;'",
+          "desc": "List databases (tuples-only for scripting)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "psql -v ON_ERROR_STOP=1 -1 -f change.sql <db>",
+          "why": "Run a script in ONE transaction (-1) that stops at the first error."
+        },
+        {
+          "cmd": "pg_dump -Fc <db> > before.dump",
+          "why": "Take a backup before schema or bulk data changes."
+        }
+      ],
+      "suggestions": [
+        "pg_dump",
+        "ss advanced",
+        "jq"
+      ],
+      "pro_tip": "Use `psql -U postgres -c 'SELECT pg_size_pretty(pg_database_size(datname)), datname FROM pg_database ORDER BY 1 DESC;'` to instantly identify bloated databases on shared hosts.",
+      "low_when": [
+        "\\s-(l|c\\s+[\"']?\\s*(select|\\\\d|show))"
+      ],
+      "low_unless": [
+        "insert|update|delete|drop|truncate|alter|create"
+      ]
+    },
+    {
+      "name": "pg_dump",
+      "summary": "Back up a PostgreSQL database to a file.",
+      "risk": "low",
+      "risk_reason": "Large dumps can impact production performance.",
+      "explanation": "pg_dump creates consistent backups of PostgreSQL databases without locking tables. The custom format (-Fc) is recommended — it supports parallel restore and selective table restoration. For full cluster backups including roles, use pg_dumpall.",
+      "flags": [
+        {
+          "flag": "-Fc",
+          "desc": "Custom compressed format (best for large DBs)"
+        },
+        {
+          "flag": "-Fp",
+          "desc": "Plain SQL format (human-readable)"
+        },
+        {
+          "flag": "-t",
+          "long": "--table",
+          "desc": "Dump only specific table"
+        },
+        {
+          "flag": "-n",
+          "long": "--schema",
+          "desc": "Dump only specific schema"
+        },
+        {
+          "flag": "-j",
+          "long": "--jobs",
+          "desc": "Parallel dump with N jobs"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pg_dump -h localhost -U postgres -Fc mydb > mydb.dump",
+          "desc": "Full custom-format backup"
+        },
+        {
+          "cmd": "pg_dump -h db.prod -U postgres -Fc -t users mydb > users_backup.dump",
+          "desc": "Back up single table"
+        },
+        {
+          "cmd": "pg_restore -U postgres -d mydb_restore mydb.dump",
+          "desc": "Restore from custom format backup"
+        },
+        {
+          "cmd": "pg_dump -Fc mydb | gzip > mydb_$(date +%Y%m%d).dump.gz",
+          "desc": "Compressed timestamped backup"
+        }
+      ],
+      "suggestions": [
+        "psql",
+        "rsync",
+        "cron"
+      ],
+      "pro_tip": "Use `pg_dump -Fc` (not plain SQL) for production backups — custom format is smaller, supports parallel restore with `pg_restore -j 4`, and allows restoring individual tables."
+    },
+    {
+      "name": "mysqldump",
+      "summary": "Back up MySQL/MariaDB databases to SQL files.",
+      "risk": "medium",
+      "risk_reason": "Without --single-transaction, can lock tables during backup.",
+      "cautions": [
+        "Without --single-transaction (InnoDB) or --lock-tables the dump can block writes or be inconsistent.",
+        "A password on the command line (-pSECRET) is visible in `ps` — use an option file with 600 permissions.",
+        "Large dumps can fill the disk — check free space and compress via a pipe (| gzip)."
+      ],
+      "explanation": "mysqldump exports MySQL/MariaDB databases to SQL files. For InnoDB tables (the standard), always use --single-transaction for a consistent backup without locking. The --routines and --triggers flags include stored procedures and triggers.",
+      "flags": [
+        {
+          "flag": "--single-transaction",
+          "desc": "Consistent backup without locking (InnoDB)"
+        },
+        {
+          "flag": "--routines",
+          "desc": "Include stored procedures and functions"
+        },
+        {
+          "flag": "--triggers",
+          "desc": "Include triggers"
+        },
+        {
+          "flag": "--no-data",
+          "desc": "Schema only, no data"
+        },
+        {
+          "flag": "--databases",
+          "desc": "Specify multiple databases"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mysqldump -h localhost -u root -p --single-transaction mydb > mydb.sql",
+          "desc": "Full consistent backup of one database"
+        },
+        {
+          "cmd": "mysqldump -u root -p --single-transaction --all-databases | gzip > all_dbs.sql.gz",
+          "desc": "All databases compressed"
+        },
+        {
+          "cmd": "mysqldump -u root -p --no-data mydb > schema.sql",
+          "desc": "Schema only (no data)"
+        },
+        {
+          "cmd": "mysql -u root -p mydb < mydb.sql",
+          "desc": "Restore from SQL backup"
+        }
+      ],
+      "suggestions": [
+        "psql",
+        "cron",
+        "rsync"
+      ],
+      "pro_tip": "Always use `--single-transaction` with InnoDB tables — without it, mysqldump locks all tables for the duration of the backup, causing write queuing on busy production databases."
+    },
+    {
+      "name": "redis-cli",
+      "summary": "Redis command-line client for cache and data structure inspection.",
+      "risk": "medium",
+      "risk_reason": "FLUSHALL/FLUSHDB deletes all data instantly with no confirmation.",
+      "cautions": [
+        "FLUSHALL/FLUSHDB delete data instantly and replicate to replicas.",
+        "KEYS * blocks the server on large datasets — use `--scan` (SCAN) instead.",
+        "Confirm which instance you are connected to (-h/-p, INFO server) before any write command."
+      ],
+      "explanation": "redis-cli is the interactive and scripted client for Redis. Used for inspecting cache contents, monitoring live commands, checking memory usage, and diagnosing performance issues. The MONITOR command streams all Redis commands in real time.",
+      "flags": [
+        {
+          "flag": "-h",
+          "desc": "Host (default: 127.0.0.1)"
+        },
+        {
+          "flag": "-p",
+          "desc": "Port (default: 6379)"
+        },
+        {
+          "flag": "-n",
+          "desc": "Database number"
+        },
+        {
+          "flag": "--stat",
+          "desc": "Live stats mode"
+        },
+        {
+          "flag": "--scan",
+          "desc": "Scan keys matching pattern"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "redis-cli INFO memory",
+          "desc": "Check memory usage and fragmentation"
+        },
+        {
+          "cmd": "redis-cli MONITOR",
+          "desc": "Stream all Redis commands in real time"
+        },
+        {
+          "cmd": "redis-cli --stat",
+          "desc": "Live statistics: memory, keys, ops/sec"
+        },
+        {
+          "cmd": "redis-cli DBSIZE",
+          "desc": "Number of keys in current database"
+        },
+        {
+          "cmd": "redis-cli --scan --pattern 'session:*' | wc -l",
+          "desc": "Count session keys matching pattern"
+        },
+        {
+          "cmd": "redis-cli --bigkeys",
+          "desc": "Find the largest keys in the database"
+        }
+      ],
+      "suggestions": [
+        "psql",
+        "ss advanced",
+        "jq"
+      ],
+      "pro_tip": "Use `redis-cli --bigkeys` to find oversized keys before they cause memory pressure. Use `--scan` instead of `KEYS *` in production — KEYS * blocks Redis for the entire scan duration.",
+      "low_when": [
+        "--scan|--bigkeys|--latency|\\bINFO\\b|\\bPING\\b|\\bGET\\b|\\bTTL\\b|\\bDBSIZE\\b|--stat"
+      ],
+      "low_unless": [
+        "FLUSH|DEL\\b|SET\\b|CONFIG SET|SHUTDOWN|KEYS \\*"
+      ]
+    },
+    {
+      "name": "mysql",
+      "match": [
+        "mysql"
+      ],
+      "summary": "MySQL client",
+      "risk": "high",
+      "risk_reason": "Queries run immediately; autocommit is on by default.",
+      "cautions": [
+        "Use --safe-updates (or --i-am-a-dummy) on production.",
+        "Run `SELECT @@hostname, DATABASE();` to confirm the target.",
+        "Wrap changes in START TRANSACTION … COMMIT/ROLLBACK.",
+        "No password on the command line (visible in ps)."
+      ],
+      "explanation": "Client for MySQL/MariaDB. See the flags and examples below, and run `man mysql` for the full reference.",
+      "flags": [
+        {
+          "flag": "-u",
+          "desc": "User"
+        },
+        {
+          "flag": "-h",
+          "desc": "Host"
+        },
+        {
+          "flag": "-p",
+          "desc": "Prompt for password (avoid -pPASSWORD)"
+        },
+        {
+          "flag": "-e",
+          "desc": "Execute a statement"
+        },
+        {
+          "flag": "--safe-updates",
+          "long": "--safe-updates",
+          "desc": "Refuse UPDATE/DELETE without WHERE or LIMIT"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mysql --safe-updates -u app -p -h db",
+          "desc": "Interactive with guard rails"
+        },
+        {
+          "cmd": "mysql -e \"SHOW PROCESSLIST\"",
+          "desc": "Running queries"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "mysql --safe-updates …",
+          "why": "Block unscoped updates/deletes"
+        },
+        {
+          "cmd": "mysqldump --single-transaction <db> > backup.sql",
+          "why": "Back up first"
+        }
+      ],
+      "suggestions": [
+        "mysqldump",
+        "psql"
+      ]
+    },
+    {
+      "name": "pg_restore",
+      "match": [
+        "pg_restore"
+      ],
+      "summary": "Restore a PostgreSQL dump",
+      "risk": "high",
+      "risk_reason": "Overwrites data when used with --clean.",
+      "cautions": [
+        "Restore into a NEW database first; --clean on production drops live objects.",
+        "Check the target host/database (-h, -d) before running."
+      ],
+      "explanation": "Restores archives created by pg_dump -Fc.",
+      "flags": [
+        {
+          "flag": "-d",
+          "desc": "Target database"
+        },
+        {
+          "flag": "--clean",
+          "long": "--clean",
+          "desc": "Drop objects before recreating",
+          "caution": "Deletes existing objects."
+        },
+        {
+          "flag": "--no-owner",
+          "long": "--no-owner",
+          "desc": "Skip ownership"
+        },
+        {
+          "flag": "-j",
+          "desc": "Parallel"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pg_restore -d newdb mydb.dump",
+          "desc": "Restore into a new database"
+        },
+        {
+          "cmd": "pg_restore --list mydb.dump",
+          "desc": "List contents"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "pg_restore -l <dump>",
+          "why": "Inspect the contents"
+        },
+        {
+          "cmd": "createdb restore_test && pg_restore -d restore_test <dump>",
+          "why": "Test restore elsewhere"
+        }
+      ],
+      "suggestions": [
+        "pg_dump",
+        "psql"
+      ],
+      "low_when": [
+        "--list|-l\\b"
+      ],
+      "low_unless": []
+    },
+    {
+      "name": "mongosh",
+      "match": [
+        "mongosh"
+      ],
+      "summary": "MongoDB shell",
+      "risk": "high",
+      "risk_reason": "drop/deleteMany act immediately.",
+      "cautions": [
+        "Passwords in connection strings appear in history/process list.",
+        "drop(), deleteMany({}) and dropDatabase() are irreversible without backup."
+      ],
+      "explanation": "Interactive MongoDB shell. See the flags and examples below, and run `man mongosh` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mongosh \"mongodb://host/db\"",
+          "desc": "Connect"
+        },
+        {
+          "cmd": "mongosh --eval \"db.stats()\"",
+          "desc": "Run a command"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "mongodump --db <db> --out backup/",
+          "why": "Back up first"
+        }
+      ],
+      "suggestions": [
+        "mongodump"
+      ]
+    },
+    {
+      "name": "mongodump",
+      "match": [
+        "mongodump"
+      ],
+      "summary": "Back up MongoDB",
+      "risk": "low",
+      "risk_reason": "Reads all data; loads the server.",
+      "cautions": [
+        "Backups contain sensitive data."
+      ],
+      "explanation": "Creates BSON dumps. See the flags and examples below, and run `man mongodump` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mongodump --uri=\"mongodb://host/db\" --out backup/",
+          "desc": "Dump"
+        }
+      ],
+      "suggestions": [
+        "mongorestore"
+      ]
+    },
+    {
+      "name": "mongorestore",
+      "match": [
+        "mongorestore"
+      ],
+      "summary": "Restore MongoDB",
+      "risk": "high",
+      "risk_reason": "--drop deletes existing collections first.",
+      "cautions": [
+        "Check the URI; --drop on production destroys live data."
+      ],
+      "explanation": "Restores BSON dumps. See the flags and examples below, and run `man mongorestore` for the full reference.",
+      "flags": [
+        {
+          "flag": "--drop",
+          "long": "--drop",
+          "desc": "Drop collections before restore",
+          "caution": "Deletes existing data."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mongorestore --uri mongodb://host backup/",
+          "desc": "Restore"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "mongorestore --dryRun <dir>",
+          "why": "Dry run"
+        }
+      ],
+      "suggestions": [
+        "mongodump"
+      ]
+    },
+    {
+      "name": "sqlite3",
+      "match": [
+        "sqlite3"
+      ],
+      "summary": "SQLite shell",
+      "risk": "medium",
+      "risk_reason": "Writes modify the file directly.",
+      "cautions": [
+        "Copying a live DB file with cp can yield corruption — use .backup."
+      ],
+      "explanation": "Interactive SQLite client. See the flags and examples below, and run `man sqlite3` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "sqlite3 app.db \".tables\"",
+          "desc": "List tables"
+        },
+        {
+          "cmd": "sqlite3 app.db \".backup backup.db\"",
+          "desc": "Online backup"
+        }
+      ],
+      "suggestions": [
+        "cp"
+      ]
+    },
+    {
+      "name": "pg_isready",
+      "match": [
+        "pg_isready"
+      ],
+      "summary": "Check PostgreSQL availability",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Tests whether a server accepts connections.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pg_isready -h db -p 5432",
+          "desc": "Check"
+        }
+      ],
+      "suggestions": [
+        "psql"
+      ]
+    },
+    {
+      "name": "pg_basebackup",
+      "match": [
+        "pg_basebackup"
+      ],
+      "summary": "Physical PostgreSQL backup",
+      "risk": "medium",
+      "risk_reason": "Heavy I/O; wrong target overwrites data directory.",
+      "cautions": [
+        "Target must be empty; load on the primary is significant."
+      ],
+      "explanation": "Takes a base backup of a running cluster.",
+      "flags": [
+        {
+          "flag": "-D",
+          "desc": "Target directory"
+        },
+        {
+          "flag": "-Fp",
+          "desc": "Plain format"
+        },
+        {
+          "flag": "-X stream",
+          "desc": "-X stream",
+          "caution": "Include WAL"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pg_basebackup -h primary -D /backup -X stream -P",
+          "desc": "Base backup"
+        }
+      ],
+      "suggestions": [
+        "pg_dump"
+      ]
+    },
+    {
+      "name": "psql meta",
+      "kind": "topic",
+      "match": [
+        "psql meta"
+      ],
+      "parent": "psql",
+      "summary": "psql backslash commands",
+      "risk": "low",
+      "risk_reason": "Read-only meta commands.",
+      "explanation": "\\l, \\dt, \\d table, \\x, \\timing and more inside psql.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "psql -c \"\\l\"",
+          "desc": "List databases"
+        },
+        {
+          "cmd": "psql -c \"\\dt+\"",
+          "desc": "Tables and sizes"
+        }
+      ],
+      "suggestions": [
+        "psql"
+      ]
+    },
+    {
+      "name": "redis-server",
+      "match": [
+        "redis-server"
+      ],
+      "summary": "Redis server",
+      "risk": "high",
+      "risk_reason": "Exposing Redis without auth gives attackers code execution paths.",
+      "cautions": [
+        "Never expose Redis to the Internet; bind to localhost/private IPs and require auth.",
+        "Disable dangerous commands (CONFIG, FLUSHALL) via rename/ACL in production."
+      ],
+      "explanation": "Starts a Redis instance. See the flags and examples below, and run `man redis-server` for the full reference.",
+      "flags": [
+        {
+          "flag": "--bind",
+          "long": "--bind",
+          "desc": "Bind address"
+        },
+        {
+          "flag": "--requirepass",
+          "long": "--requirepass",
+          "desc": "Password"
+        },
+        {
+          "flag": "--protected-mode",
+          "long": "--protected-mode",
+          "desc": "Refuses remote clients without auth"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "redis-server --bind 127.0.0.1 --protected-mode yes",
+          "desc": "Local only"
+        }
+      ],
+      "suggestions": [
+        "redis-cli"
+      ]
+    },
+    {
+      "name": "mysqladmin",
+      "match": [
+        "mysqladmin"
+      ],
+      "summary": "MySQL administration",
+      "risk": "high",
+      "risk_reason": "Can shut down or flush the server.",
+      "cautions": [
+        "shutdown and kill affect all clients."
+      ],
+      "explanation": "Admin commands: status, processlist, shutdown.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mysqladmin status",
+          "desc": "Server status"
+        },
+        {
+          "cmd": "mysqladmin processlist",
+          "desc": "Running queries"
+        }
+      ],
+      "suggestions": [
+        "mysql"
+      ],
+      "low_when": [
+        "status|ping|version|processlist|variables"
+      ],
+      "low_unless": [
+        "shutdown|kill|drop|flush|create|reload"
+      ]
+    },
+    {
+      "name": "mysqlcheck",
+      "match": [
+        "mysqlcheck"
+      ],
+      "summary": "Check/repair tables",
+      "risk": "medium",
+      "risk_reason": "--repair/--optimize lock tables and can be slow.",
+      "cautions": [
+        "--optimize/--repair lock tables — run off-peak with a backup."
+      ],
+      "explanation": "Checks and optimises tables. See the flags and examples below, and run `man mysqlcheck` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "mysqlcheck --all-databases",
+          "desc": "Check all"
+        }
+      ],
+      "suggestions": [
+        "mysql"
+      ]
+    },
+    {
+      "name": "influx",
+      "match": [
+        "influx"
+      ],
+      "summary": "InfluxDB CLI",
+      "risk": "medium",
+      "risk_reason": "Deletes are permanent.",
+      "cautions": [
+        "Bucket deletes are irreversible."
+      ],
+      "explanation": "Query and manage InfluxDB. See the flags and examples below, and run `man influx` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "influx query \"from(bucket:\\\"b\\\") |> range(start:-1h)\"",
+          "desc": "Query"
+        }
+      ],
+      "suggestions": [
+        "curl"
+      ]
+    }
+  ]
+}

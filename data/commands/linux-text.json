@@ -1,0 +1,2272 @@
+{
+  "category": "linux-text",
+  "commands": [
+    {
+      "name": "grep",
+      "summary": "Search text using patterns — print lines matching a regex from files or stdin.",
+      "risk": "low",
+      "risk_reason": "Read-only search, no system modifications.",
+      "explanation": "grep filters lines matching a regular expression. -r scans directories recursively, -v inverts to show non-matching lines, -P enables Perl-compatible regex. Use --include to scope recursive searches to specific file types.",
+      "flags": [
+        {
+          "flag": "-r",
+          "long": "--recursive",
+          "desc": "Search recursively through directories"
+        },
+        {
+          "flag": "-i",
+          "long": "--ignore-case",
+          "desc": "Case-insensitive matching"
+        },
+        {
+          "flag": "-v",
+          "long": "--invert-match",
+          "desc": "Print lines that do NOT match"
+        },
+        {
+          "flag": "-n",
+          "long": "--line-number",
+          "desc": "Prefix output with line numbers"
+        },
+        {
+          "flag": "-l",
+          "long": "--files-with-matches",
+          "desc": "Only print filenames with at least one match"
+        },
+        {
+          "flag": "-c",
+          "long": "--count",
+          "desc": "Count matching lines per file"
+        },
+        {
+          "flag": "-E",
+          "long": "--extended-regexp",
+          "desc": "Use extended regex (ERE)"
+        },
+        {
+          "flag": "-P",
+          "long": "--perl-regexp",
+          "desc": "Use Perl-compatible regex for advanced patterns"
+        },
+        {
+          "flag": "--include",
+          "desc": "Scope recursive search to files matching a glob"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "grep -rn 'ERROR' /var/log/ --include='*.log'",
+          "desc": "Find ERROR lines with line numbers across all log files"
+        },
+        {
+          "cmd": "grep -v '^#' /etc/nginx/nginx.conf",
+          "desc": "Show nginx config without comment lines"
+        },
+        {
+          "cmd": "grep -P 'Failed password.*from (\\d+\\.){3}\\d+' /var/log/auth.log",
+          "desc": "Extract failed SSH login IPs using Perl regex"
+        }
+      ],
+      "suggestions": [
+        "awk",
+        "sed",
+        "ripgrep",
+        "find",
+        "less"
+      ],
+      "pro_tip": "Use `grep -c ''` to count total lines in a file — faster than `wc -l` when already in a grep pipeline."
+    },
+    {
+      "name": "awk",
+      "summary": "Powerful text processing language for pattern scanning and field-based reporting.",
+      "risk": "low",
+      "risk_reason": "Read-only text transformation unless piped to write operations.",
+      "explanation": "awk processes text line-by-line, splitting each into fields ($1, $2, etc.) by a delimiter (default: whitespace). Supports conditionals, loops, and arithmetic — ideal for log analysis, report generation, and structured text extraction.",
+      "flags": [
+        {
+          "flag": "-F",
+          "desc": "Set field separator (-F: for colon-delimited files like /etc/passwd)"
+        },
+        {
+          "flag": "-v",
+          "desc": "Assign a variable before program execution"
+        },
+        {
+          "flag": "-f",
+          "desc": "Read awk program from a file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "awk '{print $1, $NF}' access.log",
+          "desc": "Print first and last field from each line (e.g. IP and status code)"
+        },
+        {
+          "cmd": "awk -F: '$3 >= 1000 {print $1}' /etc/passwd",
+          "desc": "List all usernames with UID >= 1000 (regular users)"
+        },
+        {
+          "cmd": "awk '/ERROR/{count++} END{print count}' app.log",
+          "desc": "Count ERROR occurrences in a log file"
+        }
+      ],
+      "suggestions": [
+        "sed",
+        "grep",
+        "cut",
+        "sort",
+        "uniq"
+      ],
+      "pro_tip": "`awk 'NR==FNR{a[$0];next} $0 in a'` finds common lines between two files — a classic awk idiom for set intersection without sorting."
+    },
+    {
+      "name": "sed",
+      "summary": "Stream editor — transform text using substitution, deletion, and insertion.",
+      "risk": "medium",
+      "risk_reason": "In-place editing with -i permanently modifies files without undo.",
+      "cautions": [
+        "`sed -i` edits files in place with no undo — use -i.bak.",
+        "Test the expression without -i first and diff the result.",
+        "GNU and BSD/macOS sed differ (macOS needs `-i \"\"`; -E vs \\+ handling)."
+      ],
+      "explanation": "sed reads input line by line applying editing commands. The `s/pattern/replacement/flags` command substitutes text. -i edits files in place. Always test with a dry run (without -i) before modifying files.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--in-place",
+          "desc": "Edit file in-place (use -i.bak to keep a backup)"
+        },
+        {
+          "flag": "-n",
+          "long": "--quiet",
+          "desc": "Suppress automatic printing of pattern space"
+        },
+        {
+          "flag": "-e",
+          "long": "--expression",
+          "desc": "Add a script command to execute"
+        },
+        {
+          "flag": "-r",
+          "long": "--regexp-extended",
+          "desc": "Use extended regular expressions"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sed -i.bak 's/localhost/db.prod.internal/g' app.conf",
+          "desc": "Replace hostname in config, keeping .bak backup"
+        },
+        {
+          "cmd": "sed -n '100,200p' huge.log",
+          "desc": "Print only lines 100 to 200 from a large log"
+        },
+        {
+          "cmd": "sed '/^$/d' config.txt",
+          "desc": "Remove all blank lines from a file"
+        }
+      ],
+      "suggestions": [
+        "awk",
+        "grep",
+        "tr",
+        "perl",
+        "vim"
+      ],
+      "pro_tip": "Always use `-i.bak` instead of bare `-i` — it creates a backup and is portable across Linux and macOS.",
+      "low_when": [
+        "\\s-n\\b"
+      ],
+      "low_unless": [
+        "\\s-i|--in-place"
+      ]
+    },
+    {
+      "name": "sort",
+      "summary": "Sort lines of text — alphabetically, numerically, or by a specific field.",
+      "risk": "low",
+      "risk_reason": "Read-only by default; modifies files only when using -o.",
+      "explanation": "sort reads lines from files or stdin and outputs them sorted. -n sorts numerically, -r reverses, -k selects a key column, -u deduplicates. Combine with uniq and awk for powerful log analysis and data processing pipelines.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--numeric-sort",
+          "desc": "Sort by numeric value, not lexicographic order"
+        },
+        {
+          "flag": "-r",
+          "long": "--reverse",
+          "desc": "Reverse the sort order (descending)"
+        },
+        {
+          "flag": "-k",
+          "long": "--key",
+          "desc": "Sort by a specific field/column (e.g. -k2 for 2nd field)"
+        },
+        {
+          "flag": "-t",
+          "long": "--field-separator",
+          "desc": "Set the field delimiter (default: whitespace)"
+        },
+        {
+          "flag": "-u",
+          "long": "--unique",
+          "desc": "Output only unique lines, removing duplicates"
+        },
+        {
+          "flag": "-h",
+          "long": "--human-numeric-sort",
+          "desc": "Sort human-readable numbers like 1K, 2M, 3G"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Write result to a file (safe even if same as input)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sort -rn -k5 access.log | head -20",
+          "desc": "Top 20 lines by 5th column descending — e.g. largest request sizes"
+        },
+        {
+          "cmd": "du -sh /var/log/* | sort -rh",
+          "desc": "List log directories sorted largest-first (human-readable sizes)"
+        },
+        {
+          "cmd": "sort -t: -k3 -n /etc/passwd",
+          "desc": "Sort /etc/passwd by UID (3rd colon-delimited field) numerically"
+        }
+      ],
+      "suggestions": [
+        "uniq",
+        "awk",
+        "grep",
+        "cut",
+        "head"
+      ],
+      "pro_tip": "Use `sort -u` instead of `sort | uniq` — it deduplicates during the sort pass itself, which is faster on large inputs."
+    },
+    {
+      "name": "diff",
+      "summary": "Compare files line by line and show differences.",
+      "risk": "low",
+      "risk_reason": "Read-only comparison.",
+      "explanation": "diff compares two files and outputs the differences in a format that can be applied as a patch. The -u flag produces unified diff format (the standard for patches and code review). Useful for config auditing, reviewing changes before applying, and generating patches.",
+      "flags": [
+        {
+          "flag": "-u",
+          "long": "--unified",
+          "desc": "Unified diff format (standard for patches)"
+        },
+        {
+          "flag": "-r",
+          "long": "--recursive",
+          "desc": "Compare directories recursively"
+        },
+        {
+          "flag": "-i",
+          "long": "--ignore-case",
+          "desc": "Ignore case differences"
+        },
+        {
+          "flag": "-w",
+          "long": "--ignore-all-space",
+          "desc": "Ignore all whitespace differences"
+        },
+        {
+          "flag": "-q",
+          "long": "--brief",
+          "desc": "Report only whether files differ"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "diff -u config.yaml.bak config.yaml",
+          "desc": "Show changes since backup in patch format"
+        },
+        {
+          "cmd": "diff -r /etc/nginx.bak /etc/nginx",
+          "desc": "Compare nginx config directories"
+        },
+        {
+          "cmd": "diff <(kubectl get cm myconfig -o yaml) config.yaml",
+          "desc": "Compare live ConfigMap with local file"
+        },
+        {
+          "cmd": "diff -q dir1 dir2",
+          "desc": "Quick check if directories differ"
+        }
+      ],
+      "suggestions": [
+        "git log",
+        "patch",
+        "sed"
+      ],
+      "pro_tip": "Use `diff <(command1) <(command2)` with process substitution to compare command outputs without creating temp files — works for comparing live config with desired state."
+    },
+    {
+      "name": "wc",
+      "summary": "Count lines, words, characters, or bytes in files.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "wc (word count) counts newlines, words, characters, and bytes in files or stdin. Invaluable for quick data validation — checking how many records are in a file, confirming a log has expected line counts, or measuring output size.",
+      "flags": [
+        {
+          "flag": "-l",
+          "long": "--lines",
+          "desc": "Count lines only"
+        },
+        {
+          "flag": "-w",
+          "long": "--words",
+          "desc": "Count words only"
+        },
+        {
+          "flag": "-c",
+          "long": "--bytes",
+          "desc": "Count bytes only"
+        },
+        {
+          "flag": "-m",
+          "long": "--chars",
+          "desc": "Count characters only"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "wc -l /etc/passwd",
+          "desc": "Count number of user accounts"
+        },
+        {
+          "cmd": "cat access.log | wc -l",
+          "desc": "Count total log entries"
+        },
+        {
+          "cmd": "ls *.yaml | wc -l",
+          "desc": "Count YAML files in current directory"
+        },
+        {
+          "cmd": "wc -c deployment.yaml",
+          "desc": "Check file size in bytes"
+        }
+      ],
+      "suggestions": [
+        "grep",
+        "awk",
+        "sort"
+      ],
+      "pro_tip": "Use `grep -c 'pattern' file` instead of `grep 'pattern' file | wc -l` — it's faster and more efficient for counting matching lines."
+    },
+    {
+      "name": "cut",
+      "summary": "Extract specific fields or character ranges from text.",
+      "risk": "low",
+      "risk_reason": "Read-only transformation.",
+      "explanation": "cut extracts columns from text by delimiter (-d and -f) or character position (-c). A staple for parsing structured output like /etc/passwd, CSV files, or command output with consistent delimiters.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--delimiter",
+          "desc": "Set field delimiter (default: TAB)"
+        },
+        {
+          "flag": "-f",
+          "long": "--fields",
+          "desc": "Select specific fields (1-indexed)"
+        },
+        {
+          "flag": "-c",
+          "long": "--characters",
+          "desc": "Select specific character positions"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "cut -d: -f1 /etc/passwd",
+          "desc": "Extract just usernames"
+        },
+        {
+          "cmd": "cut -d, -f1,3 data.csv",
+          "desc": "Extract first and third CSV columns"
+        },
+        {
+          "cmd": "echo 'hello world' | cut -d' ' -f2",
+          "desc": "Extract second word"
+        },
+        {
+          "cmd": "cut -c1-10 longfile.txt",
+          "desc": "Show only first 10 characters per line"
+        }
+      ],
+      "suggestions": [
+        "awk",
+        "tr",
+        "sed"
+      ],
+      "pro_tip": "For multi-character delimiters or more complex field logic, switch to `awk -F 'delim' '{print $2}'` — cut only supports single-character delimiters."
+    },
+    {
+      "name": "tr",
+      "summary": "Translate, squeeze, or delete characters in text streams.",
+      "risk": "low",
+      "risk_reason": "Modifies stdout only; doesn't touch source files.",
+      "explanation": "tr translates or transforms characters — replacing, deleting, or squeezing repeated characters. Only works on stdin/stdout, not files directly. Frequently used for case conversion, removing unwanted characters, and cleaning data.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--delete",
+          "desc": "Delete specified characters"
+        },
+        {
+          "flag": "-s",
+          "long": "--squeeze-repeats",
+          "desc": "Squeeze repeated characters to one"
+        },
+        {
+          "flag": "-c",
+          "long": "--complement",
+          "desc": "Use complement of the character set"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "echo 'Hello World' | tr '[:upper:]' '[:lower:]'",
+          "desc": "Convert to lowercase"
+        },
+        {
+          "cmd": "echo 'hello' | tr 'a-z' 'A-Z'",
+          "desc": "Convert to uppercase"
+        },
+        {
+          "cmd": "cat file.txt | tr -d '\\r'",
+          "desc": "Remove Windows carriage returns"
+        },
+        {
+          "cmd": "echo 'a   b   c' | tr -s ' '",
+          "desc": "Squeeze multiple spaces to one"
+        }
+      ],
+      "suggestions": [
+        "sed",
+        "cut",
+        "awk"
+      ],
+      "pro_tip": "Use `tr -d '\\r'` to fix Windows line endings in scripts cloned on Linux — a common cause of 'bad interpreter' errors."
+    },
+    {
+      "name": "uniq",
+      "summary": "Filter or count adjacent duplicate lines in sorted input.",
+      "risk": "low",
+      "risk_reason": "Read-only unless redirected to overwrite source.",
+      "explanation": "uniq removes or counts duplicate lines, but only works on adjacent duplicates — always sort first. Combined with sort | uniq -c | sort -rn, it produces frequency counts of any text data.",
+      "flags": [
+        {
+          "flag": "-c",
+          "long": "--count",
+          "desc": "Prefix lines with occurrence count"
+        },
+        {
+          "flag": "-d",
+          "long": "--repeated",
+          "desc": "Print only duplicate lines"
+        },
+        {
+          "flag": "-u",
+          "long": "--unique",
+          "desc": "Print only unique lines"
+        },
+        {
+          "flag": "-i",
+          "long": "--ignore-case",
+          "desc": "Ignore case when comparing"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sort access.log | uniq -c | sort -rn | head -10",
+          "desc": "Top 10 most frequent log lines"
+        },
+        {
+          "cmd": "sort ips.txt | uniq -d",
+          "desc": "Show IPs that appear more than once"
+        },
+        {
+          "cmd": "sort errors.log | uniq -u",
+          "desc": "Show lines that appear exactly once"
+        }
+      ],
+      "suggestions": [
+        "sort",
+        "grep",
+        "awk"
+      ],
+      "pro_tip": "The pattern `sort | uniq -c | sort -rn` is one of the most powerful one-liners in DevOps — use it to analyze access logs, error frequencies, or any text data."
+    },
+    {
+      "name": "head",
+      "summary": "Output the first N lines of a file.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "head outputs the first 10 lines by default (or N lines with -n). Essential for quickly previewing large files without loading them entirely. Also useful for extracting file headers in scripts.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--lines",
+          "desc": "Output the first N lines"
+        },
+        {
+          "flag": "-c",
+          "long": "--bytes",
+          "desc": "Output the first N bytes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "head -n 20 /var/log/syslog",
+          "desc": "View first 20 lines of syslog"
+        },
+        {
+          "cmd": "head -1 data.csv",
+          "desc": "Check CSV header row"
+        },
+        {
+          "cmd": "ls -lt | head -5",
+          "desc": "Show 5 most recently modified files"
+        }
+      ],
+      "suggestions": [
+        "tail",
+        "less",
+        "cat"
+      ],
+      "pro_tip": "Use `head -n -5 file.txt` (negative N) to print everything except the last 5 lines — a lesser-known but powerful trick."
+    },
+    {
+      "name": "tail",
+      "summary": "Output the last N lines of a file; follow live output.",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "tail outputs the last N lines (default 10). The -f flag follows a file as it grows — the standard way to monitor live logs. -F is more robust than -f as it handles log rotation.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--lines",
+          "desc": "Output the last N lines"
+        },
+        {
+          "flag": "-f",
+          "long": "--follow",
+          "desc": "Follow file growth in real time"
+        },
+        {
+          "flag": "-F",
+          "long": "--follow-name",
+          "desc": "Follow by filename (survives log rotation)"
+        },
+        {
+          "flag": "-c",
+          "long": "--bytes",
+          "desc": "Output the last N bytes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tail -f /var/log/nginx/error.log",
+          "desc": "Live-follow nginx error log"
+        },
+        {
+          "cmd": "tail -n 100 /var/log/syslog",
+          "desc": "View last 100 syslog entries"
+        },
+        {
+          "cmd": "tail -F /var/log/app.log | grep ERROR",
+          "desc": "Stream and filter errors in real time"
+        },
+        {
+          "cmd": "tail -n +2 data.csv",
+          "desc": "Skip header row (output from line 2 onward)"
+        }
+      ],
+      "suggestions": [
+        "head",
+        "journalctl",
+        "less"
+      ],
+      "pro_tip": "Use `tail -F` instead of `tail -f` in production log monitoring — it reconnects when the file is rotated, preventing silent monitoring gaps."
+    },
+    {
+      "name": "less",
+      "summary": "Page through file content interactively with search and navigation.",
+      "risk": "low",
+      "risk_reason": "Read-only viewer.",
+      "cautions": [
+        "Inside less, `!command` runs a shell command and `v` opens an editor — beware of piping sensitive files on shared screens."
+      ],
+      "explanation": "less is an interactive file viewer that loads files page-by-page (unlike cat). Supports forward/backward navigation, regex search with /, and following live files with F. Handles arbitrarily large files efficiently.",
+      "flags": [
+        {
+          "flag": "-N",
+          "long": "--line-numbers",
+          "desc": "Show line numbers"
+        },
+        {
+          "flag": "-S",
+          "long": "--chop-long-lines",
+          "desc": "Don't wrap long lines"
+        },
+        {
+          "flag": "-i",
+          "long": "--ignore-case",
+          "desc": "Case-insensitive search"
+        },
+        {
+          "flag": "-F",
+          "long": "--quit-if-one-screen",
+          "desc": "Exit if content fits on screen"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "less /var/log/syslog",
+          "desc": "Browse syslog interactively"
+        },
+        {
+          "cmd": "kubectl logs pod-name | less",
+          "desc": "Page through pod logs"
+        },
+        {
+          "cmd": "less -N +/ERROR app.log",
+          "desc": "Open with line numbers, jump to first ERROR"
+        },
+        {
+          "cmd": "less +F /var/log/app.log",
+          "desc": "Start in follow mode (like tail -f)"
+        }
+      ],
+      "suggestions": [
+        "tail",
+        "head",
+        "grep"
+      ],
+      "pro_tip": "Inside less, press `F` to enter follow mode (like tail -f), then `Ctrl+C` to stop following and browse backward — the best of both worlds."
+    },
+    {
+      "name": "tee",
+      "summary": "Write to stdout and one or more files simultaneously.",
+      "risk": "low",
+      "risk_reason": "Creates or overwrites files; use -a to append.",
+      "cautions": [
+        "`tee file` truncates the file first — use -a to append.",
+        "With sudo: `cmd | sudo tee /etc/file` overwrites the whole file; back it up first."
+      ],
+      "explanation": "tee reads from stdin and writes to both stdout and specified files simultaneously — splitting the pipeline. Essential when you want to log output while still piping it to another command.",
+      "flags": [
+        {
+          "flag": "-a",
+          "long": "--append",
+          "desc": "Append to files instead of overwriting"
+        },
+        {
+          "flag": "-i",
+          "long": "--ignore-interrupts",
+          "desc": "Ignore interrupt signals"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "terraform apply | tee apply.log",
+          "desc": "Apply and log output simultaneously"
+        },
+        {
+          "cmd": "kubectl get pods | tee pods.txt | grep Running",
+          "desc": "Save and filter in one step"
+        },
+        {
+          "cmd": "echo 'net.ipv4.ip_forward=1' | sudo tee /etc/sysctl.d/99-forward.conf",
+          "desc": "Write to privileged file via sudo tee"
+        }
+      ],
+      "suggestions": [
+        "tail",
+        "grep",
+        "redirect"
+      ],
+      "pro_tip": "Use `sudo tee` instead of `sudo echo >` when writing to privileged files — `sudo echo >` doesn't work because redirection happens in the user shell, not as root."
+    },
+    {
+      "name": "xargs",
+      "summary": "Build and execute commands from standard input.",
+      "risk": "medium",
+      "risk_reason": "Can trigger bulk operations; test with -p or echo first.",
+      "cautions": [
+        "Whitespace splitting breaks on filenames with spaces — use `find -print0 | xargs -0`.",
+        "Test with `echo` or -p before running destructive commands.",
+        "Without -r, GNU xargs runs the command once even when the input is empty."
+      ],
+      "explanation": "xargs reads items from stdin and passes them as arguments to a command. Handles the case where a command doesn't natively read from stdin. With -P, it runs multiple processes in parallel — a simple way to parallelize shell operations.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--max-args",
+          "desc": "Max arguments per command invocation"
+        },
+        {
+          "flag": "-I",
+          "long": "--replace",
+          "desc": "Replace placeholder string with each input item"
+        },
+        {
+          "flag": "-P",
+          "long": "--max-procs",
+          "desc": "Run N processes in parallel"
+        },
+        {
+          "flag": "-p",
+          "long": "--interactive",
+          "desc": "Prompt before each execution"
+        },
+        {
+          "flag": "-0",
+          "long": "--null",
+          "desc": "Input items are null-terminated (safe for filenames with spaces)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "find . -name '*.log' | xargs wc -l",
+          "desc": "Count lines in all log files"
+        },
+        {
+          "cmd": "cat pods.txt | xargs -I{} kubectl delete pod {}",
+          "desc": "Delete pods listed in a file"
+        },
+        {
+          "cmd": "find . -name '*.go' | xargs -P 4 gofmt -w",
+          "desc": "Format Go files in parallel"
+        },
+        {
+          "cmd": "find . -name '*.tmp' -print0 | xargs -0 rm -f",
+          "desc": "Safe deletion with null-separated filenames"
+        }
+      ],
+      "suggestions": [
+        "find",
+        "parallel",
+        "grep"
+      ],
+      "pro_tip": "Always use `find -print0 | xargs -0` when filenames might contain spaces or newlines — the default newline separator will cause silent failures."
+    },
+    {
+      "name": "jq",
+      "summary": "Command-line JSON processor and transformer.",
+      "risk": "low",
+      "risk_reason": "Read-only unless redirected to overwrite a file.",
+      "explanation": "jq is a lightweight, flexible JSON processor. It slices, filters, transforms, and reformats JSON data with a pipeline syntax. Essential for working with API responses, Kubernetes output, and cloud CLI tools that return JSON.",
+      "flags": [
+        {
+          "flag": "-r",
+          "long": "--raw-output",
+          "desc": "Output raw strings without JSON quotes"
+        },
+        {
+          "flag": "-c",
+          "long": "--compact-output",
+          "desc": "Compact output on one line"
+        },
+        {
+          "flag": "-s",
+          "long": "--slurp",
+          "desc": "Read all input into an array"
+        },
+        {
+          "flag": "-e",
+          "long": "--exit-status",
+          "desc": "Return exit code 1 if result is false/null"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "kubectl get pods -o json | jq '.items[].metadata.name'",
+          "desc": "Extract all pod names"
+        },
+        {
+          "cmd": "curl -s api.example.com/data | jq '.results[] | select(.status==\"active\")'",
+          "desc": "Filter active items from API response"
+        },
+        {
+          "cmd": "cat config.json | jq -r '.database.host'",
+          "desc": "Extract raw string value"
+        },
+        {
+          "cmd": "jq -r '.[] | [.name, .status] | @csv' pods.json",
+          "desc": "Convert JSON array to CSV"
+        },
+        {
+          "cmd": "jq 'del(.password)' config.json",
+          "desc": "Remove a key from JSON"
+        }
+      ],
+      "suggestions": [
+        "yq",
+        "curl",
+        "kubectl"
+      ],
+      "pro_tip": "Use `jq -e 'expression' && echo ok || echo fail` in CI scripts — jq exits non-zero if the result is null/false, making it a powerful JSON-aware conditional."
+    },
+    {
+      "name": "yq",
+      "summary": "Command-line YAML/JSON/XML processor (like jq but for YAML).",
+      "risk": "low",
+      "risk_reason": "Read-only unless -i flag is used (in-place edit).",
+      "cautions": [
+        "`yq -i` edits files in place — keep a backup or use version control.",
+        "Different yq implementations (mikefarah vs python-yq) have different syntax."
+      ],
+      "explanation": "yq processes YAML, JSON, XML, and TOML files with a jq-compatible syntax. Invaluable for editing Kubernetes manifests, Helm values files, and CI config files without breaking structure. The -i flag edits files in-place.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--inplace",
+          "desc": "Edit file in-place"
+        },
+        {
+          "flag": "-r",
+          "long": "--raw",
+          "desc": "Output raw strings"
+        },
+        {
+          "flag": "-o",
+          "long": "--output-format",
+          "desc": "Output format: yaml, json, props"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "yq '.spec.replicas' deployment.yaml",
+          "desc": "Read replica count from a manifest"
+        },
+        {
+          "cmd": "yq -i '.spec.replicas = 3' deployment.yaml",
+          "desc": "Update replica count in-place"
+        },
+        {
+          "cmd": "yq -o json deployment.yaml | jq '.spec'",
+          "desc": "Convert YAML to JSON for jq processing"
+        },
+        {
+          "cmd": "yq eval-all '. as $item ireduce ({}; . * $item)' base.yaml override.yaml",
+          "desc": "Deep merge two YAML files"
+        }
+      ],
+      "suggestions": [
+        "jq",
+        "kubectl",
+        "helm"
+      ],
+      "pro_tip": "Use yq to patch image tags in manifests during CI: `yq -i '.spec.template.spec.containers[0].image = \"app:v1.2.3\"' deploy.yaml` — cleaner than sed on YAML."
+    },
+    {
+      "name": "base64",
+      "summary": "Encode or decode data using Base64.",
+      "risk": "low",
+      "risk_reason": "Encoding is not encryption — don't use for secrets.",
+      "cautions": [
+        "Base64 is encoding, not encryption — never treat it as protecting secrets."
+      ],
+      "explanation": "base64 encodes binary data as printable ASCII text, or decodes it back. Used in Kubernetes secrets, JWT tokens, basic auth headers, and embedding binary data in text formats. Note: base64 is encoding, not encryption — encoded data is trivially reversible.",
+      "flags": [
+        {
+          "flag": "-d",
+          "long": "--decode",
+          "desc": "Decode Base64 input"
+        },
+        {
+          "flag": "-w",
+          "long": "--wrap",
+          "desc": "Wrap encoded lines at N characters (0 to disable)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "echo -n 'admin:password' | base64",
+          "desc": "Create Basic Auth header value"
+        },
+        {
+          "cmd": "echo 'YWRtaW46cGFzc3dvcmQ=' | base64 -d",
+          "desc": "Decode Base64 string"
+        },
+        {
+          "cmd": "kubectl get secret mysecret -o jsonpath='{.data.password}' | base64 -d",
+          "desc": "Decode a Kubernetes secret value"
+        },
+        {
+          "cmd": "cat cert.pem | base64 -w 0",
+          "desc": "Base64 encode certificate without line wraps"
+        }
+      ],
+      "suggestions": [
+        "openssl",
+        "kubectl",
+        "jq"
+      ],
+      "pro_tip": "Use `echo -n` (no newline) before piping to base64 — without -n, the newline character is included in the encoding and your decoded value will have a trailing newline."
+    },
+    {
+      "name": "column",
+      "summary": "Format text into aligned columns for readable tabular output.",
+      "risk": "low",
+      "risk_reason": "Read-only display transformation.",
+      "explanation": "column formats text into evenly-spaced columns, making tabular data human-readable. The -t flag auto-detects and aligns fields. Transforms messy whitespace-separated output into a table without writing awk.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--table",
+          "desc": "Auto-align into table format"
+        },
+        {
+          "flag": "-s",
+          "long": "--separator",
+          "desc": "Set input field separator"
+        },
+        {
+          "flag": "-o",
+          "long": "--output-separator",
+          "desc": "Set output column separator"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "cat /etc/passwd | cut -d: -f1,3,7 | column -t -s:",
+          "desc": "Show users/uid/shell as aligned table"
+        },
+        {
+          "cmd": "mount | column -t",
+          "desc": "Format mount output as aligned table"
+        },
+        {
+          "cmd": "echo -e 'Name Age\\nAlice 30\\nBob 25' | column -t",
+          "desc": "Simple table from stdin"
+        }
+      ],
+      "suggestions": [
+        "awk",
+        "cut",
+        "sort"
+      ],
+      "pro_tip": "Pipe any space-separated output through `column -t` for instant readability — especially useful for custom monitoring scripts that emit structured data."
+    },
+    {
+      "name": "printf",
+      "summary": "Format and print data with precise control over output format.",
+      "risk": "low",
+      "risk_reason": "Read-only output.",
+      "explanation": "printf formats output using format specifiers (like C printf). More predictable than echo — doesn't add a newline by default, handles escape sequences consistently, and supports format strings for aligned output in scripts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "printf 'Name: %s\\nAge: %d\\n' 'Alice' 30",
+          "desc": "Formatted multi-line output"
+        },
+        {
+          "cmd": "printf '%10s %5s\\n' 'Host' 'Status'",
+          "desc": "Right-aligned column headers"
+        },
+        {
+          "cmd": "printf '%.2f\\n' 3.14159",
+          "desc": "Print float with 2 decimal places"
+        },
+        {
+          "cmd": "printf '%b' '\\033[32mGreen Text\\033[0m\\n'",
+          "desc": "Print colored text in scripts"
+        }
+      ],
+      "suggestions": [
+        "echo",
+        "tee",
+        "column"
+      ],
+      "pro_tip": "Use printf instead of echo in scripts for portability — echo behavior with -e and escape sequences varies across shells and implementations."
+    },
+    {
+      "name": "patch",
+      "summary": "Apply a diff/patch file to update source files.",
+      "risk": "medium",
+      "risk_reason": "Modifies files; backup before applying unknown patches.",
+      "cautions": [
+        "Back up first (-b) or run --dry-run to check the patch applies cleanly.",
+        "Patches from untrusted sources can modify any file under the target directory.",
+        "The wrong -p strip level patches the wrong files."
+      ],
+      "explanation": "patch applies changes described in a diff file to the original files. The standard workflow is: generate a patch with diff -u, review it, then apply with patch. Used for distributing fixes without sending full files.",
+      "flags": [
+        {
+          "flag": "-p",
+          "long": "--strip",
+          "desc": "Strip N leading path components from filenames"
+        },
+        {
+          "flag": "-R",
+          "long": "--reverse",
+          "desc": "Reverse: undo a previously applied patch"
+        },
+        {
+          "flag": "--dry-run",
+          "desc": "Preview what patch would do without applying"
+        },
+        {
+          "flag": "-b",
+          "long": "--backup",
+          "desc": "Backup original files before patching"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "patch -p1 < fix.patch",
+          "desc": "Apply patch (strip 1 path component, standard for git patches)"
+        },
+        {
+          "cmd": "patch --dry-run -p1 < fix.patch",
+          "desc": "Preview patch application"
+        },
+        {
+          "cmd": "patch -R -p1 < fix.patch",
+          "desc": "Reverse (undo) a patch"
+        },
+        {
+          "cmd": "git diff HEAD~1 HEAD > change.patch && patch -p1 < change.patch",
+          "desc": "Backport a git commit as a patch"
+        }
+      ],
+      "suggestions": [
+        "diff",
+        "git cherry-pick",
+        "sed"
+      ],
+      "pro_tip": "Always use `patch --dry-run` first to verify a patch applies cleanly before committing — especially critical for patches from external sources against your specific version."
+    },
+    {
+      "name": "strings",
+      "summary": "Extract printable strings from binary files.",
+      "risk": "low",
+      "risk_reason": "Read-only inspection.",
+      "explanation": "strings extracts sequences of printable characters from binary files — useful for quickly inspecting executables for embedded configuration, version strings, URLs, credentials, or other readable content without a full reverse engineering setup.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--bytes",
+          "desc": "Minimum string length (default: 4)"
+        },
+        {
+          "flag": "-a",
+          "long": "--all",
+          "desc": "Scan entire file (not just data sections)"
+        },
+        {
+          "flag": "-e",
+          "long": "--encoding",
+          "desc": "Character encoding to detect"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "strings /usr/bin/curl | grep -i version",
+          "desc": "Find version string in curl binary"
+        },
+        {
+          "cmd": "strings malware.bin | grep -E 'https?://'",
+          "desc": "Extract URLs from a binary"
+        },
+        {
+          "cmd": "strings config.bin | grep -i password",
+          "desc": "Find hardcoded credentials (security audit)"
+        }
+      ],
+      "suggestions": [
+        "file",
+        "xxd",
+        "grep"
+      ],
+      "pro_tip": "Use `strings -n 8 binary | grep -E '^[a-zA-Z]{8,}$'` to filter out noise — longer minimum length and letter-only filter finds meaningful text like hostnames and keys."
+    },
+    {
+      "name": "xxd",
+      "summary": "Create or reverse a hex dump of binary data.",
+      "risk": "low",
+      "risk_reason": "Reverse mode (-r) can overwrite files.",
+      "explanation": "xxd creates hex dumps of files showing both hex values and ASCII representation, and can reverse hex back to binary. Used for inspecting binary file formats, debugging network protocols, and examining any file at the byte level.",
+      "flags": [
+        {
+          "flag": "-r",
+          "long": "--reverse",
+          "desc": "Reverse: convert hex dump back to binary"
+        },
+        {
+          "flag": "-l",
+          "long": "--len",
+          "desc": "Stop after N bytes"
+        },
+        {
+          "flag": "-s",
+          "long": "--seek",
+          "desc": "Start at offset"
+        },
+        {
+          "flag": "-c",
+          "long": "--cols",
+          "desc": "Bytes per row (default: 16)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "xxd /usr/bin/ls | head -5",
+          "desc": "View first few bytes of a binary (check magic bytes)"
+        },
+        {
+          "cmd": "echo 'hello' | xxd",
+          "desc": "Hex dump of a string"
+        },
+        {
+          "cmd": "xxd -l 16 /dev/urandom",
+          "desc": "Generate 16 random bytes as hex"
+        },
+        {
+          "cmd": "xxd -r hex.txt > binary.out",
+          "desc": "Convert hex dump back to binary"
+        }
+      ],
+      "suggestions": [
+        "strings",
+        "file",
+        "base64"
+      ],
+      "pro_tip": "Use `xxd -l 4 file` to read just the first 4 bytes (magic number) — fast file type verification at the byte level. ELF binaries start with 7f454c46, PNG with 89504e47."
+    },
+    {
+      "name": "awk advanced",
+      "kind": "topic",
+      "parent": "awk",
+      "summary": "Advanced awk: multi-condition processing, BEGIN/END blocks, associative arrays.",
+      "risk": "low",
+      "risk_reason": "Read-only text processing.",
+      "explanation": "awk is a full programming language embedded in the shell pipeline. Beyond simple field printing, it supports BEGIN/END blocks for pre/post processing, associative arrays for aggregation, conditional logic, and arithmetic — replacing Python for many data processing tasks.",
+      "flags": [
+        {
+          "flag": "-F",
+          "desc": "Set field separator"
+        },
+        {
+          "flag": "-v",
+          "desc": "Set variable before processing begins"
+        },
+        {
+          "flag": "-f",
+          "desc": "Read awk program from file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "awk 'BEGIN{sum=0} {sum+=$5} END{print \"Total:\",sum}' access.log",
+          "desc": "Sum a column across all lines"
+        },
+        {
+          "cmd": "awk -F: '$3>=1000{print $1,$3}' /etc/passwd",
+          "desc": "Print users with UID >= 1000 (non-system users)"
+        },
+        {
+          "cmd": "awk '{count[$9]++} END{for(code in count) print code, count[code]}' access.log | sort -k2 -rn",
+          "desc": "Count HTTP status codes in access log"
+        },
+        {
+          "cmd": "awk 'NR%2==0' file.txt",
+          "desc": "Print even-numbered lines"
+        },
+        {
+          "cmd": "awk '/START/,/END/' logfile",
+          "desc": "Print lines between two patterns"
+        }
+      ],
+      "suggestions": [
+        "sed",
+        "cut",
+        "jq"
+      ],
+      "pro_tip": "Use `awk '{count[$1]++} END{for(k in count) print count[k], k}' | sort -rn` for instant frequency analysis of any column — replaces sort|uniq -c for multi-field grouping."
+    },
+    {
+      "name": "sed advanced",
+      "kind": "topic",
+      "parent": "sed",
+      "summary": "Advanced sed: multi-line editing, in-place replacement, complex patterns.",
+      "risk": "medium",
+      "risk_reason": "In-place editing (-i) modifies files; backup with -i.bak first.",
+      "cautions": [
+        "-i modifies files in place — use -i.bak.",
+        "Complex multi-line scripts are hard to review; keep them in a file (-f script.sed).",
+        "Test on a copy of the file first."
+      ],
+      "explanation": "Beyond simple substitution, sed supports in-place file editing, multi-line patterns, address ranges, and script files. The -i flag is essential for automated config management — patching configuration files without opening an editor.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Edit file in-place (-i.bak to backup)"
+        },
+        {
+          "flag": "-n",
+          "desc": "Suppress automatic print (use with p)"
+        },
+        {
+          "flag": "-e",
+          "desc": "Add script expression"
+        },
+        {
+          "flag": "-r/-E",
+          "desc": "Extended regular expressions"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sed -i.bak 's/old_value/new_value/g' config.ini",
+          "desc": "Replace string in-place with backup"
+        },
+        {
+          "cmd": "sed -n '10,20p' large_file.log",
+          "desc": "Print only lines 10-20"
+        },
+        {
+          "cmd": "sed '/^#/d; /^$/d' config.conf",
+          "desc": "Remove comments and blank lines"
+        },
+        {
+          "cmd": "sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config",
+          "desc": "Patch a config file in-place"
+        },
+        {
+          "cmd": "sed -n '/ERROR/p' app.log",
+          "desc": "Print only lines containing ERROR"
+        }
+      ],
+      "suggestions": [
+        "awk advanced",
+        "grep",
+        "patch"
+      ],
+      "pro_tip": "Always use `-i.bak` in scripts for in-place edits — creates a backup automatically. Remove backup files with `find . -name '*.bak' -delete` after confirming changes.",
+      "low_when": [
+        "\\s-n\\b"
+      ],
+      "low_unless": [
+        "\\s-i|--in-place"
+      ]
+    },
+    {
+      "name": "grep advanced",
+      "kind": "topic",
+      "parent": "grep",
+      "summary": "Advanced grep: recursive search, context, PCRE patterns, and file filtering.",
+      "risk": "low",
+      "risk_reason": "Read-only search.",
+      "explanation": "Beyond basic pattern matching, grep supports recursive directory search, context lines around matches, Perl-compatible regex (PCRE), and filtering by file type. Used heavily for log analysis, code search, and configuration auditing.",
+      "flags": [
+        {
+          "flag": "-r/-R",
+          "desc": "Recursive directory search"
+        },
+        {
+          "flag": "-l",
+          "long": "--files-with-matches",
+          "desc": "Print only filenames, not matches"
+        },
+        {
+          "flag": "-c",
+          "long": "--count",
+          "desc": "Print match count per file"
+        },
+        {
+          "flag": "-A/-B/-C",
+          "desc": "Lines After/Before/Context of match"
+        },
+        {
+          "flag": "-P",
+          "long": "--perl-regexp",
+          "desc": "Perl-compatible regex (PCRE)"
+        },
+        {
+          "flag": "--include",
+          "desc": "Only search files matching pattern"
+        },
+        {
+          "flag": "-v",
+          "long": "--invert-match",
+          "desc": "Print non-matching lines"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "grep -rn 'password' /etc/ --include='*.conf' 2>/dev/null",
+          "desc": "Find password references in all config files"
+        },
+        {
+          "cmd": "grep -A 5 -B 2 'CRITICAL' /var/log/app.log",
+          "desc": "Show 5 lines after and 2 before each CRITICAL match"
+        },
+        {
+          "cmd": "grep -P '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}' access.log",
+          "desc": "Extract IPv4 addresses using PCRE"
+        },
+        {
+          "cmd": "grep -rL 'strict_mode' /etc/mysql/conf.d/",
+          "desc": "Find config files that DON'T have strict_mode"
+        },
+        {
+          "cmd": "grep -c 'ERROR' /var/log/*.log | sort -t: -k2 -rn | head -5",
+          "desc": "Files with most ERROR lines"
+        }
+      ],
+      "suggestions": [
+        "awk advanced",
+        "sed advanced",
+        "find"
+      ],
+      "pro_tip": "Use `grep -rn 'pattern' . --include='*.py' --exclude-dir='.git'` for code search — the include/exclude flags prevent searching binaries and version control directories."
+    },
+    {
+      "name": "echo",
+      "summary": "Print text",
+      "risk": "low",
+      "risk_reason": "Prints text; can expose secrets if variables are expanded into logs.",
+      "cautions": [
+        "`echo $SECRET` in CI logs or shared terminals leaks the secret.",
+        "`> file` truncates the target; use >> to append."
+      ],
+      "explanation": "Writes its arguments to standard output. Behavior of -e/-n differs between shells; printf is more portable.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Do not print the trailing newline"
+        },
+        {
+          "flag": "-e",
+          "desc": "Interpret backslash escapes (bash)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "echo \"$PATH\"",
+          "desc": "Show PATH"
+        },
+        {
+          "cmd": "echo \"line\" >> file.txt",
+          "desc": "Append a line to a file"
+        }
+      ],
+      "suggestions": [
+        "printf",
+        "tee",
+        "cat"
+      ]
+    },
+    {
+      "name": "nl",
+      "summary": "Number lines",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints a file with line numbers (only for non-empty lines by default).",
+      "flags": [
+        {
+          "flag": "-ba",
+          "desc": "Number all lines"
+        },
+        {
+          "flag": "-w",
+          "desc": "Number width"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nl -ba file.txt",
+          "desc": "Number every line"
+        }
+      ],
+      "suggestions": [
+        "cat",
+        "wc"
+      ]
+    },
+    {
+      "name": "paste",
+      "summary": "Merge lines of files side by side",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Joins corresponding lines of files using a delimiter (default tab).",
+      "flags": [
+        {
+          "flag": "-d",
+          "desc": "Delimiter"
+        },
+        {
+          "flag": "-s",
+          "desc": "Serial: join all lines of one file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "paste -sd, file.txt",
+          "desc": "Join lines with commas"
+        },
+        {
+          "cmd": "paste a.txt b.txt",
+          "desc": "Two columns"
+        }
+      ],
+      "suggestions": [
+        "join",
+        "cut"
+      ]
+    },
+    {
+      "name": "join",
+      "summary": "Join lines of two sorted files on a field",
+      "risk": "low",
+      "risk_reason": "Read-only; unsorted input yields wrong results.",
+      "explanation": "Relational join of two files on a common field. Inputs must be sorted on the join field.",
+      "flags": [
+        {
+          "flag": "-1",
+          "desc": "Join field in file 1"
+        },
+        {
+          "flag": "-2",
+          "desc": "Join field in file 2"
+        },
+        {
+          "flag": "-t",
+          "desc": "Field separator"
+        },
+        {
+          "flag": "-a",
+          "desc": "Also print unpairable lines"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "join -t, a.csv b.csv",
+          "desc": "Join CSV files on the first field"
+        }
+      ],
+      "suggestions": [
+        "sort",
+        "paste"
+      ]
+    },
+    {
+      "name": "comm",
+      "summary": "Compare two sorted files line by line",
+      "risk": "low",
+      "risk_reason": "Read-only; inputs must be sorted.",
+      "explanation": "Shows lines unique to each file and lines common to both.",
+      "flags": [
+        {
+          "flag": "-12",
+          "desc": "Show only common lines"
+        },
+        {
+          "flag": "-23",
+          "desc": "Show lines only in file 1"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "comm -23 <(sort a) <(sort b)",
+          "desc": "Lines in a but not in b"
+        }
+      ],
+      "suggestions": [
+        "diff",
+        "sort",
+        "uniq"
+      ]
+    },
+    {
+      "name": "tac",
+      "summary": "Print file lines in reverse",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Like cat, but prints the last line first.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tac /var/log/syslog | head",
+          "desc": "Newest log lines first"
+        }
+      ],
+      "suggestions": [
+        "cat",
+        "tail"
+      ]
+    },
+    {
+      "name": "rev",
+      "summary": "Reverse characters in each line",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Reverses each line character by character.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "echo hello | rev",
+          "desc": "olleh"
+        }
+      ],
+      "suggestions": [
+        "tac"
+      ]
+    },
+    {
+      "name": "fold",
+      "summary": "Wrap long lines",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Wraps input lines to a given width. See the flags and examples below, and run `man fold` for the full reference.",
+      "flags": [
+        {
+          "flag": "-w",
+          "desc": "Width"
+        },
+        {
+          "flag": "-s",
+          "desc": "Break at spaces"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fold -s -w 80 long.txt",
+          "desc": "Wrap at 80 columns"
+        }
+      ],
+      "suggestions": [
+        "fmt",
+        "cut"
+      ]
+    },
+    {
+      "name": "fmt",
+      "summary": "Reformat paragraphs",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Reflows text to a target width. See the flags and examples below, and run `man fmt` for the full reference.",
+      "flags": [
+        {
+          "flag": "-w",
+          "desc": "Maximum width"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fmt -w 72 notes.txt",
+          "desc": "Wrap prose at 72 columns"
+        }
+      ],
+      "suggestions": [
+        "fold"
+      ]
+    },
+    {
+      "name": "expand",
+      "summary": "Convert tabs to spaces",
+      "risk": "low",
+      "risk_reason": "Read-only unless redirected over the source.",
+      "cautions": [
+        "`expand f > f` truncates the file before reading it — write to a new file."
+      ],
+      "explanation": "Replaces tabs with spaces. See the flags and examples below, and run `man expand` for the full reference.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Tab stop width"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "expand -t 4 file.py > out.py",
+          "desc": "Tabs to 4 spaces"
+        }
+      ],
+      "suggestions": [
+        "unexpand"
+      ]
+    },
+    {
+      "name": "iconv",
+      "summary": "Convert text encodings",
+      "risk": "low",
+      "risk_reason": "Output can silently lose characters if the target encoding cannot represent them.",
+      "cautions": [
+        "-c silently discards unconvertible characters.",
+        "Write to a new file; do not redirect onto the input."
+      ],
+      "explanation": "Converts between character encodings such as ISO-8859-1 and UTF-8.",
+      "flags": [
+        {
+          "flag": "-f",
+          "desc": "Source encoding"
+        },
+        {
+          "flag": "-t",
+          "desc": "Target encoding"
+        },
+        {
+          "flag": "-c",
+          "desc": "Drop characters that cannot be converted"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iconv -f ISO-8859-1 -t UTF-8 in.txt > out.txt",
+          "desc": "Convert to UTF-8"
+        }
+      ],
+      "suggestions": [
+        "file"
+      ]
+    },
+    {
+      "name": "dos2unix",
+      "summary": "Convert Windows line endings",
+      "risk": "medium",
+      "risk_reason": "Edits files in place.",
+      "cautions": [
+        "Modifies files in place — use -n or keep a copy under version control.",
+        "Running it on binary files corrupts them (the tool normally skips them)."
+      ],
+      "explanation": "Converts CRLF to LF (and unix2dos does the reverse). Fixes “bad interpreter: ^M” errors in scripts.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Write to a new file"
+        },
+        {
+          "flag": "-k",
+          "desc": "Keep timestamps"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dos2unix script.sh",
+          "desc": "Fix a script in place"
+        },
+        {
+          "cmd": "dos2unix -n in.txt out.txt",
+          "desc": "Convert to a new file"
+        }
+      ],
+      "suggestions": [
+        "file",
+        "sed"
+      ]
+    },
+    {
+      "name": "zless",
+      "summary": "View compressed files",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Pager for gzip-compressed files. See the flags and examples below, and run `man zless` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "zless /var/log/syslog.1.gz",
+          "desc": "Browse a rotated log"
+        }
+      ],
+      "suggestions": [
+        "less",
+        "zcat"
+      ]
+    },
+    {
+      "name": "egrep",
+      "summary": "Extended grep",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Equivalent to grep -E; deprecated spelling in favour of grep -E.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "egrep \"error|fail\" log",
+          "desc": "Match either word"
+        }
+      ],
+      "suggestions": [
+        "grep"
+      ]
+    },
+    {
+      "name": "rg",
+      "summary": "ripgrep: fast recursive search",
+      "risk": "low",
+      "risk_reason": "Read-only; respects .gitignore and skips hidden files by default so results may look incomplete.",
+      "cautions": [
+        "Ignored/hidden files are skipped — use --hidden or -uu if a match is missing."
+      ],
+      "explanation": "A fast grep replacement that searches recursively, with sensible defaults.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Case-insensitive"
+        },
+        {
+          "flag": "-n",
+          "desc": "Line numbers (default in a terminal)"
+        },
+        {
+          "flag": "-g",
+          "desc": "Glob include/exclude"
+        },
+        {
+          "flag": "--hidden",
+          "long": "--hidden",
+          "desc": "Include hidden files"
+        },
+        {
+          "flag": "-uu",
+          "desc": "Also ignore .gitignore and binary filters"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rg \"TODO\" src",
+          "desc": "Search a directory"
+        },
+        {
+          "cmd": "rg -g \"*.go\" -i handler",
+          "desc": "Only Go files, case-insensitive"
+        }
+      ],
+      "suggestions": [
+        "grep",
+        "find"
+      ]
+    },
+    {
+      "name": "fd",
+      "summary": "Fast, friendly find alternative",
+      "risk": "low",
+      "risk_reason": "Read-only; skips hidden/ignored files by default.",
+      "cautions": [
+        "-x runs a command per match — preview with `fd -e tmp` before adding `-x rm`."
+      ],
+      "explanation": "Simpler syntax than find with colored output and .gitignore awareness.",
+      "flags": [
+        {
+          "flag": "-H",
+          "desc": "Include hidden files"
+        },
+        {
+          "flag": "-I",
+          "desc": "Ignore .gitignore rules"
+        },
+        {
+          "flag": "-e",
+          "desc": "Filter by extension"
+        },
+        {
+          "flag": "-x",
+          "desc": "Execute a command per result"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "fd -e log",
+          "desc": "Find .log files"
+        },
+        {
+          "cmd": "fd -e tmp -x rm",
+          "desc": "Delete matching files"
+        }
+      ],
+      "suggestions": [
+        "find",
+        "locate"
+      ]
+    },
+    {
+      "name": "bat",
+      "summary": "cat with syntax highlighting",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "A cat clone with syntax highlighting, line numbers and git integration (batcat on Debian).",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Numbers only"
+        },
+        {
+          "flag": "-A",
+          "desc": "Show non-printable characters"
+        },
+        {
+          "flag": "-l",
+          "desc": "Force a language"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "bat /etc/nginx/nginx.conf",
+          "desc": "Pretty-print a file"
+        }
+      ],
+      "suggestions": [
+        "cat",
+        "less"
+      ]
+    },
+    {
+      "name": "shuf",
+      "summary": "Shuffle or pick random lines",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Randomly permutes input lines or picks N of them.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Number of lines to output"
+        },
+        {
+          "flag": "-e",
+          "desc": "Treat arguments as lines"
+        },
+        {
+          "flag": "-i",
+          "desc": "Pick random numbers from a range"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "shuf -n 5 words.txt",
+          "desc": "Five random lines"
+        },
+        {
+          "cmd": "shuf -i 1-100 -n 1",
+          "desc": "A random number"
+        }
+      ],
+      "suggestions": [
+        "sort",
+        "seq"
+      ]
+    },
+    {
+      "name": "seq",
+      "summary": "Print a sequence of numbers",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Generates numeric sequences for loops and tests.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Separator"
+        },
+        {
+          "flag": "-w",
+          "desc": "Equal-width padding"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "seq 1 10",
+          "desc": "1 to 10"
+        },
+        {
+          "cmd": "seq -w 1 5",
+          "desc": "01 … 05"
+        }
+      ],
+      "suggestions": [
+        "shuf"
+      ]
+    },
+    {
+      "name": "envsubst",
+      "summary": "Substitute environment variables in text",
+      "risk": "medium",
+      "risk_reason": "Can expand secrets into output files and logs.",
+      "cautions": [
+        "Unlisted variables become empty strings silently — restrict substitution to a variable list.",
+        "Rendered files may contain secrets; protect their permissions."
+      ],
+      "explanation": "Replaces $VAR placeholders in a template with environment values — common in config rendering.",
+      "flags": [
+        {
+          "flag": "$VARS",
+          "desc": "Limit substitution to listed variables (argument)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "envsubst '$HOST $PORT' < tpl > out",
+          "desc": "Substitute only HOST and PORT"
+        }
+      ],
+      "suggestions": [
+        "sed",
+        "printf"
+      ]
+    },
+    {
+      "name": "xmllint",
+      "summary": "Parse and validate XML",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Formats, validates and queries XML with XPath.",
+      "flags": [
+        {
+          "flag": "--format",
+          "long": "--format",
+          "desc": "Pretty-print"
+        },
+        {
+          "flag": "--xpath",
+          "long": "--xpath",
+          "desc": "Evaluate an XPath expression"
+        },
+        {
+          "flag": "--noout",
+          "long": "--noout",
+          "desc": "Do not print the document"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "xmllint --format file.xml",
+          "desc": "Pretty-print"
+        },
+        {
+          "cmd": "xmllint --xpath \"//item/@id\" file.xml",
+          "desc": "Query attributes"
+        }
+      ],
+      "suggestions": [
+        "jq",
+        "yq"
+      ]
+    },
+    {
+      "name": "csvkit",
+      "kind": "topic",
+      "match": [
+        "csvcut",
+        "csvgrep",
+        "csvstat",
+        "csvlook",
+        "csvsql",
+        "in2csv",
+        "csvkit"
+      ],
+      "parent": "cut",
+      "summary": "CSV tools suite",
+      "risk": "low",
+      "risk_reason": "Read-only unless writing files.",
+      "explanation": "A set of command-line CSV tools: csvcut, csvgrep, csvstat, csvsql, in2csv.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "csvcut -c name,email people.csv",
+          "desc": "Select columns"
+        },
+        {
+          "cmd": "csvstat data.csv",
+          "desc": "Summary statistics"
+        }
+      ],
+      "suggestions": [
+        "awk",
+        "jq",
+        "cut"
+      ]
+    },
+    {
+      "name": "ed",
+      "summary": "Line editor",
+      "risk": "low",
+      "risk_reason": "Edits files non-interactively when scripted.",
+      "cautions": [
+        "Edits in place with no backup — copy the file first."
+      ],
+      "explanation": "Classic line editor; useful in scripts for in-place edits. `ed` commands are read from stdin.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "printf '%s\\n' ',s/old/new/g' w q | ed -s file",
+          "desc": "Replace text in a file"
+        }
+      ],
+      "suggestions": [
+        "sed",
+        "vim"
+      ]
+    },
+    {
+      "name": "vim",
+      "summary": "Vi IMproved text editor",
+      "risk": "medium",
+      "risk_reason": "Edits files directly; swap/undo files can store sensitive data.",
+      "cautions": [
+        "Use `sudoedit` instead of `sudo vim` so plugins and your config do not run as root.",
+        "Swap, backup and viminfo files can contain secrets — use `vim -n` or `set noswapfile` for sensitive files.",
+        "Editing live config directly can break services: test (nginx -t, visudo -c) before reloading."
+      ],
+      "explanation": "Modal text editor. Esc to command mode, :wq to save and quit, :q! to quit without saving.",
+      "flags": [
+        {
+          "flag": "-R",
+          "desc": "Open read-only"
+        },
+        {
+          "flag": "-d",
+          "desc": "Diff mode"
+        },
+        {
+          "flag": "-n",
+          "desc": "No swap file"
+        },
+        {
+          "flag": "-u NONE",
+          "desc": "Start with no config"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "vim /etc/hosts",
+          "desc": "Edit a file (use sudoedit for root files)"
+        },
+        {
+          "cmd": "vim -d a b",
+          "desc": "Diff two files"
+        }
+      ],
+      "suggestions": [
+        "nano",
+        "sed",
+        "sudo"
+      ]
+    },
+    {
+      "name": "nano",
+      "summary": "Simple terminal text editor",
+      "risk": "medium",
+      "risk_reason": "Edits files directly; mistakes in system configs can break services.",
+      "cautions": [
+        "Wrapped lines in config files like fstab or sshd_config can silently break them — use -w.",
+        "Validate config syntax before reloading services."
+      ],
+      "explanation": "Beginner-friendly editor. Ctrl+O writes, Ctrl+X exits, Ctrl+W searches.",
+      "flags": [
+        {
+          "flag": "-w",
+          "desc": "Disable line wrapping (important for config files)"
+        },
+        {
+          "flag": "-B",
+          "desc": "Backup existing file"
+        },
+        {
+          "flag": "-l",
+          "desc": "Show line numbers"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nano -w /etc/fstab",
+          "desc": "Edit without wrapping lines"
+        },
+        {
+          "cmd": "sudoedit /etc/hosts",
+          "desc": "Edit a root-owned file safely"
+        }
+      ],
+      "suggestions": [
+        "vim",
+        "sudo"
+      ]
+    },
+    {
+      "name": "od",
+      "match": [
+        "od"
+      ],
+      "summary": "Dump bytes in octal/other formats",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Octal dump of files. See the flags and examples below, and run `man od` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "od -An -tx1 file | head",
+          "desc": "Hex bytes"
+        }
+      ],
+      "suggestions": [
+        "xxd",
+        "hexdump"
+      ]
+    },
+    {
+      "name": "hexdump",
+      "match": [
+        "hexdump"
+      ],
+      "summary": "Hex dump",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Displays files in hex and ASCII. See the flags and examples below, and run `man hexdump` for the full reference.",
+      "flags": [
+        {
+          "flag": "-C",
+          "desc": "Canonical hex+ASCII"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "hexdump -C file | head",
+          "desc": "Hex view"
+        }
+      ],
+      "suggestions": [
+        "xxd",
+        "od"
+      ]
+    },
+    {
+      "name": "cksum",
+      "match": [
+        "cksum"
+      ],
+      "summary": "CRC checksum",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "POSIX CRC; not cryptographic. See the flags and examples below, and run `man cksum` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "cksum file",
+          "desc": "CRC and size"
+        }
+      ],
+      "suggestions": [
+        "sha256sum"
+      ]
+    },
+    {
+      "name": "pr",
+      "match": [
+        "pr"
+      ],
+      "summary": "Paginate text for printing",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Formats text into pages/columns. See the flags and examples below, and run `man pr` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pr -3 -t list.txt",
+          "desc": "Three columns"
+        }
+      ],
+      "suggestions": [
+        "column"
+      ]
+    },
+    {
+      "name": "tsort",
+      "match": [
+        "tsort"
+      ],
+      "summary": "Topological sort",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Sorts dependency pairs. See the flags and examples below, and run `man tsort` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tsort deps.txt",
+          "desc": "Order"
+        }
+      ],
+      "suggestions": [
+        "sort"
+      ]
+    },
+    {
+      "name": "look",
+      "match": [
+        "look"
+      ],
+      "summary": "Find lines starting with a prefix",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Binary search in sorted files/dictionary.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "look prefix wordlist",
+          "desc": "Prefix match"
+        }
+      ],
+      "suggestions": [
+        "grep"
+      ]
+    },
+    {
+      "name": "sponge",
+      "match": [
+        "sponge"
+      ],
+      "summary": "Soak up input before writing a file",
+      "risk": "medium",
+      "risk_reason": "Overwrites the target file.",
+      "cautions": [
+        "Overwrites the file at the end — keep a backup."
+      ],
+      "explanation": "From moreutils: lets you modify a file in a pipeline.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "jq '.x=1' f.json | sponge f.json",
+          "desc": "Safe in-place edit"
+        }
+      ],
+      "suggestions": [
+        "tee"
+      ]
+    },
+    {
+      "name": "gawk",
+      "match": [
+        "gawk"
+      ],
+      "summary": "GNU awk",
+      "risk": "low",
+      "risk_reason": "Read-only unless redirected.",
+      "cautions": [
+        "-i inplace overwrites the file; use `INPLACE_SUFFIX`."
+      ],
+      "explanation": "Extended awk with -i inplace option. See the flags and examples below, and run `man gawk` for the full reference.",
+      "flags": [
+        {
+          "flag": "-i inplace",
+          "desc": "-i inplace",
+          "caution": "Edit files in place"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "gawk -F, '{s+=$3} END{print s}' sales.csv",
+          "desc": "Sum a column"
+        }
+      ],
+      "suggestions": [
+        "awk"
+      ]
+    }
+  ]
+}

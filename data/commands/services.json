@@ -1,0 +1,365 @@
+{
+  "category": "services",
+  "commands": [
+    {
+      "name": "nginx",
+      "match": [
+        "nginx"
+      ],
+      "summary": "Nginx web server",
+      "risk": "high",
+      "risk_reason": "Reloading a bad config can drop traffic.",
+      "cautions": [
+        "Always run nginx -t before reload/restart.",
+        "Reload keeps old workers if the new config is bad — restart does not.",
+        "Exposed stub_status/autoindex/server_tokens leak information."
+      ],
+      "explanation": "Web server/reverse proxy. Always test config with -t before reloading.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Test configuration"
+        },
+        {
+          "flag": "-T",
+          "desc": "Test and dump configuration"
+        },
+        {
+          "flag": "-s reload",
+          "desc": "Reload gracefully"
+        },
+        {
+          "flag": "-s stop",
+          "desc": "Stop immediately"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nginx -t",
+          "desc": "Validate config"
+        },
+        {
+          "cmd": "nginx -t && systemctl reload nginx",
+          "desc": "Safe reload"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "nginx -t && systemctl reload nginx",
+          "why": "Validate, then reload"
+        }
+      ],
+      "suggestions": [
+        "systemctl",
+        "curl"
+      ],
+      "low_when": [
+        "\\s-(t|T|v|V)\\b"
+      ],
+      "low_unless": [
+        "-s\\s+(stop|quit|reopen)"
+      ]
+    },
+    {
+      "name": "apachectl",
+      "match": [
+        "apachectl"
+      ],
+      "summary": "Apache control",
+      "risk": "high",
+      "risk_reason": "Restart drops connections; bad config prevents start.",
+      "cautions": [
+        "Run configtest before graceful/restart."
+      ],
+      "explanation": "Controls the Apache HTTP server. See the flags and examples below, and run `man apachectl` for the full reference.",
+      "flags": [
+        {
+          "flag": "configtest",
+          "desc": "Syntax check"
+        },
+        {
+          "flag": "graceful",
+          "desc": "Graceful restart"
+        },
+        {
+          "flag": "-S",
+          "desc": "Show vhosts"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "apachectl configtest",
+          "desc": "Validate"
+        },
+        {
+          "cmd": "apachectl -S",
+          "desc": "Virtual hosts"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "apachectl configtest && apachectl graceful",
+          "why": "Validate then reload"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ],
+      "low_when": [
+        "configtest|-S|-t|-M|-v"
+      ],
+      "low_unless": [
+        "stop|restart|start|graceful-stop"
+      ]
+    },
+    {
+      "name": "haproxy",
+      "match": [
+        "haproxy"
+      ],
+      "summary": "HAProxy load balancer",
+      "risk": "high",
+      "risk_reason": "Config errors or reloads affect all traffic.",
+      "cautions": [
+        "Always `haproxy -c` before reload; use graceful reloads."
+      ],
+      "explanation": "Validate with -c before reload. See the flags and examples below, and run `man haproxy` for the full reference.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Check config"
+        },
+        {
+          "flag": "-f",
+          "desc": "Config file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "haproxy -c -f /etc/haproxy/haproxy.cfg",
+          "desc": "Validate"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ],
+      "low_when": [
+        "\\s-c\\b"
+      ]
+    },
+    {
+      "name": "postfix",
+      "match": [
+        "postfix"
+      ],
+      "summary": "Postfix mail server",
+      "risk": "high",
+      "risk_reason": "Mail loops and open relays.",
+      "cautions": [
+        "Open relays get you blacklisted; `postsuper -d ALL` deletes all queued mail."
+      ],
+      "explanation": "postfix check/reload/flush; postqueue -p lists the queue.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "postqueue -p",
+          "desc": "Queue"
+        },
+        {
+          "cmd": "postfix check",
+          "desc": "Config check"
+        }
+      ],
+      "suggestions": [
+        "journalctl"
+      ],
+      "low_when": [
+        "postqueue -p|check|status"
+      ],
+      "low_unless": [
+        "flush|stop|reload|postsuper"
+      ]
+    },
+    {
+      "name": "chronyc",
+      "match": [
+        "chronyc"
+      ],
+      "summary": "Chrony NTP client",
+      "risk": "medium",
+      "risk_reason": "Stepping the clock disrupts applications.",
+      "cautions": [
+        "`makestep` or `-a makestep` jumps the clock; databases and Kerberos hate time jumps."
+      ],
+      "explanation": "Query and control chrony. See the flags and examples below, and run `man chronyc` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "chronyc tracking",
+          "desc": "Sync status"
+        },
+        {
+          "cmd": "chronyc sources -v",
+          "desc": "Sources"
+        }
+      ],
+      "suggestions": [
+        "timedatectl"
+      ],
+      "low_when": [
+        "tracking|sources|sourcestats|activity"
+      ],
+      "low_unless": [
+        "makestep|burst|offline|online"
+      ]
+    },
+    {
+      "name": "ntpq",
+      "match": [
+        "ntpq"
+      ],
+      "summary": "NTP query",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows NTP peers. See the flags and examples below, and run `man ntpq` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ntpq -p",
+          "desc": "Peers"
+        }
+      ],
+      "suggestions": [
+        "chronyc"
+      ]
+    },
+    {
+      "name": "supervisorctl",
+      "match": [
+        "supervisorctl"
+      ],
+      "summary": "Supervisor process control",
+      "risk": "medium",
+      "risk_reason": "Restarting programs interrupts them.",
+      "cautions": [
+        "`restart all` / `stop all` affects every program."
+      ],
+      "explanation": "Manage supervisor-managed processes. See the flags and examples below, and run `man supervisorctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "supervisorctl status",
+          "desc": "Status"
+        },
+        {
+          "cmd": "supervisorctl restart app",
+          "desc": "Restart"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ],
+      "low_when": [
+        "status|tail|avail"
+      ],
+      "low_unless": [
+        "restart|stop|start|reload|update|remove"
+      ]
+    },
+    {
+      "name": "pm2",
+      "match": [
+        "pm2"
+      ],
+      "summary": "Node process manager",
+      "risk": "medium",
+      "risk_reason": "Restart/delete stops apps.",
+      "cautions": [
+        "`pm2 delete all` stops everything."
+      ],
+      "explanation": "Manage Node.js processes. See the flags and examples below, and run `man pm2` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pm2 ls",
+          "desc": "List"
+        },
+        {
+          "cmd": "pm2 logs",
+          "desc": "Logs"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ],
+      "low_when": [
+        "ls|list|logs|status|monit"
+      ],
+      "low_unless": [
+        "delete|stop|restart|kill"
+      ]
+    },
+    {
+      "name": "systemd-analyze",
+      "match": [
+        "systemd-analyze"
+      ],
+      "summary": "Analyze boot and unit timing",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows boot time and unit dependencies. See the flags and examples below, and run `man systemd-analyze` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "systemd-analyze blame",
+          "desc": "Slowest units"
+        },
+        {
+          "cmd": "systemd-analyze security nginx",
+          "desc": "Hardening score"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ]
+    },
+    {
+      "name": "systemd-run",
+      "match": [
+        "systemd-run"
+      ],
+      "summary": "Run a command as a transient unit",
+      "risk": "medium",
+      "risk_reason": "Runs with systemd privileges and limits.",
+      "cautions": [
+        "As root it runs with full privileges."
+      ],
+      "explanation": "Starts a transient service/scope. See the flags and examples below, and run `man systemd-run` for the full reference.",
+      "flags": [
+        {
+          "flag": "--scope",
+          "long": "--scope",
+          "desc": "Run as a scope"
+        },
+        {
+          "flag": "-p",
+          "desc": "Set properties (MemoryMax=…)"
+        },
+        {
+          "flag": "--user",
+          "long": "--user",
+          "desc": "User manager"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "systemd-run --scope -p MemoryMax=1G ./job",
+          "desc": "Memory-limited job"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Linux Command Explainer — explain, check &amp; generate shell commands | EknathaLabs</title>
+<meta name="description" content="Paste any Linux, Kubernetes, Docker, Git or Terraform command to get a token-by-token explanation, risk level, production warnings and a safer dry-run version. Or describe what you want and get the command. {{COUNT}}+ commands, runs offline." />
+<link rel="canonical" href="{{BASE}}/" />
+<meta property="og:title" content="Linux Command Explainer — EknathaLabs" />
+<meta property="og:description" content="Explain, risk-check and generate shell commands. Pipes, chains, safer alternatives, production warnings." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="{{BASE}}/" />
+<script type="application/ld+json">{{JSONLD}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/style.css?v={{V}}" />
+<script>window.LCE_BASE="{{BASEPATH}}";</script>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle light/dark mode"><span class="tog-icon" id="togIcon">&#9790;</span> <span id="togLabel">Light</span></button>
+<div class="wrap">
+  <div class="cotd-banner" id="cotdBanner" title="Click to explain this command">
+    <div class="cotd-icon">&#10024;</div>
+    <div class="cotd-body"><div class="cotd-label">Command of the Day</div><div class="cotd-cmd" id="cotdCmd">…</div><div class="cotd-summary" id="cotdSummary"></div><div class="cotd-hint">&#8629; Click to explain this command</div></div>
+  </div>
+  <header>
+    <div class="header-top">
+      <div class="logo-row"><div class="logo-icon">&#9889;</div><div><div class="brand">EknathaLabs</div><div class="tagline">Built for Everyone</div></div></div>
+      <div class="visitor-box">
+        <div class="visitor-row"><span class="visitor-label"><span class="visitor-dot"></span>Total Visitors</span><span class="visitor-count loading" id="totalCount">—</span></div>
+        <div class="visitor-divider"></div>
+        <div class="visitor-row"><span class="visitor-label">Visitors Today</span><span class="visitor-count loading" id="todayCount">—</span></div>
+      </div>
+    </div>
+    <h1 class="headline">Linux Command<br /><span>Explainer</span></h1>
+    <p class="sub">Paste a command (pipes and chains included) for a breakdown, risk level, production warnings and a safer dry-run version — or describe what you want and get the command. {{COUNT}}+ commands. All analysis runs in your browser; only the star and visitor counters use the network.</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tabExplain">Explain a command</button>
+    <button class="tab" id="tabDescribe">Describe &rarr; command</button>
+  </div>
+
+  <div id="paneExplain">
+    <div class="terminal-box">
+      <div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">bash &#8212; eknatha@linux</span></div>
+      <div class="input-row">
+        <span class="prompt">$&nbsp;</span>
+        <input id="cmdInput" type="text" list="cmdList" placeholder="e.g.  kubectl delete pod web-1 -n production --force   or   ps aux | grep nginx | awk '{print $2}' | xargs kill -9" autocomplete="off" spellcheck="false" />
+        <datalist id="cmdList"></datalist>
+        <button class="rand-btn" onclick="randomCmd()" title="Random command"><span class="dice">&#9861;</span> Random</button>
+        <button class="go-btn" id="goExplain">Explain &#8629;</button>
+      </div>
+    </div>
+    <div class="chip-row"><span class="chip-label">Try</span>{{CHIPS}}</div>
+  </div>
+
+  <div id="paneDescribe" hidden>
+    <div class="terminal-box">
+      <div class="term-header"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="term-title">describe what you want</span></div>
+      <div class="input-row">
+        <span class="prompt">?&nbsp;</span>
+        <input id="descInput" type="text" placeholder="e.g.  find files larger than 500MB modified in the last 7 days" autocomplete="off" spellcheck="false" />
+        <button class="go-btn" id="goDescribe">Get command &#8629;</button>
+      </div>
+    </div>
+    <div class="chip-row"><span class="chip-label">Try</span>{{DESCCHIPS}}</div>
+  </div>
+
+  <div id="result"></div>
+
+  <nav class="card" aria-label="Browse commands">
+    <div class="card-title">Browse all {{COUNT}} commands</div>
+    <ul class="dir-grid">{{CATLINKS}}</ul>
+    <p><a class="btn" href="cmd/">Full command directory &rarr;</a></p>
+  </nav>
+  <noscript><p class="banner">JavaScript is needed for the interactive explainer. The command reference pages work without it.</p></noscript>
+</div>
+
+<div class="star-wrapper" style="position:relative;z-index:1">
+  <span class="star-label">Find this useful? Give it a star &#8595;</span>
+  <a class="gh-star-btn" href="https://github.com/eknatha/linux-command-explainer" target="_blank" rel="noopener"><span class="star-icon">&#11088;</span> Star on GitHub <span class="gh-star-count" id="ghStarCount">&#10024;</span></a>
+</div>
+<footer>Built with &#9829; by <a href="https://eknathalabs.com" target="_blank">EknathaLabs</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer/blob/main/CONTRIBUTING.md" target="_blank">Add a command</a> &nbsp;&middot;&nbsp; <a href="https://github.com/eknatha/linux-command-explainer" target="_blank">GitHub</a></footer>
+<script src="assets/data.js?v={{V}}"></script>
+<script src="assets/engine.js?v={{V}}"></script>
+<script src="assets/app.js?v={{V}}"></script>
+</body>
+</html>

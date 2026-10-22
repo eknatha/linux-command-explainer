@@ -1,0 +1,120 @@
+{
+  "intents": [
+    {
+      "id": "pg-backup",
+      "title": "Back up a PostgreSQL database",
+      "match": [
+        [
+          "backup",
+          "dump",
+          "export"
+        ],
+        [
+          "postgres",
+          "postgresql",
+          "pg",
+          "database"
+        ]
+      ],
+      "say": [
+        "back up a postgresql database"
+      ],
+      "slots": {
+        "database": {
+          "from": "database",
+          "default": "mydb",
+          "label": "database"
+        }
+      },
+      "cmd": "pg_dump -Fc {database} > {database}-$(date +%F).dump",
+      "notes": "Verify free disk space; test restores regularly.",
+      "alts": [],
+      "category": "databases"
+    },
+    {
+      "id": "pg-connections",
+      "title": "Active PostgreSQL queries",
+      "match": [
+        [
+          "active",
+          "running",
+          "slow",
+          "long",
+          "current"
+        ],
+        [
+          "query",
+          "queries",
+          "connections",
+          "postgres",
+          "sessions"
+        ]
+      ],
+      "say": [
+        "active postgresql queries"
+      ],
+      "slots": {},
+      "cmd": "psql -c \"SELECT pid, now()-query_start AS runtime, state, left(query,80) FROM pg_stat_activity WHERE state <> 'idle' ORDER BY runtime DESC;\"",
+      "notes": "",
+      "alts": [],
+      "category": "databases"
+    },
+    {
+      "id": "mysql-backup",
+      "title": "Back up a MySQL database",
+      "match": [
+        [
+          "backup",
+          "dump",
+          "export"
+        ],
+        [
+          "mysql",
+          "mariadb",
+          "database"
+        ]
+      ],
+      "say": [
+        "back up a mysql database"
+      ],
+      "slots": {
+        "database": {
+          "from": "database",
+          "default": "mydb",
+          "label": "database"
+        }
+      },
+      "cmd": "mysqldump --single-transaction {database} | gzip > {database}-$(date +%F).sql.gz",
+      "notes": "Avoid -p on the command line; use an option file.",
+      "alts": [],
+      "category": "databases"
+    },
+    {
+      "id": "redis-keys",
+      "title": "Look at Redis keys safely",
+      "match": [
+        [
+          "list",
+          "show",
+          "find",
+          "scan"
+        ],
+        [
+          "redis"
+        ],
+        [
+          "keys",
+          "key"
+        ]
+      ],
+      "say": [
+        "look at redis keys safely"
+      ],
+      "slots": {},
+      "cmd": "redis-cli --scan --pattern \"*\" | head",
+      "notes": "Use --scan, never KEYS * on production.",
+      "alts": [],
+      "category": "databases"
+    }
+  ]
+}

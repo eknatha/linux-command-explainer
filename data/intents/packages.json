@@ -1,0 +1,94 @@
+{
+  "intents": [
+    {
+      "id": "install-package",
+      "title": "Install a package",
+      "match": [
+        [
+          "install",
+          "add",
+          "get"
+        ],
+        [
+          "package",
+          "apt",
+          "yum",
+          "dnf",
+          "software"
+        ]
+      ],
+      "say": [
+        "install a package"
+      ],
+      "slots": {
+        "name": {
+          "from": "name",
+          "default": "htop",
+          "label": "package"
+        }
+      },
+      "cmd": "apt-get install --dry-run {name}   # then drop --dry-run",
+      "notes": "RHEL family: dnf install {name}. Review what else gets installed or removed.",
+      "alts": [],
+      "category": "packages"
+    },
+    {
+      "id": "update-system",
+      "title": "Update the system packages",
+      "match": [
+        [
+          "update",
+          "upgrade",
+          "patch"
+        ],
+        [
+          "system",
+          "packages",
+          "server",
+          "os"
+        ]
+      ],
+      "say": [
+        "update the system packages"
+      ],
+      "slots": {},
+      "cmd": "apt list --upgradable   # or: dnf check-update",
+      "notes": "List first, snapshot/back up, then upgrade in a maintenance window — kernel/libc updates may need a reboot.",
+      "alts": [],
+      "category": "packages"
+    },
+    {
+      "id": "which-package",
+      "title": "Which package owns a file",
+      "match": [
+        [
+          "which",
+          "what"
+        ],
+        [
+          "package"
+        ],
+        [
+          "file",
+          "owns",
+          "provides"
+        ]
+      ],
+      "say": [
+        "which package owns a file"
+      ],
+      "slots": {
+        "file": {
+          "from": "path",
+          "default": "/usr/bin/ls",
+          "label": "file path"
+        }
+      },
+      "cmd": "dpkg -S {file}   # RHEL: rpm -qf {file}",
+      "notes": "",
+      "alts": [],
+      "min": 2,
+      "category": "packages"
+    }
+  ]
+}

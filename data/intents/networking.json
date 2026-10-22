@@ -1,0 +1,574 @@
+{
+  "intents": [
+    {
+      "id": "test-port",
+      "title": "Test if a port is reachable",
+      "match": [
+        [
+          "test",
+          "check",
+          "is",
+          "reach",
+          "reachable",
+          "open",
+          "connect"
+        ],
+        [
+          "port",
+          "connectivity",
+          "reachable",
+          "open"
+        ]
+      ],
+      "say": [
+        "test if a port is reachable"
+      ],
+      "slots": {
+        "host": {
+          "from": "host",
+          "default": "example.com",
+          "label": "host"
+        },
+        "port": {
+          "from": "port",
+          "default": "443",
+          "label": "port"
+        }
+      },
+      "cmd": "nc -zv {host} {port}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "curl -v telnet://{host}:{port}",
+          "desc": "Alternative without nc"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "dns-lookup",
+      "title": "DNS lookup",
+      "match": [
+        [
+          "dns",
+          "lookup",
+          "resolve",
+          "nslookup",
+          "dig"
+        ],
+        [
+          "domain",
+          "hostname",
+          "record",
+          "ip",
+          "a record",
+          "dns"
+        ]
+      ],
+      "say": [
+        "dns lookup"
+      ],
+      "slots": {
+        "name": {
+          "from": "host",
+          "default": "example.com",
+          "label": "domain"
+        }
+      },
+      "cmd": "dig +short {name}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "dig {name} ANY +noall +answer",
+          "desc": "More records"
+        },
+        {
+          "cmd": "dig +trace {name}",
+          "desc": "Trace delegation"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "http-headers",
+      "title": "Show HTTP response headers",
+      "match": [
+        [
+          "show",
+          "get",
+          "check",
+          "see"
+        ],
+        [
+          "headers",
+          "header",
+          "http",
+          "status"
+        ]
+      ],
+      "say": [
+        "show http response headers"
+      ],
+      "slots": {
+        "url": {
+          "from": "url",
+          "default": "https://example.com",
+          "label": "url"
+        }
+      },
+      "cmd": "curl -sI {url}",
+      "notes": "",
+      "alts": [],
+      "category": "networking"
+    },
+    {
+      "id": "download-file",
+      "title": "Download a file",
+      "match": [
+        [
+          "download",
+          "fetch",
+          "get"
+        ],
+        [
+          "file",
+          "url",
+          "http",
+          "https",
+          "from"
+        ]
+      ],
+      "say": [
+        "download a file"
+      ],
+      "slots": {
+        "url": {
+          "from": "url",
+          "default": "https://example.com/file",
+          "label": "url"
+        }
+      },
+      "cmd": "curl -fLO {url}",
+      "notes": "Never pipe downloads into sh. Verify checksums for important files.",
+      "alts": [
+        {
+          "cmd": "wget -c {url}",
+          "desc": "wget (resumes with -c)"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "http-post-json",
+      "title": "POST JSON with curl",
+      "match": [
+        [
+          "post",
+          "send",
+          "submit"
+        ],
+        [
+          "json",
+          "api",
+          "request",
+          "http"
+        ]
+      ],
+      "say": [
+        "post json with curl"
+      ],
+      "slots": {
+        "url": {
+          "from": "url",
+          "default": "https://api.example.com/items",
+          "label": "url"
+        }
+      },
+      "cmd": "curl -sS -X POST {url} -H \"Content-Type: application/json\" -d '{\"key\":\"value\"}'",
+      "notes": "Do not put tokens on the command line in shared shells — use a header file or env var.",
+      "alts": [],
+      "category": "networking"
+    },
+    {
+      "id": "my-ip",
+      "title": "Show my IP address",
+      "match": [
+        [
+          "my",
+          "show",
+          "what",
+          "find"
+        ],
+        [
+          "ip",
+          "address",
+          "public ip",
+          "addresses"
+        ]
+      ],
+      "say": [
+        "show my ip address"
+      ],
+      "slots": {},
+      "cmd": "ip -br a && curl -s https://ifconfig.me",
+      "notes": "The curl call asks an external service for your public IP.",
+      "alts": [],
+      "category": "networking"
+    },
+    {
+      "id": "ping-host",
+      "title": "Ping a host",
+      "match": [
+        [
+          "ping",
+          "reach",
+          "alive",
+          "up"
+        ],
+        [
+          "host",
+          "server",
+          "machine",
+          "ip",
+          "connectivity"
+        ]
+      ],
+      "say": [
+        "ping a host"
+      ],
+      "slots": {
+        "host": {
+          "from": "host",
+          "default": "8.8.8.8",
+          "label": "host"
+        }
+      },
+      "cmd": "ping -c 4 {host}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "mtr -rw -c 10 {host}",
+          "desc": "Path + loss per hop"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "trace-route",
+      "title": "Trace the network path",
+      "match": [
+        [
+          "trace",
+          "traceroute",
+          "path",
+          "route",
+          "hops"
+        ],
+        [
+          "network",
+          "path",
+          "route",
+          "hops",
+          "host"
+        ]
+      ],
+      "say": [
+        "trace the network path"
+      ],
+      "slots": {
+        "host": {
+          "from": "host",
+          "default": "example.com",
+          "label": "host"
+        }
+      },
+      "cmd": "traceroute {host}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "mtr -rw -c 10 {host}",
+          "desc": "Combined ping + traceroute"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "capture-traffic",
+      "title": "Capture network traffic",
+      "match": [
+        [
+          "capture",
+          "sniff",
+          "record",
+          "tcpdump",
+          "packets"
+        ],
+        [
+          "traffic",
+          "packets",
+          "network",
+          "port",
+          "interface"
+        ]
+      ],
+      "say": [
+        "capture network traffic"
+      ],
+      "slots": {
+        "port": {
+          "from": "port",
+          "default": "80",
+          "label": "port"
+        }
+      },
+      "cmd": "tcpdump -i any -nn port {port} -c 100",
+      "notes": "Captures can contain secrets; limit with -c and filters, delete the output afterwards.",
+      "alts": [
+        {
+          "cmd": "tcpdump -i any -nn port {port} -w /tmp/cap.pcap -c 1000",
+          "desc": "Write to a file for Wireshark"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "firewall-list",
+      "title": "List firewall rules",
+      "match": [
+        [
+          "list",
+          "show",
+          "view",
+          "check"
+        ],
+        [
+          "firewall",
+          "iptables",
+          "rules",
+          "ufw",
+          "nftables",
+          "firewalld"
+        ]
+      ],
+      "say": [
+        "list firewall rules"
+      ],
+      "slots": {},
+      "cmd": "iptables -L -n -v --line-numbers",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "nft list ruleset",
+          "desc": "nftables"
+        },
+        {
+          "cmd": "ufw status verbose",
+          "desc": "ufw"
+        },
+        {
+          "cmd": "firewall-cmd --list-all",
+          "desc": "firewalld"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "open-port-firewall",
+      "title": "Open a firewall port",
+      "match": [
+        [
+          "open",
+          "allow",
+          "permit"
+        ],
+        [
+          "port",
+          "firewall"
+        ]
+      ],
+      "say": [
+        "open a firewall port"
+      ],
+      "slots": {
+        "port": {
+          "from": "port",
+          "default": "8080",
+          "label": "port"
+        }
+      },
+      "cmd": "firewall-cmd --add-port={port}/tcp   # runtime only; add --permanent to persist",
+      "notes": "Only open what you need and restrict by source where possible. Test at runtime first.",
+      "alts": [
+        {
+          "cmd": "ufw allow {port}/tcp",
+          "desc": "ufw"
+        },
+        {
+          "cmd": "iptables -A INPUT -p tcp --dport {port} -j ACCEPT",
+          "desc": "iptables (not persistent)"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "ssh-keygen",
+      "title": "Generate an SSH key",
+      "match": [
+        [
+          "generate",
+          "create",
+          "make",
+          "new"
+        ],
+        [
+          "ssh",
+          "key",
+          "keypair"
+        ]
+      ],
+      "say": [
+        "generate an ssh key"
+      ],
+      "slots": {},
+      "cmd": "ssh-keygen -t ed25519 -C \"your_email@example.com\"",
+      "notes": "Protect the private key with a passphrase; never share or commit it.",
+      "alts": [
+        {
+          "cmd": "ssh-copy-id user@host",
+          "desc": "Install the public key on a server"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "ssh-tunnel",
+      "title": "SSH port forward",
+      "match": [
+        [
+          "tunnel",
+          "forward",
+          "forwarding"
+        ],
+        [
+          "ssh",
+          "port",
+          "local",
+          "remote"
+        ]
+      ],
+      "say": [
+        "ssh port forward"
+      ],
+      "slots": {
+        "port": {
+          "from": "port",
+          "default": "5432",
+          "label": "port"
+        },
+        "host": {
+          "from": "host",
+          "default": "user@bastion",
+          "label": "host"
+        }
+      },
+      "cmd": "ssh -N -L 127.0.0.1:{port}:localhost:{port} {host}",
+      "notes": "Bind to 127.0.0.1 so the tunnel is not exposed to your network.",
+      "alts": [],
+      "category": "networking"
+    },
+    {
+      "id": "routes-show",
+      "title": "Show routing table",
+      "match": [
+        [
+          "show",
+          "list",
+          "display"
+        ],
+        [
+          "route",
+          "routes",
+          "routing",
+          "gateway"
+        ]
+      ],
+      "say": [
+        "show routing table"
+      ],
+      "slots": {},
+      "cmd": "ip route show",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "ip route get 8.8.8.8",
+          "desc": "Which route would be used"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "bandwidth-usage",
+      "title": "Network usage per process",
+      "match": [
+        [
+          "bandwidth",
+          "network",
+          "traffic"
+        ],
+        [
+          "usage",
+          "process",
+          "per",
+          "using"
+        ]
+      ],
+      "say": [
+        "network usage per process"
+      ],
+      "slots": {},
+      "cmd": "ss -tunp state established | head -30",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "iftop -i eth0",
+          "desc": "Live bandwidth per connection (install iftop)"
+        }
+      ],
+      "category": "networking"
+    },
+    {
+      "id": "cert-check",
+      "title": "Check an SSL certificate",
+      "match": [
+        [
+          "check",
+          "show",
+          "inspect",
+          "verify",
+          "expiry",
+          "expire"
+        ],
+        [
+          "ssl",
+          "tls",
+          "certificate",
+          "cert"
+        ]
+      ],
+      "say": [
+        "check an ssl certificate"
+      ],
+      "slots": {
+        "host": {
+          "from": "host",
+          "default": "example.com",
+          "label": "host"
+        }
+      },
+      "cmd": "echo | openssl s_client -connect {host}:443 -servername {host} 2>/dev/null | openssl x509 -noout -dates -subject -issuer",
+      "notes": "",
+      "alts": [],
+      "category": "networking"
+    }
+  ]
+}

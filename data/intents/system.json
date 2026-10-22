@@ -1,0 +1,714 @@
+{
+  "intents": [
+    {
+      "id": "port-usage",
+      "title": "What is using a port",
+      "match": [
+        [
+          "what",
+          "which",
+          "who",
+          "find",
+          "show",
+          "check",
+          "using"
+        ],
+        [
+          "port",
+          "listening",
+          "listen"
+        ],
+        [
+          "using",
+          "uses",
+          "process",
+          "program",
+          "listening",
+          "on"
+        ]
+      ],
+      "say": [
+        "show what is using port 8080"
+      ],
+      "slots": {
+        "port": {
+          "from": "port",
+          "default": "80",
+          "label": "port"
+        }
+      },
+      "cmd": "ss -tulnp | grep \":{port}\"",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "lsof -i :{port}",
+          "desc": "Alternative with lsof"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "listening-ports",
+      "title": "List listening ports",
+      "match": [
+        [
+          "list",
+          "show",
+          "all",
+          "open"
+        ],
+        [
+          "listening",
+          "open",
+          "ports",
+          "port",
+          "sockets"
+        ]
+      ],
+      "say": [
+        "list listening ports"
+      ],
+      "slots": {},
+      "cmd": "ss -tulnp",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "ss -s",
+          "desc": "Socket summary"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "top-memory",
+      "title": "Top memory consuming processes",
+      "match": [
+        [
+          "top",
+          "most",
+          "highest",
+          "biggest",
+          "which",
+          "show",
+          "list"
+        ],
+        [
+          "memory",
+          "ram",
+          "mem"
+        ]
+      ],
+      "say": [
+        "show top memory processes"
+      ],
+      "slots": {
+        "lines": {
+          "from": "lines",
+          "default": "10",
+          "label": "rows"
+        }
+      },
+      "cmd": "ps aux --sort=-%mem | head -{lines}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "free -h",
+          "desc": "Overall memory"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "top-cpu",
+      "title": "Top CPU consuming processes",
+      "match": [
+        [
+          "top",
+          "most",
+          "highest",
+          "busiest",
+          "which",
+          "show",
+          "list"
+        ],
+        [
+          "cpu",
+          "processor",
+          "load"
+        ]
+      ],
+      "say": [
+        "top cpu consuming processes"
+      ],
+      "slots": {
+        "lines": {
+          "from": "lines",
+          "default": "10",
+          "label": "rows"
+        }
+      },
+      "cmd": "ps aux --sort=-%cpu | head -{lines}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "top -o %CPU",
+          "desc": "Live view"
+        },
+        {
+          "cmd": "uptime",
+          "desc": "Load averages"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "memory-free",
+      "title": "Show memory usage",
+      "match": [
+        [
+          "show",
+          "check",
+          "how much",
+          "free"
+        ],
+        [
+          "memory",
+          "ram",
+          "mem",
+          "swap"
+        ]
+      ],
+      "say": [
+        "show memory usage"
+      ],
+      "slots": {},
+      "cmd": "free -h",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "vmstat 1 5",
+          "desc": "Memory/CPU activity over 5 seconds"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "find-process",
+      "title": "Find a process by name",
+      "match": [
+        [
+          "find",
+          "search",
+          "show",
+          "check",
+          "is",
+          "running"
+        ],
+        [
+          "process",
+          "processes",
+          "running",
+          "program"
+        ]
+      ],
+      "say": [
+        "find a process by name"
+      ],
+      "slots": {
+        "name": {
+          "from": "name",
+          "default": "nginx",
+          "label": "process name"
+        }
+      },
+      "cmd": "pgrep -a {name}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "ps aux | grep [{name}]",
+          "desc": "Using ps (bracket trick hides the grep itself)"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "kill-process",
+      "title": "Kill a process",
+      "match": [
+        [
+          "kill",
+          "stop",
+          "terminate",
+          "end"
+        ],
+        [
+          "process",
+          "pid",
+          "program"
+        ]
+      ],
+      "say": [
+        "kill a process"
+      ],
+      "slots": {
+        "pid": {
+          "from": "pid",
+          "label": "pid"
+        }
+      },
+      "cmd": "kill -TERM {pid}",
+      "notes": "Verify the PID first (ps -p PID). Use kill -9 only if it ignores SIGTERM.",
+      "alts": [
+        {
+          "cmd": "ps -p {pid} -o pid,user,etime,cmd",
+          "desc": "Confirm what you are about to kill"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "kill-by-name",
+      "title": "Kill processes by name",
+      "match": [
+        [
+          "kill",
+          "stop",
+          "terminate"
+        ],
+        [
+          "all",
+          "by name",
+          "named",
+          "processes"
+        ]
+      ],
+      "say": [
+        "kill processes by name"
+      ],
+      "slots": {
+        "name": {
+          "from": "name",
+          "label": "process name"
+        }
+      },
+      "cmd": "pgrep -a {name}   # review, then: pkill -x -TERM {name}",
+      "notes": "pkill matches substrings — preview with pgrep first.",
+      "alts": [],
+      "min": 2,
+      "category": "system"
+    },
+    {
+      "id": "service-restart",
+      "title": "Restart a service",
+      "match": [
+        [
+          "restart",
+          "reload",
+          "bounce"
+        ],
+        [
+          "service",
+          "daemon",
+          "nginx",
+          "apache",
+          "docker",
+          "sshd",
+          "systemd",
+          "unit"
+        ]
+      ],
+      "say": [
+        "restart a service"
+      ],
+      "slots": {
+        "service": {
+          "from": "service",
+          "default": "nginx",
+          "label": "service"
+        }
+      },
+      "cmd": "systemctl restart {service} && systemctl status {service} --no-pager",
+      "notes": "Prefer reload if supported; restarting drops connections. Run a config test first (e.g. nginx -t).",
+      "alts": [
+        {
+          "cmd": "systemctl reload {service}",
+          "desc": "Reload config without dropping connections"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "service-status",
+      "title": "Check service status",
+      "match": [
+        [
+          "status",
+          "check",
+          "is",
+          "running",
+          "state"
+        ],
+        [
+          "service",
+          "daemon",
+          "nginx",
+          "apache",
+          "docker",
+          "sshd",
+          "unit"
+        ]
+      ],
+      "say": [
+        "check service status"
+      ],
+      "slots": {
+        "service": {
+          "from": "service",
+          "default": "nginx",
+          "label": "service"
+        }
+      },
+      "cmd": "systemctl status {service} --no-pager",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "journalctl -u {service} -n 50 --no-pager",
+          "desc": "Recent logs"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "service-logs",
+      "title": "Show service logs",
+      "match": [
+        [
+          "logs",
+          "log",
+          "journal",
+          "output"
+        ],
+        [
+          "service",
+          "unit",
+          "daemon",
+          "nginx",
+          "sshd",
+          "docker"
+        ]
+      ],
+      "say": [
+        "show service logs"
+      ],
+      "slots": {
+        "service": {
+          "from": "service",
+          "default": "nginx",
+          "label": "service"
+        }
+      },
+      "cmd": "journalctl -u {service} --since \"1 hour ago\" --no-pager",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "journalctl -u {service} -f",
+          "desc": "Follow live"
+        },
+        {
+          "cmd": "journalctl -p err -b",
+          "desc": "All errors since boot"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "service-enable",
+      "title": "Start a service at boot",
+      "match": [
+        [
+          "enable",
+          "start",
+          "autostart",
+          "boot"
+        ],
+        [
+          "boot",
+          "startup",
+          "service",
+          "at boot"
+        ]
+      ],
+      "say": [
+        "start a service at boot"
+      ],
+      "slots": {
+        "service": {
+          "from": "service",
+          "default": "nginx",
+          "label": "service"
+        }
+      },
+      "cmd": "systemctl enable --now {service}",
+      "notes": "",
+      "alts": [],
+      "category": "system"
+    },
+    {
+      "id": "failed-services",
+      "title": "List failed services",
+      "match": [
+        [
+          "failed",
+          "broken",
+          "failing"
+        ],
+        [
+          "service",
+          "services",
+          "units"
+        ]
+      ],
+      "say": [
+        "list failed services"
+      ],
+      "slots": {},
+      "cmd": "systemctl --failed",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "journalctl -p err -b --no-pager | tail -50",
+          "desc": "Recent errors"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "uptime-load",
+      "title": "Show uptime and load",
+      "match": [
+        [
+          "uptime",
+          "load",
+          "how long"
+        ],
+        [
+          "load",
+          "uptime",
+          "average",
+          "running"
+        ]
+      ],
+      "say": [
+        "show uptime and load"
+      ],
+      "slots": {},
+      "cmd": "uptime && nproc",
+      "notes": "Compare load average with the CPU count from nproc.",
+      "alts": [],
+      "category": "system"
+    },
+    {
+      "id": "oom-check",
+      "title": "Check for out-of-memory kills",
+      "match": [
+        [
+          "oom",
+          "killed",
+          "out of memory"
+        ],
+        [
+          "memory",
+          "kill",
+          "killer",
+          "killed",
+          "oom"
+        ]
+      ],
+      "say": [
+        "check for out-of-memory kills"
+      ],
+      "slots": {},
+      "cmd": "dmesg -T | grep -i -E \"out of memory|oom-kill\"",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "journalctl -k -g \"Out of memory\" --no-pager",
+          "desc": "Same via the journal"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "cron-list",
+      "title": "List cron jobs",
+      "match": [
+        [
+          "list",
+          "show",
+          "view"
+        ],
+        [
+          "cron",
+          "crontab",
+          "scheduled",
+          "jobs"
+        ]
+      ],
+      "say": [
+        "list cron jobs"
+      ],
+      "slots": {},
+      "cmd": "crontab -l; ls /etc/cron.d /etc/cron.daily 2>/dev/null",
+      "notes": "Never run crontab -r — it removes all jobs without asking.",
+      "alts": [],
+      "category": "system"
+    },
+    {
+      "id": "cpu-info",
+      "title": "Show CPU info",
+      "match": [
+        [
+          "cpu",
+          "processor",
+          "cores"
+        ],
+        [
+          "show",
+          "info",
+          "how many",
+          "count",
+          "cores"
+        ]
+      ],
+      "say": [
+        "show cpu info"
+      ],
+      "slots": {},
+      "cmd": "lscpu",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "nproc",
+          "desc": "Number of cores"
+        }
+      ],
+      "category": "system"
+    },
+    {
+      "id": "os-version",
+      "title": "Show OS and kernel version",
+      "match": [
+        [
+          "os",
+          "distro",
+          "distribution",
+          "kernel",
+          "version"
+        ],
+        [
+          "version",
+          "release",
+          "which",
+          "what",
+          "show"
+        ]
+      ],
+      "say": [
+        "show os and kernel version"
+      ],
+      "slots": {},
+      "cmd": "cat /etc/os-release && uname -r",
+      "notes": "",
+      "alts": [],
+      "category": "system"
+    },
+    {
+      "id": "who-logged-in",
+      "title": "Who is logged in",
+      "match": [
+        [
+          "who",
+          "logged",
+          "login",
+          "users",
+          "sessions"
+        ],
+        [
+          "logged",
+          "online",
+          "connected",
+          "sessions",
+          "current"
+        ]
+      ],
+      "say": [
+        "who is logged in"
+      ],
+      "slots": {},
+      "cmd": "who -a && last -n 10",
+      "notes": "Login history may contain usernames and IPs — treat as sensitive.",
+      "alts": [],
+      "category": "system"
+    },
+    {
+      "id": "limit-open-files",
+      "title": "Raise open file limit",
+      "match": [
+        [
+          "open files",
+          "file descriptors",
+          "nofile",
+          "ulimit"
+        ],
+        [
+          "limit",
+          "raise",
+          "increase",
+          "too many"
+        ]
+      ],
+      "say": [
+        "raise open file limit"
+      ],
+      "slots": {
+        "name": {
+          "from": "name",
+          "default": "nginx",
+          "label": "process"
+        }
+      },
+      "cmd": "ulimit -n; cat /proc/$(pgrep -o {name})/limits | grep \"open files\"",
+      "notes": "Persist limits via /etc/security/limits.d/ or systemd LimitNOFILE=, not just ulimit.",
+      "alts": [],
+      "min": 1,
+      "category": "system"
+    },
+    {
+      "id": "schedule-job",
+      "title": "Run a command on a schedule",
+      "match": [
+        [
+          "schedule",
+          "cron",
+          "every",
+          "run"
+        ],
+        [
+          "daily",
+          "hourly",
+          "night",
+          "every",
+          "schedule"
+        ]
+      ],
+      "say": [
+        "run a command on a schedule"
+      ],
+      "slots": {},
+      "cmd": "( crontab -l 2>/dev/null; echo \"0 2 * * * /path/to/script.sh >> /var/log/script.log 2>&1\" ) | crontab -",
+      "notes": "This rewrites your crontab — back it up first: crontab -l > cron.bak. Use full paths and flock to avoid overlaps.",
+      "alts": [],
+      "category": "system"
+    }
+  ]
+}

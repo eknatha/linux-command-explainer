@@ -1,0 +1,916 @@
+{
+  "category": "iac",
+  "commands": [
+    {
+      "name": "terraform init",
+      "summary": "Initialize a Terraform working directory and download providers.",
+      "risk": "low",
+      "risk_reason": "Downloads providers from internet; modifies .terraform directory.",
+      "explanation": "terraform init initializes the working directory: downloads provider plugins, sets up the backend for state storage, and installs modules. Must be run before any other Terraform commands and after any backend or provider changes.",
+      "flags": [
+        {
+          "flag": "-upgrade",
+          "desc": "Upgrade providers to latest matching version constraints"
+        },
+        {
+          "flag": "-backend=false",
+          "desc": "Skip backend initialization"
+        },
+        {
+          "flag": "-reconfigure",
+          "desc": "Reconfigure backend ignoring existing config"
+        },
+        {
+          "flag": "-migrate-state",
+          "desc": "Migrate state when changing backends"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "terraform init",
+          "desc": "Initialize working directory"
+        },
+        {
+          "cmd": "terraform init -upgrade",
+          "desc": "Upgrade providers to latest allowed versions"
+        },
+        {
+          "cmd": "terraform init -backend-config=backend.hcl",
+          "desc": "Init with external backend config (for secrets)"
+        },
+        {
+          "cmd": "terraform init -reconfigure",
+          "desc": "Reset and reconfigure backend"
+        }
+      ],
+      "suggestions": [
+        "terraform plan",
+        "terraform apply",
+        "kubectl apply"
+      ],
+      "pro_tip": "Use `terraform init -backend-config=backend.hcl` to keep backend credentials (S3 bucket, DynamoDB table names) out of version-controlled Terraform files — a required practice for security."
+    },
+    {
+      "name": "terraform plan",
+      "summary": "Preview changes Terraform will make to infrastructure.",
+      "risk": "low",
+      "risk_reason": "Read-only by default; saves a plan file that can be applied.",
+      "explanation": "terraform plan compares desired state (HCL) with current state (tfstate) and shows exactly what will be created, changed, or destroyed. Always run before apply — the plan output is your contract for what will happen in production.",
+      "flags": [
+        {
+          "flag": "-out",
+          "desc": "Save plan to a file for later apply"
+        },
+        {
+          "flag": "-var",
+          "desc": "Set a variable value"
+        },
+        {
+          "flag": "-var-file",
+          "desc": "Load variables from file"
+        },
+        {
+          "flag": "-target",
+          "desc": "Plan only specific resources"
+        },
+        {
+          "flag": "-destroy",
+          "desc": "Plan a destroy operation"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "terraform plan -out=tfplan",
+          "desc": "Save plan for deterministic apply"
+        },
+        {
+          "cmd": "terraform plan -var-file=production.tfvars",
+          "desc": "Plan with production variable file"
+        },
+        {
+          "cmd": "terraform plan -target=aws_instance.web",
+          "desc": "Plan only a specific resource"
+        },
+        {
+          "cmd": "terraform plan -destroy",
+          "desc": "Preview a full destruction"
+        }
+      ],
+      "suggestions": [
+        "terraform init",
+        "terraform apply",
+        "yq"
+      ],
+      "pro_tip": "In CI/CD, always use `terraform plan -out=tfplan` then `terraform apply tfplan` — the saved plan ensures apply executes exactly what was reviewed, preventing drift between plan and apply."
+    },
+    {
+      "name": "terraform apply",
+      "summary": "Apply Terraform changes to provision or update infrastructure.",
+      "risk": "high",
+      "risk_reason": "Creates, modifies, or destroys real infrastructure and may incur costs.",
+      "cautions": [
+        "Changes real infrastructure and can destroy resources — read every line marked “destroy” or “must be replaced”.",
+        "Check the workspace and backend first (terraform workspace show); the wrong one targets the wrong environment.",
+        "Never use -auto-approve outside throw-away environments or a CI job applying a reviewed plan."
+      ],
+      "explanation": "terraform apply executes the changes shown by terraform plan. Without -auto-approve, it shows the plan and waits for confirmation. When passed a saved plan file, it applies exactly that plan. Changes are recorded in the state file.",
+      "flags": [
+        {
+          "flag": "-auto-approve",
+          "desc": "Skip interactive approval (for CI/CD)"
+        },
+        {
+          "flag": "-target",
+          "desc": "Apply only specific resources"
+        },
+        {
+          "flag": "-var",
+          "desc": "Set variable values"
+        },
+        {
+          "flag": "-refresh=false",
+          "desc": "Skip state refresh (faster, use with caution)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "terraform apply tfplan",
+          "desc": "Apply a pre-generated plan file"
+        },
+        {
+          "cmd": "terraform apply -auto-approve -var-file=prod.tfvars",
+          "desc": "CI/CD apply with auto-approval"
+        },
+        {
+          "cmd": "terraform apply -target=aws_security_group.web",
+          "desc": "Apply only specific resource"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "terraform plan -out=tfplan",
+          "why": "Create a saved plan and review it."
+        },
+        {
+          "cmd": "terraform apply tfplan",
+          "why": "Apply exactly the plan you reviewed."
+        }
+      ],
+      "suggestions": [
+        "terraform plan",
+        "terraform init",
+        "kubectl apply"
+      ],
+      "pro_tip": "Never use `-auto-approve` without a saved plan file (`-auto-approve tfplan`) in production — always know exactly what you're auto-approving. Save the plan, review it, then apply it.",
+      "low_when": [
+        "\\b-?plan\\b"
+      ],
+      "low_unless": [
+        "apply|destroy"
+      ]
+    },
+    {
+      "name": "ansible",
+      "summary": "Run one-off Ansible tasks on remote hosts without a playbook.",
+      "risk": "medium",
+      "risk_reason": "Executes commands on remote hosts; verify host patterns carefully.",
+      "cautions": [
+        "Ad-hoc shell/command modules run on every matched host in parallel.",
+        "Check which hosts match first with --list-hosts.",
+        "Prefer idempotent modules over `shell` so reruns are safe."
+      ],
+      "explanation": "Ansible ad-hoc commands run single module tasks against inventory hosts without writing a playbook. Useful for quick checks, one-time changes, and testing connectivity. The -m flag selects the module; -a passes arguments.",
+      "flags": [
+        {
+          "flag": "-m",
+          "long": "--module-name",
+          "desc": "Ansible module to run"
+        },
+        {
+          "flag": "-a",
+          "long": "--args",
+          "desc": "Module arguments"
+        },
+        {
+          "flag": "-i",
+          "long": "--inventory",
+          "desc": "Inventory file or host list"
+        },
+        {
+          "flag": "-u",
+          "long": "--user",
+          "desc": "Remote user"
+        },
+        {
+          "flag": "--become",
+          "desc": "Run with privilege escalation (sudo)"
+        },
+        {
+          "flag": "-f",
+          "long": "--forks",
+          "desc": "Parallel processes (default: 5)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ansible webservers -i inventory.ini -m ping",
+          "desc": "Ping all webservers"
+        },
+        {
+          "cmd": "ansible all -m command -a 'uptime'",
+          "desc": "Run uptime on all hosts"
+        },
+        {
+          "cmd": "ansible db -m service -a 'name=postgresql state=restarted' --become",
+          "desc": "Restart PostgreSQL with sudo"
+        },
+        {
+          "cmd": "ansible all -m gather_facts -a 'filter=ansible_os_family'",
+          "desc": "Gather OS family facts"
+        }
+      ],
+      "suggestions": [
+        "ssh",
+        "scp",
+        "pssh"
+      ],
+      "pro_tip": "Use `ansible all -m ping -i inventory.ini` as a connectivity health check before running playbooks — catches SSH key issues and unreachable hosts before they cause partial failures."
+    },
+    {
+      "name": "ansible-playbook",
+      "summary": "Run Ansible playbooks to automate multi-host configuration.",
+      "risk": "high",
+      "risk_reason": "Playbooks run against real hosts; always use --check first.",
+      "cautions": [
+        "Run with --check --diff --limit <host> first.",
+        "Without --limit the play targets every host matched by its hosts: pattern.",
+        "Use serial: and max_fail_percentage in the play to roll out gradually."
+      ],
+      "explanation": "ansible-playbook executes YAML playbooks that define desired state across managed hosts. Supports tags for selective execution, limits for targeting host subsets, and check mode for dry-run previews. The --diff flag shows exactly what files will change.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--inventory",
+          "desc": "Inventory file or directory"
+        },
+        {
+          "flag": "--check",
+          "desc": "Dry run — don't make changes"
+        },
+        {
+          "flag": "--diff",
+          "desc": "Show diffs of changed files"
+        },
+        {
+          "flag": "--limit",
+          "desc": "Limit execution to specific hosts/groups"
+        },
+        {
+          "flag": "--tags",
+          "desc": "Only run tasks with these tags"
+        },
+        {
+          "flag": "--skip-tags",
+          "desc": "Skip tasks with these tags"
+        },
+        {
+          "flag": "-v/-vv/-vvv",
+          "desc": "Verbosity levels"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ansible-playbook site.yml -i inventory.ini --check --diff",
+          "desc": "Dry run with diff output"
+        },
+        {
+          "cmd": "ansible-playbook deploy.yml -i prod-inventory.ini --limit webservers",
+          "desc": "Run against webservers group only"
+        },
+        {
+          "cmd": "ansible-playbook site.yml --tags nginx,ssl",
+          "desc": "Run only nginx and ssl tasks"
+        },
+        {
+          "cmd": "ansible-playbook site.yml -e 'app_version=1.2.3'",
+          "desc": "Override variable from command line"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ansible-playbook site.yml --check --diff --limit <host>",
+          "why": "Dry-run on a single host."
+        },
+        {
+          "cmd": "ansible-playbook site.yml --list-hosts",
+          "why": "See which hosts would be targeted."
+        }
+      ],
+      "suggestions": [
+        "ansible",
+        "ssh",
+        "git"
+      ],
+      "pro_tip": "Always run with `--check --diff` before the real run in production — it shows exactly what would change without risk. Add this as a required CI step before any production ansible run."
+    },
+    {
+      "name": "terraform state",
+      "summary": "Inspect and manipulate Terraform state directly.",
+      "risk": "high",
+      "risk_reason": "State corruption can desync Terraform from real infrastructure.",
+      "cautions": [
+        "State commands edit the source of truth for your infrastructure — a wrong `state rm` makes Terraform forget (and later recreate) real resources.",
+        "Always back up first: terraform state pull > backup.tfstate.",
+        "Prefer `moved` blocks or `import` blocks over manual state surgery."
+      ],
+      "explanation": "terraform state commands allow direct inspection and manipulation of the state file without modifying infrastructure. Essential for recovering from drift, importing existing resources, renaming resources, and resolving state conflicts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform state list",
+          "desc": "List all resources tracked in state"
+        },
+        {
+          "cmd": "terraform state show aws_instance.web",
+          "desc": "Show detailed state for a specific resource"
+        },
+        {
+          "cmd": "terraform state mv aws_instance.old aws_instance.new",
+          "desc": "Rename a resource in state (after refactoring HCL)"
+        },
+        {
+          "cmd": "terraform state rm aws_instance.web",
+          "desc": "Remove resource from state (stop managing, don't delete)"
+        },
+        {
+          "cmd": "terraform import aws_instance.web i-0abc123def456",
+          "desc": "Import existing AWS resource into state"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "terraform state pull > backup-$(date +%s).tfstate",
+          "why": "Back up the state before any edit."
+        }
+      ],
+      "suggestions": [
+        "terraform plan",
+        "terraform apply",
+        "jq"
+      ],
+      "pro_tip": "Use `terraform state rm resource.name` to untrack a resource you want to keep but manage outside Terraform — safer than deleting the HCL config directly.",
+      "low_when": [
+        "\\bstate (list|show|pull)\\b|\\b(list|show|pull)\\b"
+      ],
+      "low_unless": [
+        "rm|mv|push|replace-provider"
+      ]
+    },
+    {
+      "name": "terraform workspace",
+      "summary": "Manage multiple Terraform state workspaces for environment isolation.",
+      "risk": "medium",
+      "risk_reason": "Wrong workspace can apply changes to the wrong environment.",
+      "cautions": [
+        "Workspaces share one backend config — run `terraform workspace show` before apply or destroy.",
+        "`workspace delete` removes the state of that workspace while its real resources keep existing (orphaned)."
+      ],
+      "explanation": "Terraform workspaces maintain separate state files for the same configuration, enabling environment isolation (dev/staging/prod) without duplicating code. Each workspace has its own state. The current workspace name is accessible via `terraform.workspace`.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform workspace list",
+          "desc": "List all workspaces (* marks current)"
+        },
+        {
+          "cmd": "terraform workspace new staging",
+          "desc": "Create a new staging workspace"
+        },
+        {
+          "cmd": "terraform workspace select production",
+          "desc": "Switch to production workspace"
+        },
+        {
+          "cmd": "terraform workspace show",
+          "desc": "Display current workspace name"
+        },
+        {
+          "cmd": "terraform plan -var-file=${terraform workspace show}.tfvars",
+          "desc": "Use workspace name to select var file"
+        }
+      ],
+      "suggestions": [
+        "terraform plan",
+        "terraform state",
+        "terraform apply"
+      ],
+      "pro_tip": "Always run `terraform workspace show` before plan/apply in production — verify you're in the right workspace before making changes. Add it to your pre-apply checklist."
+    },
+    {
+      "name": "terraform destroy",
+      "match": [
+        "terraform destroy"
+      ],
+      "summary": "Destroy all managed infrastructure",
+      "risk": "high",
+      "risk_reason": "Deletes every resource in the state — databases, networks, data.",
+      "cautions": [
+        "Confirm workspace and backend first (terraform workspace show).",
+        "Resources with prevent_destroy or deletion protection are the last line of defence — do not remove them to “make it work”.",
+        "Back up data (snapshots) before destroying databases/volumes.",
+        "Never use -auto-approve outside disposable environments."
+      ],
+      "explanation": "Plans and removes all resources managed by the current configuration/workspace.",
+      "flags": [
+        {
+          "flag": "-target",
+          "desc": "-target",
+          "caution": "Limit to specific resources"
+        },
+        {
+          "flag": "-auto-approve",
+          "desc": "-auto-approve",
+          "caution": "Skip confirmation"
+        },
+        {
+          "flag": "plan -destroy",
+          "desc": "Preview what would be destroyed"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "terraform plan -destroy",
+          "desc": "Preview"
+        },
+        {
+          "cmd": "terraform destroy -target=aws_instance.test",
+          "desc": "Destroy one resource"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "terraform plan -destroy -out=destroy.tfplan",
+          "why": "Review the destroy plan"
+        },
+        {
+          "cmd": "terraform workspace show",
+          "why": "Confirm the environment"
+        },
+        {
+          "cmd": "terraform destroy -target=<resource>",
+          "why": "Narrow the blast radius"
+        }
+      ],
+      "suggestions": [
+        "terraform plan",
+        "terraform state"
+      ]
+    },
+    {
+      "name": "terraform import",
+      "match": [
+        "terraform import"
+      ],
+      "summary": "Import existing resources into state",
+      "risk": "medium",
+      "risk_reason": "Edits state; wrong address/ID attaches the wrong resource.",
+      "cautions": [
+        "Back up state first; run terraform plan afterwards and fix drift before applying."
+      ],
+      "explanation": "Brings a real resource under Terraform management.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform import aws_s3_bucket.logs my-logs-bucket",
+          "desc": "Import a bucket"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "terraform state pull > backup.tfstate",
+          "why": "Back up state"
+        }
+      ],
+      "suggestions": [
+        "terraform state"
+      ]
+    },
+    {
+      "name": "terraform validate",
+      "match": [
+        "terraform validate"
+      ],
+      "summary": "Validate configuration",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Checks syntax and internal consistency. See the flags and examples below, and run `man terraform` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform validate",
+          "desc": "Validate"
+        }
+      ],
+      "suggestions": [
+        "terraform plan"
+      ]
+    },
+    {
+      "name": "terraform fmt",
+      "match": [
+        "terraform fmt"
+      ],
+      "summary": "Format configuration",
+      "risk": "low",
+      "risk_reason": "Rewrites .tf files in place (formatting only).",
+      "explanation": "Canonical formatting for HCL. See the flags and examples below, and run `man terraform` for the full reference.",
+      "flags": [
+        {
+          "flag": "-check",
+          "desc": "Report only"
+        },
+        {
+          "flag": "-recursive",
+          "desc": "Recurse"
+        },
+        {
+          "flag": "-diff",
+          "desc": "Show diffs"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "terraform fmt -check -recursive",
+          "desc": "CI check"
+        }
+      ],
+      "suggestions": [
+        "terraform validate"
+      ]
+    },
+    {
+      "name": "terraform output",
+      "match": [
+        "terraform output"
+      ],
+      "summary": "Show output values",
+      "risk": "low",
+      "risk_reason": "Read-only; may print secrets.",
+      "cautions": [
+        "Outputs can contain secrets unless marked sensitive."
+      ],
+      "explanation": "Prints root module outputs. See the flags and examples below, and run `man terraform` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform output -json",
+          "desc": "JSON outputs"
+        }
+      ],
+      "suggestions": [
+        "terraform state"
+      ]
+    },
+    {
+      "name": "terraform taint",
+      "match": [
+        "terraform taint"
+      ],
+      "summary": "Mark a resource for recreation",
+      "risk": "high",
+      "risk_reason": "The next apply destroys and recreates it.",
+      "cautions": [
+        "Recreation can cause downtime and data loss."
+      ],
+      "explanation": "Deprecated; use terraform apply -replace.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform apply -replace=aws_instance.web",
+          "desc": "Preferred"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "terraform plan -replace=<address>",
+          "why": "Preview the replacement"
+        }
+      ],
+      "suggestions": [
+        "terraform apply"
+      ]
+    },
+    {
+      "name": "terraform force-unlock",
+      "match": [
+        "terraform force-unlock"
+      ],
+      "summary": "Release a state lock",
+      "risk": "high",
+      "risk_reason": "Removing an active lock can corrupt state if another apply is running.",
+      "cautions": [
+        "Confirm nobody else is running terraform (CI too)."
+      ],
+      "explanation": "Manually unlocks state. See the flags and examples below, and run `man terraform` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terraform force-unlock LOCK_ID",
+          "desc": "Unlock"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ps aux | grep terraform",
+          "why": "Check local runs first"
+        }
+      ],
+      "suggestions": [
+        "terraform apply"
+      ]
+    },
+    {
+      "name": "terragrunt",
+      "match": [
+        "terragrunt"
+      ],
+      "summary": "Terraform wrapper",
+      "risk": "high",
+      "risk_reason": "run-all applies across many modules.",
+      "cautions": [
+        "run-all affects every module below the current directory.",
+        "Always run run-all plan first."
+      ],
+      "explanation": "Orchestrates multiple Terraform modules.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "terragrunt run-all plan",
+          "desc": "Plan all"
+        },
+        {
+          "cmd": "terragrunt run-all apply",
+          "desc": "Apply all (blast radius!)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "terragrunt run-all plan",
+          "why": "Plan first"
+        }
+      ],
+      "suggestions": [
+        "terraform plan"
+      ]
+    },
+    {
+      "name": "tflint",
+      "match": [
+        "tflint"
+      ],
+      "summary": "Terraform linter",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Finds errors and bad practices. See the flags and examples below, and run `man tflint` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tflint --recursive",
+          "desc": "Lint"
+        }
+      ],
+      "suggestions": [
+        "terraform validate"
+      ]
+    },
+    {
+      "name": "pulumi",
+      "match": [
+        "pulumi"
+      ],
+      "summary": "Infrastructure as code (general languages)",
+      "risk": "high",
+      "risk_reason": "`up`/`destroy` modify real infrastructure.",
+      "cautions": [
+        "Check the stack (pulumi stack) before up/destroy.",
+        "--yes skips confirmation."
+      ],
+      "explanation": "Preview, deploy and destroy stacks. See the flags and examples below, and run `man pulumi` for the full reference.",
+      "flags": [
+        {
+          "flag": "preview",
+          "desc": "Show changes"
+        },
+        {
+          "flag": "up",
+          "desc": "Deploy"
+        },
+        {
+          "flag": "destroy",
+          "desc": "Destroy"
+        },
+        {
+          "flag": "stack ls",
+          "desc": "Stacks"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pulumi preview",
+          "desc": "Preview"
+        },
+        {
+          "cmd": "pulumi stack ls",
+          "desc": "Which stacks?"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "pulumi preview --diff",
+          "why": "Preview first"
+        }
+      ],
+      "suggestions": [
+        "terraform plan"
+      ],
+      "low_when": [
+        "preview|stack ls|stack output|whoami"
+      ],
+      "low_unless": [
+        "up|destroy|refresh|cancel"
+      ]
+    },
+    {
+      "name": "ansible-vault",
+      "match": [
+        "ansible-vault"
+      ],
+      "summary": "Encrypt Ansible secrets",
+      "risk": "medium",
+      "risk_reason": "Losing the vault password loses the data.",
+      "cautions": [
+        "Back up the vault password in a secret manager.",
+        "`decrypt` leaves plaintext on disk."
+      ],
+      "explanation": "Encrypts/decrypts variables and files. See the flags and examples below, and run `man ansible-vault` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ansible-vault encrypt vars.yml",
+          "desc": "Encrypt"
+        },
+        {
+          "cmd": "ansible-vault view vars.yml",
+          "desc": "View"
+        }
+      ],
+      "suggestions": [
+        "ansible-playbook"
+      ]
+    },
+    {
+      "name": "ansible-galaxy",
+      "match": [
+        "ansible-galaxy"
+      ],
+      "summary": "Manage Ansible roles/collections",
+      "risk": "medium",
+      "risk_reason": "Third-party roles run with your privileges.",
+      "cautions": [
+        "Review roles before running; pin versions."
+      ],
+      "explanation": "Installs community content. See the flags and examples below, and run `man ansible-galaxy` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ansible-galaxy install -r requirements.yml",
+          "desc": "Install"
+        }
+      ],
+      "suggestions": [
+        "ansible-playbook"
+      ]
+    },
+    {
+      "name": "ansible-inventory",
+      "match": [
+        "ansible-inventory"
+      ],
+      "summary": "Show inventory",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Displays hosts and groups. See the flags and examples below, and run `man ansible-inventory` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ansible-inventory --graph",
+          "desc": "Inventory graph"
+        }
+      ],
+      "suggestions": [
+        "ansible"
+      ]
+    },
+    {
+      "name": "ansible-lint",
+      "match": [
+        "ansible-lint"
+      ],
+      "summary": "Lint playbooks",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Checks playbooks for issues. See the flags and examples below, and run `man ansible-lint` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ansible-lint site.yml",
+          "desc": "Lint"
+        }
+      ],
+      "suggestions": [
+        "ansible-playbook"
+      ]
+    },
+    {
+      "name": "packer",
+      "match": [
+        "packer"
+      ],
+      "summary": "Build machine images",
+      "risk": "medium",
+      "risk_reason": "Creates cloud resources and costs money.",
+      "cautions": [
+        "Builds can leave temporary instances if interrupted."
+      ],
+      "explanation": "Builds AMIs/VM images. See the flags and examples below, and run `man packer` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "packer validate .",
+          "desc": "Validate"
+        },
+        {
+          "cmd": "packer build .",
+          "desc": "Build"
+        }
+      ],
+      "suggestions": [
+        "terraform"
+      ]
+    },
+    {
+      "name": "vagrant",
+      "match": [
+        "vagrant"
+      ],
+      "summary": "Dev VM management",
+      "risk": "medium",
+      "risk_reason": "`destroy` deletes VMs.",
+      "cautions": [
+        "-f skips confirmation."
+      ],
+      "explanation": "Manage local development VMs. See the flags and examples below, and run `man vagrant` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "vagrant up",
+          "desc": "Start"
+        },
+        {
+          "cmd": "vagrant destroy -f",
+          "desc": "Delete the VM"
+        }
+      ],
+      "suggestions": [
+        "docker"
+      ]
+    },
+    {
+      "name": "cloud-init",
+      "match": [
+        "cloud-init"
+      ],
+      "summary": "Cloud instance initialisation",
+      "risk": "medium",
+      "risk_reason": "User-data scripts run as root on first boot.",
+      "cautions": [
+        "`cloud-init clean` makes the instance re-initialise at the next boot, possibly resetting SSH keys and hostname."
+      ],
+      "explanation": "Inspect cloud-init status and logs. See the flags and examples below, and run `man cloud-init` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "cloud-init status --long",
+          "desc": "Status"
+        },
+        {
+          "cmd": "cloud-init clean --logs",
+          "desc": "Reset (re-run on next boot!)"
+        }
+      ],
+      "suggestions": [
+        "journalctl"
+      ]
+    }
+  ]
+}

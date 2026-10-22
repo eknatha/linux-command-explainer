@@ -1,0 +1,514 @@
+{
+  "intents": [
+    {
+      "id": "k8s-pods",
+      "title": "List pods",
+      "match": [
+        [
+          "list",
+          "show",
+          "get",
+          "all"
+        ],
+        [
+          "pod",
+          "pods"
+        ]
+      ],
+      "say": [
+        "list pods"
+      ],
+      "slots": {
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl get pods -n {namespace} -o wide",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "kubectl get pods -A",
+          "desc": "All namespaces"
+        }
+      ],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-pod-logs",
+      "title": "Show pod logs",
+      "match": [
+        [
+          "logs",
+          "log",
+          "output"
+        ],
+        [
+          "pod",
+          "container",
+          "deployment"
+        ]
+      ],
+      "say": [
+        "show pod logs"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<pod>",
+          "label": "pod"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl logs {pod} -n {namespace} --tail=100",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "kubectl logs {pod} -n {namespace} --previous",
+          "desc": "Logs of the crashed previous container"
+        },
+        {
+          "cmd": "kubectl logs -f {pod} -n {namespace}",
+          "desc": "Follow"
+        }
+      ],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-describe",
+      "title": "Why is a pod failing",
+      "match": [
+        [
+          "why",
+          "debug",
+          "troubleshoot",
+          "diagnose",
+          "failing",
+          "crash",
+          "crashloop",
+          "pending",
+          "not starting"
+        ],
+        [
+          "pod",
+          "pods",
+          "container",
+          "kubernetes",
+          "k8s"
+        ]
+      ],
+      "say": [
+        "why is a pod failing"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<pod>",
+          "label": "pod"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl describe pod {pod} -n {namespace} | tail -30 && kubectl get events -n {namespace} --sort-by=.lastTimestamp | tail -20",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "kubectl logs {pod} -n {namespace} --previous",
+          "desc": "Previous container logs"
+        }
+      ],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-restart",
+      "title": "Restart a deployment",
+      "match": [
+        [
+          "restart",
+          "bounce",
+          "redeploy"
+        ],
+        [
+          "pod",
+          "deployment",
+          "kubernetes",
+          "k8s",
+          "app"
+        ]
+      ],
+      "say": [
+        "restart a pod in kubernetes"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<deployment>",
+          "label": "deployment"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl rollout restart deployment/{pod} -n {namespace}",
+      "notes": "Confirm the context first (kubectl config current-context). Restarts replace all pods.",
+      "alts": [
+        {
+          "cmd": "kubectl rollout status deployment/{pod} -n {namespace}",
+          "desc": "Watch progress"
+        }
+      ],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-scale",
+      "title": "Scale a deployment",
+      "match": [
+        [
+          "scale",
+          "replicas",
+          "resize"
+        ],
+        [
+          "deployment",
+          "pods",
+          "replicas",
+          "kubernetes"
+        ]
+      ],
+      "say": [
+        "scale a deployment"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<deployment>",
+          "label": "deployment"
+        },
+        "number": {
+          "from": "number",
+          "default": "3",
+          "label": "replicas"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl scale deployment/{pod} --replicas={number} -n {namespace}",
+      "notes": "Scaling to 0 stops the service.",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-exec",
+      "title": "Open a shell in a pod",
+      "match": [
+        [
+          "shell",
+          "exec",
+          "bash",
+          "terminal",
+          "sh",
+          "enter",
+          "into"
+        ],
+        [
+          "pod",
+          "container"
+        ]
+      ],
+      "say": [
+        "open a shell in a pod"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<pod>",
+          "label": "pod"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl exec -it {pod} -n {namespace} -- sh",
+      "notes": "Changes are lost on restart; avoid changing production this way.",
+      "alts": [
+        {
+          "cmd": "kubectl debug -it {pod} -n {namespace} --image=busybox --target={pod}",
+          "desc": "Ephemeral debug container"
+        }
+      ],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-resources",
+      "title": "Pod CPU/memory usage",
+      "match": [
+        [
+          "usage",
+          "top",
+          "cpu",
+          "memory",
+          "consuming"
+        ],
+        [
+          "pod",
+          "pods",
+          "node",
+          "nodes",
+          "kubernetes"
+        ]
+      ],
+      "say": [
+        "pod cpu/memory usage"
+      ],
+      "slots": {},
+      "cmd": "kubectl top pods -A --sort-by=memory | head -20",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "kubectl top nodes",
+          "desc": "Per node"
+        }
+      ],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-context",
+      "title": "Show / switch kubectl context",
+      "match": [
+        [
+          "context",
+          "cluster",
+          "current"
+        ],
+        [
+          "kubectl",
+          "kubernetes",
+          "switch",
+          "show",
+          "which",
+          "current"
+        ]
+      ],
+      "say": [
+        "show / switch kubectl context"
+      ],
+      "slots": {},
+      "cmd": "kubectl config get-contexts && kubectl config current-context",
+      "notes": "Always check this before changing anything — it decides which cluster receives your command.",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-apply",
+      "title": "Apply a manifest safely",
+      "match": [
+        [
+          "apply",
+          "deploy",
+          "create"
+        ],
+        [
+          "manifest",
+          "yaml",
+          "file",
+          "kubernetes"
+        ]
+      ],
+      "say": [
+        "apply a manifest safely"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "manifest.yaml",
+          "label": "manifest"
+        }
+      },
+      "cmd": "kubectl diff -f {file} ; kubectl apply -f {file} --dry-run=server",
+      "notes": "Diff and server-side dry-run first; apply only after reviewing.",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-secret",
+      "title": "Read a Kubernetes secret",
+      "match": [
+        [
+          "secret"
+        ],
+        [
+          "read",
+          "show",
+          "decode",
+          "get",
+          "view"
+        ]
+      ],
+      "say": [
+        "read a kubernetes secret"
+      ],
+      "slots": {
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl get secret <name> -n {namespace} -o jsonpath=\"{.data}\" | head",
+      "notes": "Secrets are sensitive — avoid printing them in shared terminals or CI logs.",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-delete-pod",
+      "title": "Delete a pod",
+      "match": [
+        [
+          "delete",
+          "remove",
+          "kill"
+        ],
+        [
+          "pod"
+        ]
+      ],
+      "say": [
+        "delete a pod"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<pod>",
+          "label": "pod"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl delete pod {pod} -n {namespace} --dry-run=server",
+      "notes": "Dry-run shown. Remove --dry-run only after verifying context and namespace. Avoid --force/--grace-period=0.",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-port-forward",
+      "title": "Port-forward to a pod/service",
+      "match": [
+        [
+          "port forward",
+          "port-forward",
+          "forward",
+          "tunnel"
+        ],
+        [
+          "pod",
+          "service",
+          "kubernetes",
+          "local"
+        ]
+      ],
+      "say": [
+        "port-forward to a pod/service"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<service>",
+          "label": "service"
+        },
+        "port": {
+          "from": "port",
+          "default": "8080",
+          "label": "port"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl port-forward svc/{pod} {port}:{port} -n {namespace}",
+      "notes": "",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "helm-releases",
+      "title": "List Helm releases",
+      "match": [
+        [
+          "list",
+          "show"
+        ],
+        [
+          "helm",
+          "release",
+          "releases",
+          "chart"
+        ]
+      ],
+      "say": [
+        "list helm releases"
+      ],
+      "slots": {},
+      "cmd": "helm list -A",
+      "notes": "",
+      "alts": [],
+      "category": "kubernetes"
+    },
+    {
+      "id": "k8s-rollback",
+      "title": "Roll back a deployment",
+      "match": [
+        [
+          "rollback",
+          "undo",
+          "revert",
+          "roll back"
+        ],
+        [
+          "deployment",
+          "rollout",
+          "kubernetes",
+          "release"
+        ]
+      ],
+      "say": [
+        "roll back a deployment"
+      ],
+      "slots": {
+        "pod": {
+          "from": "pod",
+          "default": "<deployment>",
+          "label": "deployment"
+        },
+        "namespace": {
+          "from": "namespace",
+          "default": "default",
+          "label": "namespace"
+        }
+      },
+      "cmd": "kubectl rollout history deployment/{pod} -n {namespace} && kubectl rollout undo deployment/{pod} -n {namespace} --dry-run=server",
+      "notes": "Check the history to see which revision you will land on.",
+      "alts": [],
+      "category": "kubernetes"
+    }
+  ]
+}

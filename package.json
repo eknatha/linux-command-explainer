@@ -1,0 +1,19 @@
+{
+  "name": "linux-command-explainer",
+  "version": "2.0.0",
+  "description": "Explain Linux, Kubernetes, Docker, Git, Terraform and cloud CLI commands offline \u2014 with risk levels, production-context warnings and safer alternatives.",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run validate && npm run build && npm test",
+    "new": "node scripts/new-command.mjs",
+    "stats": "node scripts/validate.mjs --stats",
+    "serve": "node scripts/serve.mjs"
+  }
+}

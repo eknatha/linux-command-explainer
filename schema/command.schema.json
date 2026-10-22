@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Linux Command Explainer — data/commands/<category>.json",
+  "type": "object",
+  "required": ["category", "commands"],
+  "properties": {
+    "category": { "type": "string", "description": "Key in data/categories.json" },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "summary", "risk", "risk_reason", "explanation", "flags", "examples"],
+        "properties": {
+          "name": { "type": "string", "description": "Command or subcommand, e.g. 'kubectl delete'" },
+          "kind": { "enum": ["command", "topic"] },
+          "match": { "type": "array", "items": { "type": "string" }, "description": "Extra prefixes that resolve to this entry" },
+          "parent": { "type": "string" },
+          "summary": { "type": "string", "maxLength": 200 },
+          "risk": { "enum": ["low", "medium", "high"] },
+          "risk_reason": { "type": "string" },
+          "cautions": { "type": "array", "items": { "type": "string" }, "description": "REQUIRED for medium/high" },
+          "explanation": { "type": "string", "minLength": 40 },
+          "flags": { "type": "array", "items": { "type": "object", "required": ["flag", "desc"], "properties": { "flag": { "type": "string" }, "long": { "type": "string" }, "desc": { "type": "string" }, "caution": { "type": "string" } } } },
+          "examples": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["cmd", "desc"], "properties": { "cmd": { "type": "string" }, "desc": { "type": "string" } } } },
+          "safer": { "type": "array", "items": { "type": "object", "required": ["cmd", "why"], "properties": { "cmd": { "type": "string" }, "why": { "type": "string" } } }, "description": "Recommended for high risk" },
+          "suggestions": { "type": "array", "items": { "type": "string" } },
+          "pro_tip": { "type": "string" },
+          "low_when": { "type": "array", "items": { "type": "string" }, "description": "Regexes on the arguments: if one matches, the call is treated as read-only (low risk)" },
+          "low_unless": { "type": "array", "items": { "type": "string" }, "description": "Regexes that cancel low_when" }
+        }
+      }
+    }
+  }
+}

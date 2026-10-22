@@ -1,92 +1,47 @@
 # 🐧 Linux Command Explainer
 
-Understand Linux, Kubernetes, Docker, Git, Terraform, and DevOps commands instantly.
+Paste any Linux, Kubernetes, Docker, Git, Terraform or cloud CLI command and get a **breakdown, a risk level, production warnings and a safer dry-run version of your command**. Or describe what you want in plain English and get the command.
 
-🌐 **Live Demo:** https://linux-command-explainer.eknathalabs.com
+🌐 **Live:** https://linux-command-explainer.eknathalabs.com · built by [EknathaLabs](https://eknathalabs.com)
 
----
+## What it does
 
-## What is Linux Command Explainer?
+| | |
+|---|---|
+| **Explain** | Token-by-token breakdown with per-flag meaning, including pipes (`\|`), `&&`/`\|\|`/`;`, redirections, `$(…)`, `bash -c`, `ssh host "…"`, `sudo`, `xargs`, `kubectl exec -- …` |
+| **Risk + cautions** | low / medium / high / **critical**, with plain-language cautions on every medium/high command and on dangerous flags |
+| **Safer version** | Rewrites *your* command into a dry-run or less destructive form (`kubectl delete … --dry-run=server`, `rsync -n`, `find … -print` instead of `-delete`, `git push --force-with-lease`, …) |
+| **Production awareness** | Detects `prod`/`production` targets, `-A`/`--all`, `--force`, `-y`/`--auto-approve`, wildcard deletes on system paths, world-open rules, `:latest`… and raises the risk level |
+| **Describe → command** | ~130 recipes (“find files larger than 500MB”, “why is my pod crashing”) with slots filled from your sentence; every suggestion is risk-checked too |
+| **Reference pages** | One static page per command (`/cmd/<name>/`) with flags, examples, risks and FAQ markup; category pages and a sitemap |
+| **Shareable** | `?cmd=` and `?d=` permalinks, copy link, copy as Markdown |
 
-Linux Command Explainer helps you understand what a command does by breaking it into individual parts and explaining each component in simple language.
+~630 entries across 16 categories (files, text, system, storage, security, networking, shell, Kubernetes, containers, Git, IaC, cloud, databases, observability, packages, services). All analysis runs in the browser and works offline; only the GitHub star count and visitor counter use the network.
 
-Example:
+> The analysis is rule-based and can miss things. Read the command, test on non-production and keep backups.
+
+## Develop
 
 ```bash
-kubectl get pods -A --sort-by=.metadata.creationTimestamp
+npm run check     # validate data → build site → run tests
+npm run serve     # http://localhost:8080
+npm run new -- "ethtool" networking
 ```
 
-Output:
+Node ≥ 18, zero dependencies. The site is **generated**: edit `data/` (or `src/`), run `npm run build`, commit the output (GitHub Pages serves the repo root).
 
-```text
-kubectl   → Kubernetes CLI
-get       → Retrieve resources
-pods      → Pod resources
--A        → All namespaces
---sort-by → Sort output by field
+```
+data/commands/*.json   command reference (one file per category)
+data/rules/*.json      safety rules + production signals
+data/intents/*.json    "describe → command" recipes
+src/engine.js          parser, rules, safer-version, reverse mode (browser + Node)
+src/app.js, style.css  UI
+scripts/               validate · build · new-command · serve
+tests/                 node:test suites
 ```
 
----
+See [CONTRIBUTING.md](CONTRIBUTING.md) to add commands, safety rules or recipes. CI runs validate + build + tests and fails if generated files are stale.
 
-## Features
+## License
 
-- Command breakdown
-- Flag explanations
-- Risk analysis (Low / Medium / High)
-- Real-world examples
-- Related command suggestions
-- Browser-based and free to use
-- Supports Linux, Kubernetes, Docker, Git, Terraform, Networking, Cloud, and DevOps commands
-- **150+ commands supported and growing**
-
----
-
-## Supported Categories
-
-### Linux
-`ls`, `find`, `grep`, `chmod`, `chown`, `tar`, `rsync`, `systemctl`, `journalctl`
-
-### Kubernetes
-`kubectl get`, `kubectl logs`, `kubectl describe`, `kubectl rollout`, `kubectl top`
-
-### Docker
-`docker ps`, `docker logs`, `docker exec`, `docker inspect`
-
-### Git
-`git log`, `git stash`, `git rebase`, `git cherry-pick`
-
-### Terraform
-`terraform init`, `terraform plan`, `terraform apply`, `terraform state`
-
-### Networking
-`curl`, `dig`, `ping`, `netstat`, `ss`, `iptables`
-
-> Supports **150+ commonly used commands** across Linux, Cloud, DevOps, Platform Engineering, and SRE workflows.
-
----
-
-## Who Is It For?
-
-- Linux Beginners
-- DevOps Engineers
-- Platform Engineers
-- SREs
-- Cloud Engineers
-- Students
-- Interview Preparation
-
----
-
-## Author
-
-**EknathaLabs**
-
-Building practical tools for Linux, DevOps, Cloud, Kubernetes, and Platform Engineering learning.
-
-🌐 https://eknathalabs.com
-
----
-
-⭐ If this project helps you, please star the repository and share it with fellow engineers.
-
-**Learn Linux by understanding commands, not memorizing them.**
+MIT

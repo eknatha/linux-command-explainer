@@ -1,0 +1,3777 @@
+{
+  "version": 1,
+  "description": "Safety rules for the Linux Command Explainer. See CONTRIBUTING.md → “Adding or changing a safety rule”.",
+  "rules": [
+    {
+      "id": "rm-root-or-home",
+      "title": "Deletes the root or home directory",
+      "severity": "critical",
+      "cmd": [
+        "rm"
+      ],
+      "when": [
+        "{{SHORT:rR}}|{{LONG:recursive}}",
+        "(?:^|\\s)(?:/|/\\*|~|~/|~/\\*|\\$HOME|\\$HOME/\\*|\"\\$HOME\"|/\\.\\*)(?=\\s|$)|--no-preserve-root"
+      ],
+      "message": "This removes / or your whole home directory recursively. There is no undo and no recycle bin.",
+      "safer": [
+        {
+          "cmd": "ls -la {pos}",
+          "why": "List exactly what would be deleted before touching it."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "rm-system-dir",
+      "title": "Deletes a top-level system directory",
+      "severity": "critical",
+      "cmd": [
+        "rm"
+      ],
+      "when": "(?:^|\\s)/(?:etc|usr|bin|sbin|lib|lib64|boot|var|root|home|opt|srv|dev|proc|sys)/?(?=\\s|$)",
+      "message": "Removing /etc, /usr, /var, /boot, /home, … can leave the machine unbootable or destroy all user data.",
+      "safer": [
+        {
+          "cmd": "ls -la {pos}",
+          "why": "Inspect the target first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "rm-recursive-force",
+      "title": "Recursive forced delete (no prompts)",
+      "severity": "high",
+      "cmd": [
+        "rm"
+      ],
+      "when": [
+        "{{SHORT:rR}}|{{LONG:recursive}}",
+        "{{SHORT:f}}|{{LONG:force}}"
+      ],
+      "message": "`rm -rf` deletes a whole tree without asking and ignores missing files. A typo, an empty variable or a stray space in the path deletes the wrong thing permanently.",
+      "safer": [
+        {
+          "find": "(^|\\s)-(?:rf|fr|Rf|fR)(?=\\s|$)",
+          "replace": "$1-rI",
+          "why": "Same delete, but GNU rm asks once before a recursive removal (-I)."
+        },
+        {
+          "cmd": "ls -la {pos}",
+          "why": "Preview the target before deleting."
+        },
+        {
+          "cmd": "trash-put {pos}",
+          "why": "Move to the trash instead (trash-cli), so you can recover it."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "rm-glob-recursive",
+      "title": "Recursive delete with a glob",
+      "severity": "medium",
+      "cmd": [
+        "rm"
+      ],
+      "when": "{{SHORT:rR}}|{{LONG:recursive}}",
+      "requires": [
+        "glob"
+      ],
+      "message": "The shell expands * before rm runs — in the wrong directory it matches the wrong files. `cd dir; rm -r *` is a classic disaster when the cd fails.",
+      "safer": [
+        {
+          "cmd": "echo {seg}",
+          "why": "Prefix with echo to see what the glob expands to."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "rm-recursive-unquoted-var",
+      "title": "Recursive delete with an unquoted variable",
+      "severity": "high",
+      "cmd": [
+        "rm"
+      ],
+      "when": "{{SHORT:rR}}|{{LONG:recursive}}",
+      "requires": [
+        "unquotedVar"
+      ],
+      "message": "If the variable is empty or contains spaces the command targets something else: `rm -rf $DIR/` becomes `rm -rf /`.",
+      "safer": [
+        {
+          "cmd": "rm -rf -- \"${DIR:?}/\"",
+          "why": "Quote it and use ${VAR:?} so the command aborts when the variable is empty or unset."
+        }
+      ],
+      "tags": [
+        "destructive",
+        "gotcha"
+      ]
+    },
+    {
+      "id": "unquoted-var-destructive",
+      "title": "Unquoted variable in a destructive command",
+      "severity": "medium",
+      "cmd": [
+        "rm",
+        "mv",
+        "chmod",
+        "chown",
+        "chgrp",
+        "shred",
+        "truncate"
+      ],
+      "requires": [
+        "unquotedVar"
+      ],
+      "when": ".",
+      "message": "Unquoted variables are split on whitespace and globbed; if empty they vanish and the command runs with other arguments.",
+      "safer": [
+        {
+          "why": "Quote it (\"$VAR\") and use ${VAR:?} to abort when unset."
+        }
+      ],
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "rm-command-substitution",
+      "title": "Delete target comes from a command substitution",
+      "severity": "medium",
+      "cmd": [
+        "rm"
+      ],
+      "requires": [
+        "subst"
+      ],
+      "when": ".",
+      "message": "The list of files to delete is computed at run time. If the inner command prints nothing unexpected (or fails) the result can differ from what you expect.",
+      "safer": [
+        {
+          "cmd": "echo {seg}",
+          "why": "Print the expanded command first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "mv-system-dir",
+      "title": "Moves a top-level system directory",
+      "severity": "critical",
+      "cmd": [
+        "mv"
+      ],
+      "when": "^(?:-\\S+\\s+)*/(?:etc|usr|bin|sbin|lib|lib64|boot|var|root|home|opt)/?(?=\\s)",
+      "message": "Renaming or moving a system directory breaks everything that expects it in place.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "mv-to-devnull",
+      "title": "Moves data into /dev/null",
+      "severity": "high",
+      "cmd": [
+        "mv"
+      ],
+      "when": "(?:^|\\s)/dev/null(?=\\s|$)",
+      "message": "Moving files to /dev/null destroys them (and replaces the device node).",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "cp-mv-overwrite",
+      "title": "Silently overwrites existing files",
+      "severity": "info",
+      "cmd": [
+        "cp",
+        "mv"
+      ],
+      "not": "{{SHORT:inb}}|{{LONG:interactive}}|{{LONG:no-clobber}}|{{LONG:backup}}",
+      "when": ".",
+      "message": "cp/mv replace existing destination files without asking.",
+      "safer": [
+        {
+          "find": "\\b(cp|mv)\\b",
+          "replace": "$1 -i",
+          "why": "Ask before overwriting (-i), or use -n to never overwrite."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "find-delete",
+      "title": "find -delete removes every match",
+      "severity": "high",
+      "cmd": [
+        "find"
+      ],
+      "when": "{{WORD:-delete}}",
+      "message": "-delete is immediate and recursive. A wrong path or test deletes far more than intended.",
+      "safer": [
+        {
+          "find": "(^|\\s)-delete(?=\\s|$)",
+          "replace": "$1-print",
+          "why": "Replace -delete with -print to list the matches first."
+        },
+        {
+          "why": "Keep -delete as the LAST expression — tests after it do not restrict what is deleted."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "find-delete-order",
+      "title": "-delete is placed before the tests",
+      "severity": "critical",
+      "cmd": [
+        "find"
+      ],
+      "when": "(?:^|\\s)-delete\\s.*(?:-name|-iname|-type|-mtime|-mmin|-newer|-path|-regex|-size|-user|-perm)\\b",
+      "message": "Expressions run left to right: `find . -delete -name \"*.tmp\"` deletes EVERYTHING under . because -delete is evaluated first.",
+      "safer": [
+        {
+          "why": "Put the tests first, -delete last: find . -name \"*.tmp\" -type f -delete"
+        }
+      ],
+      "tags": [
+        "destructive",
+        "gotcha"
+      ]
+    },
+    {
+      "id": "find-xargs-unsafe",
+      "title": "xargs splits on whitespace",
+      "severity": "medium",
+      "raw": "\\bfind\\b[^|;&\\n]*\\|\\s*(?:sudo\\s+)?xargs\\b(?![^|;&\\n]*(?:\\s-0|--null|-print0))[^|;&\\n]*\\b(?:rm|mv|cp|chmod|chown|kill|shred)\\b",
+      "message": "File names with spaces or newlines are split into several arguments, so the wrong paths get deleted/changed.",
+      "safer": [
+        {
+          "cmd": "find . -type f -name \"*.log\" -print0 | xargs -0 rm --",
+          "why": "Use NUL separators (-print0 | xargs -0) or find -exec … +."
+        }
+      ],
+      "tags": [
+        "gotcha",
+        "destructive"
+      ]
+    },
+    {
+      "id": "ls-xargs",
+      "title": "Parsing ls output",
+      "severity": "medium",
+      "raw": "\\bls\\b[^|;&\\n]*\\|\\s*(?:sudo\\s+)?xargs\\b",
+      "message": "ls output is for humans; names with spaces/newlines break. Use find -print0 | xargs -0 or a glob.",
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "cd-semicolon-destructive",
+      "title": "cd followed by ; and a destructive command",
+      "severity": "high",
+      "raw": "\\bcd\\s+\\S+\\s*;\\s*(?:sudo\\s+)?(?:rm|mv|chmod|chown|find\\s+\\.[^;|&]*-delete)\\b",
+      "message": "With `;` the second command runs even when cd fails — in whatever directory you were in.",
+      "safer": [
+        {
+          "find": "(\\bcd\\s+\\S+)\\s*;",
+          "replace": "$1 &&",
+          "why": "Use && so it only runs if cd succeeded (or `cd dir || exit 1` in scripts)."
+        }
+      ],
+      "tags": [
+        "gotcha",
+        "destructive"
+      ]
+    },
+    {
+      "id": "shred-wipe",
+      "title": "Irreversibly overwrites data",
+      "severity": "high",
+      "cmd": [
+        "shred",
+        "wipe",
+        "srm",
+        "blkdiscard"
+      ],
+      "when": ".",
+      "message": "The data is overwritten/discarded and cannot be recovered. On SSDs and journaling/COW filesystems shred is not even a guarantee.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "truncate-zero",
+      "title": "Empties a file",
+      "severity": "medium",
+      "cmd": [
+        "truncate"
+      ],
+      "when": "(?:^|\\s)(?:-s|--size)(?:=|\\s*)0(?=\\s|$)",
+      "message": "The file is cut to zero bytes immediately (logs, databases and sockets included).",
+      "safer": [
+        {
+          "cmd": "cp -a {last} {last}.bak",
+          "why": "Keep a copy first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "chattr-immutable",
+      "title": "Immutable attribute",
+      "severity": "medium",
+      "cmd": [
+        "chattr"
+      ],
+      "when": "(?:^|\\s)\\+[A-Za-z]*i",
+      "message": "Immutable files cannot be changed or deleted even by root — package upgrades, logrotate and cleanup jobs will start failing.",
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "chmod-world-writable",
+      "title": "Makes files world-writable",
+      "severity": "high",
+      "cmd": [
+        "chmod"
+      ],
+      "when": "(?:^|\\s)(?:0?777|0?666|a\\+rwx|ugo\\+rwx|o\\+w|a\\+w|a=rwx)(?=\\s|$)",
+      "message": "Any user or compromised process on the host can modify or replace these files. It is also rarely the actual fix for a “permission denied”.",
+      "safer": [
+        {
+          "find": "(^|\\s)(?:0?777|a\\+rwx|ugo\\+rwx|a=rwx)(?=\\s|$)",
+          "replace": "$1755",
+          "why": "755 for directories/executables (owner rwx, others r-x); 644 for regular files."
+        },
+        {
+          "cmd": "namei -l {last}",
+          "why": "Show the permission of every path component to find the real cause."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "chmod-recursive-root",
+      "title": "Recursive permission change on /",
+      "severity": "critical",
+      "cmd": [
+        "chmod",
+        "chown",
+        "chgrp"
+      ],
+      "when": [
+        "{{SHORT:rR}}|{{LONG:recursive}}",
+        "(?:^|\\s)/(?=\\s|$)"
+      ],
+      "message": "Changing permissions/ownership of / breaks sudo, ssh, setuid binaries and package management. It usually requires a rescue boot or reinstall.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "chmod-recursive-system",
+      "title": "Recursive permission/ownership change on a system directory",
+      "severity": "high",
+      "cmd": [
+        "chmod",
+        "chown",
+        "chgrp"
+      ],
+      "when": [
+        "{{SHORT:rR}}|{{LONG:recursive}}",
+        "(?:^|\\s)/(?:etc|usr|bin|sbin|lib|lib64|boot|var|root|home|opt|srv|dev|proc|sys)/?(?=\\s|$)"
+      ],
+      "message": "System directories rely on exact modes/owners (setuid bits, sticky bits, service users). A blanket -R resets them all.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "chmod-recursive",
+      "title": "Recursive permission/ownership change",
+      "severity": "medium",
+      "cmd": [
+        "chmod",
+        "chown",
+        "chgrp"
+      ],
+      "when": "{{SHORT:rR}}|{{LONG:recursive}}",
+      "message": "-R applies the same mode/owner to files AND directories and does not remember the previous values.",
+      "safer": [
+        {
+          "cmd": "getfacl -R {last} > /tmp/perms.backup",
+          "why": "Save current permissions first (restore with `setfacl --restore=/tmp/perms.backup`)."
+        },
+        {
+          "cmd": "find {last} -type d -exec chmod 755 {} +",
+          "why": "For modes, treat directories and files separately (use `chmod -R u=rwX,go=rX` for a single capital-X pass)."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "chmod-setuid",
+      "title": "Sets setuid/setgid bits",
+      "severity": "high",
+      "cmd": [
+        "chmod"
+      ],
+      "when": "(?:^|\\s)(?:[ug]\\+s|[2467][0-7]{3})(?=\\s|$)",
+      "message": "A setuid/setgid binary runs with its owner’s privileges — a classic privilege-escalation path if the file is writable or buggy.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "chmod-000",
+      "title": "Removes all permissions",
+      "severity": "medium",
+      "cmd": [
+        "chmod"
+      ],
+      "when": "(?:^|\\s)(?:0?000|a-rwx|ugo-rwx)(?=\\s|$)",
+      "message": "Even you (and services) lose access. On directories this blocks traversal for everything beneath.",
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "umask-open",
+      "title": "Very permissive umask",
+      "severity": "medium",
+      "cmd": [
+        "umask"
+      ],
+      "when": "^(?:0?000|0?002|a=rwx)\\s*$",
+      "message": "New files become world- or group-writable by default.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "chown-root-user-home",
+      "title": "Changes ownership of / or home trees",
+      "severity": "high",
+      "cmd": [
+        "chown",
+        "chgrp"
+      ],
+      "when": [
+        "{{SHORT:rR}}|{{LONG:recursive}}",
+        "(?:^|\\s)(?:/home|/root|/var|/usr|/etc)(?:/\\*)?(?=\\s|$)"
+      ],
+      "message": "Mass ownership changes can lock users out of their files and break services that rely on their own UID.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "setfacl-recursive",
+      "title": "Recursive ACL change",
+      "severity": "medium",
+      "cmd": [
+        "setfacl"
+      ],
+      "when": "{{SHORT:R}}|{{SHORT:b}}",
+      "message": "-b removes all ACLs; -R applies recursively. Both are hard to reverse without a backup.",
+      "safer": [
+        {
+          "cmd": "getfacl -R {last} > /tmp/acl.backup",
+          "why": "Back up ACLs first."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "dd-to-device",
+      "title": "dd writes directly to a disk device",
+      "severity": "critical",
+      "cmd": [
+        "dd"
+      ],
+      "when": "\\bof=/dev/(?:sd|nvme|vd|xvd|hd|mmcblk|md|dm-|disk|loop)",
+      "message": "Everything on the target device is overwritten. Swapping if= and of=, or picking the wrong /dev/sdX, destroys data with no confirmation.",
+      "safer": [
+        {
+          "cmd": "lsblk -o NAME,SIZE,MODEL,MOUNTPOINT,FSTYPE",
+          "why": "Confirm the target device, its size and that it is not mounted."
+        },
+        {
+          "why": "Add status=progress and conv=fsync; for USB media, unplug other drives first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "dd-generic",
+      "title": "dd overwrites without asking",
+      "severity": "medium",
+      "cmd": [
+        "dd"
+      ],
+      "when": "\\bof=\\S+",
+      "not": "\\bof=/dev/(?:null|zero|stdout|stderr)\\b",
+      "message": "dd has no confirmation and no dry-run: the output file/device is overwritten from the first byte.",
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "mkfs-device",
+      "title": "Formats a device",
+      "severity": "critical",
+      "cmd": [
+        "mkfs",
+        "mkfs.ext2",
+        "mkfs.ext3",
+        "mkfs.ext4",
+        "mkfs.xfs",
+        "mkfs.btrfs",
+        "mkfs.vfat",
+        "mkfs.fat",
+        "mkfs.ntfs",
+        "mkfs.exfat",
+        "mke2fs",
+        "mkswap"
+      ],
+      "when": "/dev/\\S+",
+      "message": "Creating a filesystem destroys the existing one and (practically) all its data.",
+      "safer": [
+        {
+          "cmd": "lsblk -f",
+          "why": "Check device, filesystem and mountpoint first."
+        },
+        {
+          "cmd": "blkid {last}",
+          "why": "See what is on the device right now."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "wipefs-all",
+      "title": "Erases filesystem signatures",
+      "severity": "high",
+      "cmd": [
+        "wipefs"
+      ],
+      "when": "(?:^|\\s)(?:-a|--all|-f|--force)(?=\\s|$)",
+      "message": "The device stops being recognised as containing a filesystem/RAID/LVM member, making recovery hard.",
+      "safer": [
+        {
+          "find": "(^|\\s)(?:-a|--all)(?=\\s|$)",
+          "replace": "$1-a --no-act",
+          "why": "Dry-run: shows what would be erased without writing."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "partition-edit",
+      "title": "Edits the partition table",
+      "severity": "high",
+      "cmd": [
+        "fdisk",
+        "parted",
+        "sfdisk",
+        "gdisk",
+        "sgdisk",
+        "cfdisk"
+      ],
+      "when": "(?:^|\\s)(?:mklabel|mkpart|rm|resizepart|--delete|--zap-all|-Z|--new|--clear|/dev/\\S+\\s*<)",
+      "message": "Partition-table changes can make the data on the disk unreachable. Back up the table first (sfdisk -d).",
+      "safer": [
+        {
+          "cmd": "sfdisk -d {last} > /root/partition-table.backup",
+          "why": "Save the partition table so you can restore it."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "fsck-mounted",
+      "title": "Repairing a filesystem that may be mounted",
+      "severity": "high",
+      "cmd": [
+        "fsck",
+        "e2fsck",
+        "xfs_repair",
+        "fsck.ext4",
+        "fsck.xfs"
+      ],
+      "when": "(?:^|\\s)(?:-y|-a|-p|-f|-L|--force)(?=\\s|$)|\\s/dev/\\S+",
+      "not": "(?:^|\\s)(?:-n|--no-modify|-N)(?=\\s|$)",
+      "message": "Never run a repair on a mounted filesystem: it can corrupt data. -y answers “yes” to every fix.",
+      "safer": [
+        {
+          "find": "(^|\\s)-y(?=\\s|$)",
+          "replace": "$1-n",
+          "why": "Read-only check first (-n makes no changes)."
+        },
+        {
+          "cmd": "findmnt {last}",
+          "why": "Confirm the device is NOT mounted."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "umount-force",
+      "title": "Forced / lazy unmount",
+      "severity": "medium",
+      "cmd": [
+        "umount"
+      ],
+      "when": "{{SHORT:fl}}|{{LONG:force}}|{{LONG:lazy}}",
+      "message": "Processes with open files can lose data or hang; lazy unmount detaches while still in use.",
+      "safer": [
+        {
+          "cmd": "lsof +f -- {last}",
+          "why": "See what is still using the mount (or `fuser -vm`)."
+        }
+      ],
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "remount-ro-root",
+      "title": "Remounts a critical filesystem read-only",
+      "severity": "high",
+      "cmd": [
+        "mount"
+      ],
+      "when": "remount.*\\bro\\b",
+      "message": "Services that write logs, sockets or state will fail when / or /var turns read-only.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "lvm-destroy",
+      "title": "Removes LVM objects",
+      "severity": "high",
+      "cmd": [
+        "lvremove",
+        "vgremove",
+        "pvremove",
+        "lvreduce",
+        "vgreduce",
+        "lvconvert"
+      ],
+      "when": ".",
+      "message": "Logical volumes / groups disappear with their data. Shrinking (lvreduce) without shrinking the filesystem first destroys data.",
+      "safer": [
+        {
+          "cmd": "lvs -a -o +devices && vgs && pvs",
+          "why": "Review current layout first."
+        },
+        {
+          "cmd": "vgcfgbackup",
+          "why": "Back up the LVM metadata so it can be restored with vgcfgrestore."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "lvextend-resize",
+      "title": "Resizes a volume/filesystem",
+      "severity": "medium",
+      "cmd": [
+        "lvextend",
+        "resize2fs",
+        "xfs_growfs",
+        "lvresize"
+      ],
+      "when": ".",
+      "message": "Growing is normally safe; shrinking (resize2fs smaller, lvresize -L smaller) can destroy data. Take a snapshot/backup first.",
+      "safer": [
+        {
+          "cmd": "lvcreate -s -n pre_resize -L 5G <vg>/<lv>",
+          "why": "Snapshot before resizing."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "mdadm-destroy",
+      "title": "Changes or destroys a RAID array",
+      "severity": "high",
+      "cmd": [
+        "mdadm"
+      ],
+      "when": "--(?:stop|fail|remove|zero-superblock|create|grow|assemble\\s+--force)|(?:^|\\s)-(?:f|r)\\b",
+      "message": "Failing/removing members of a degraded array can cause data loss; --zero-superblock and --create can wipe the RAID metadata.",
+      "safer": [
+        {
+          "cmd": "cat /proc/mdstat && mdadm --detail {last}",
+          "why": "Check array health before touching members."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "luks-destroy",
+      "title": "Formats or erases an encrypted volume",
+      "severity": "critical",
+      "cmd": [
+        "cryptsetup"
+      ],
+      "when": "\\b(?:luksFormat|luksErase|luksRemoveKey|erase|reencrypt)\\b",
+      "message": "luksFormat/luksErase destroy the header; without a header backup the data is gone forever.",
+      "safer": [
+        {
+          "cmd": "cryptsetup luksHeaderBackup {last} --header-backup-file luks-header.img",
+          "why": "Back up the LUKS header first and store it off the machine."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "swapoff-all",
+      "title": "Disables all swap",
+      "severity": "medium",
+      "cmd": [
+        "swapoff"
+      ],
+      "when": "{{SHORT:a}}|{{LONG:all}}",
+      "message": "If RAM is nearly full the kernel’s OOM killer starts killing processes. Swapping pages back in can take minutes.",
+      "safer": [
+        {
+          "cmd": "free -h",
+          "why": "Make sure used memory fits into RAM first."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "sysrq-trigger",
+      "title": "Writes to /proc/sysrq-trigger",
+      "severity": "critical",
+      "raw": "/proc/sysrq-trigger",
+      "message": "Depending on the key this reboots, powers off or crashes the kernel immediately without syncing disks.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "drop-caches",
+      "title": "Drops the page cache",
+      "severity": "low",
+      "raw": "/proc/sys/vm/drop_caches|vm\\.drop_caches",
+      "message": "Frees cache but makes the next reads slow; it is not a fix for “high memory use” (cache is reclaimable).",
+      "tags": [
+        "performance"
+      ]
+    },
+    {
+      "id": "curl-pipe-shell",
+      "title": "Pipes a download straight into a shell",
+      "severity": "high",
+      "raw": "\\b(?:curl|wget|fetch)\\b[^|;&\\n]*\\|\\s*(?:sudo\\s+(?:-\\w+\\s+)*)?(?:ba|z|da|k)?sh\\b",
+      "message": "You run whatever the server returns — unseen. A compromised host, a changed script or a connection cut mid-download can execute partial or malicious code (often as root).",
+      "safer": [
+        {
+          "cmd": "curl -fsSLo /tmp/install.sh <URL> && less /tmp/install.sh",
+          "why": "Download, read, then run."
+        },
+        {
+          "cmd": "sha256sum /tmp/install.sh",
+          "why": "Compare with the checksum/signature published by the vendor."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "eval-remote",
+      "title": "Evaluates remote output",
+      "severity": "high",
+      "raw": "(?:\\beval\\b|\\bsource\\b|(?:^|\\s)\\.)\\s+[\"']?(?:\\$\\(|<\\()\\s*(?:curl|wget)",
+      "message": "Executes downloaded text in your current shell.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "eval-use",
+      "title": "eval executes arbitrary text",
+      "severity": "medium",
+      "raw": "(?:^|[;&|\\s])eval\\s+",
+      "not": "(?:ssh-agent|\\$\\(\\s*(?:ssh-agent|dircolors|pyenv|rbenv|direnv|starship|fzf|minikube|aws|keychain)\\b)",
+      "message": "If any part of the string comes from a file, variable or user input it becomes command injection.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "fork-bomb",
+      "title": "Fork bomb",
+      "severity": "critical",
+      "raw": ":\\s*\\(\\s*\\)\\s*\\{\\s*:\\s*\\|\\s*:\\s*&\\s*\\}\\s*;\\s*:",
+      "message": "This function copies itself endlessly and exhausts the process table, freezing the machine.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "reverse-shell",
+      "title": "Opens a remote shell",
+      "severity": "critical",
+      "raw": "/dev/tcp/|\\bnc(?:at)?\\b[^|;&\\n]*\\s-[A-Za-z]*e\\s|\\bsocat\\b[^|;&\\n]*EXEC:|bash\\s+-i\\s+>&",
+      "message": "This pattern gives a remote machine an interactive shell on this host. Only valid in an authorised test.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "insecure-tls",
+      "title": "TLS / host verification disabled",
+      "severity": "medium",
+      "cmd": [
+        "curl",
+        "wget",
+        "http",
+        "https",
+        "git",
+        "pip",
+        "npm",
+        "helm",
+        "kubectl",
+        "aws",
+        "az"
+      ],
+      "when": "(?:^|\\s)(?:-k|--insecure|--no-check-certificate|--insecure-skip-tls-verify(?:=true)?|--trusted-host|--no-verify-ssl)(?=\\s|$)|strict-ssl\\s*=?\\s*false|sslVerify=false",
+      "message": "Anyone on the network path can impersonate the server (man-in-the-middle). Do not do this against production or with credentials.",
+      "safer": [
+        {
+          "find": "(^|\\s)(?:-k|--insecure)(?=\\s|$)",
+          "replace": "$1--cacert <ca-bundle.pem>",
+          "why": "Trust the specific CA instead of disabling verification."
+        },
+        {
+          "find": "(^|\\s)--no-check-certificate(?=\\s|$)",
+          "replace": "$1--ca-certificate=<ca.pem>",
+          "why": "Trust the specific CA instead of disabling verification."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "ssh-no-hostkey",
+      "title": "SSH host-key checking disabled",
+      "severity": "medium",
+      "cmd": [
+        "ssh",
+        "scp",
+        "sftp",
+        "rsync"
+      ],
+      "when": "StrictHostKeyChecking[=\\s]+(?:no|off)|UserKnownHostsFile=/dev/null",
+      "message": "Disables protection against man-in-the-middle attacks and host impersonation.",
+      "safer": [
+        {
+          "cmd": "ssh-keyscan -H <host> >> ~/.ssh/known_hosts",
+          "why": "Pin the key (verify the fingerprint out-of-band) instead of ignoring it."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "password-in-url",
+      "title": "Credentials in a URL",
+      "severity": "medium",
+      "raw": "://[^/\\s:@]+:[^/\\s@]+@",
+      "message": "User:password in a URL is visible in shell history, `ps`, proxy logs and referrer headers.",
+      "safer": [
+        {
+          "why": "Use ~/.netrc, an environment variable read from a file, or a credential helper."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "secret-in-argv",
+      "title": "Secret passed on the command line",
+      "severity": "medium",
+      "raw": "(?:^|[\\s;&|])(?:export\\s+)?[A-Za-z_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY)[A-Za-z_]*=\\S+|\\bsshpass\\s+-p\\b|(?:^|\\s)--(?:password|passwd|token|secret|api-key)(?:=|\\s+)[^\\s<-]",
+      "message": "The value lands in shell history and, while the command runs, in the process list (`ps`) visible to other users.",
+      "safer": [
+        {
+          "cmd": "read -rs SECRET && export SECRET",
+          "why": "Read it silently instead of typing it into the command."
+        },
+        {
+          "why": "Start the line with a space (HISTCONTROL=ignorespace), use --password-stdin / env-file / a secrets manager."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "mysql-attached-password",
+      "title": "Password attached to -p",
+      "severity": "medium",
+      "cmd": [
+        "mysql",
+        "mysqldump",
+        "mysqladmin",
+        "mysqlcheck",
+        "mysqlimport"
+      ],
+      "when": "(?:^|\\s)-p\\S+",
+      "message": "The password is visible in `ps` output and shell history.",
+      "safer": [
+        {
+          "cmd": "mysql --defaults-extra-file=~/.my.cnf …",
+          "why": "Put credentials in a 600-permission option file, or use plain `-p` to be prompted."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "docker-login-password",
+      "title": "docker login with -p",
+      "severity": "high",
+      "cmd": [
+        "docker",
+        "podman",
+        "helm",
+        "skopeo"
+      ],
+      "when": "\\blogin\\b[^|]*(?:^|\\s)(?:-p|--password)(?:=|\\s)\\S",
+      "message": "The password appears in history and in the process list.",
+      "safer": [
+        {
+          "cmd": "cat token.txt | docker login -u <user> --password-stdin <registry>",
+          "why": "Use --password-stdin."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "sudo-S-password",
+      "title": "Password piped into sudo -S",
+      "severity": "medium",
+      "raw": "\\|\\s*sudo\\s+(?:-\\w+\\s+)*-S\\b|sudo\\s+-S\\b",
+      "message": "The password sits in plain text in the command line/history.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "sudo-root-shell",
+      "title": "Opens a root shell",
+      "severity": "low",
+      "cmd": [
+        "su"
+      ],
+      "when": ".",
+      "message": "A permanent root shell has no per-command audit trail and every typo runs as root. Prefer `sudo <command>`.",
+      "tags": [
+        "privilege"
+      ]
+    },
+    {
+      "id": "nmap-aggressive",
+      "title": "Aggressive port scan",
+      "severity": "medium",
+      "cmd": [
+        "nmap",
+        "masscan",
+        "nping",
+        "hping3"
+      ],
+      "when": "(?:^|\\s)(?:-A|-sS|-sU|-p-|-T[45]|--script\\S*|--rate\\S*|--flood)(?=\\s|$)|\\s-p\\s*1-65535",
+      "message": "Scanning systems you do not own or have written permission to test may be illegal and can trip IDS/IPS or knock over fragile devices.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "tcpdump-sensitive",
+      "title": "Packet capture may contain secrets",
+      "severity": "low",
+      "cmd": [
+        "tcpdump",
+        "tshark",
+        "ngrep",
+        "dumpcap"
+      ],
+      "when": ".",
+      "message": "Captures can contain passwords, tokens and personal data. Capture the minimum (interface, host, port, -s snaplen), store files securely, delete them afterwards.",
+      "safer": [
+        {
+          "cmd": "tcpdump -i any -nn -c 200 port 443",
+          "why": "Limit by packet count (-c) and filter."
+        }
+      ],
+      "tags": [
+        "privacy"
+      ]
+    },
+    {
+      "id": "strace-attach",
+      "title": "Attaching strace to a live process",
+      "severity": "medium",
+      "cmd": [
+        "strace",
+        "ltrace"
+      ],
+      "when": "(?:^|\\s)-p\\s*\\d+",
+      "message": "Tracing can slow the target 2-50x and, on a busy production process, cause timeouts. Detach as soon as you have what you need.",
+      "safer": [
+        {
+          "cmd": "timeout 20 strace -c -f -p {arg1}",
+          "why": "Time-box it and use -c for a summary only (or use perf/bpftrace for low overhead)."
+        }
+      ],
+      "tags": [
+        "performance"
+      ]
+    },
+    {
+      "id": "gdb-attach",
+      "title": "Attaching gdb to a live process",
+      "severity": "high",
+      "cmd": [
+        "gdb"
+      ],
+      "when": "(?:^|\\s)(?:-p|--pid)\\s*\\d+|\\battach\\b",
+      "message": "gdb stops the process while attached; quitting without `detach` can kill it. Never leave a debugger attached to a production process.",
+      "safer": [
+        {
+          "cmd": "gcore {arg1}",
+          "why": "Take a core dump with gcore instead (brief pause only)."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "tcpkill",
+      "title": "Kills live TCP connections",
+      "severity": "high",
+      "cmd": [
+        "tcpkill"
+      ],
+      "when": ".",
+      "message": "Matching connections are reset immediately; users and replication links drop.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "ss-kill",
+      "title": "Kills sockets",
+      "severity": "high",
+      "cmd": [
+        "ss"
+      ],
+      "when": "(?:^|\\s)-[A-Za-z]*K[A-Za-z]*(?=\\s|$)|--kill",
+      "message": "Matching sockets are destroyed immediately.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "setenforce-0",
+      "title": "Disables SELinux enforcement",
+      "severity": "high",
+      "cmd": [
+        "setenforce"
+      ],
+      "when": "^(?:0|Permissive)\\s*$",
+      "message": "Turns SELinux off until reboot. Fix the actual denial instead.",
+      "safer": [
+        {
+          "cmd": "ausearch -m avc -ts recent | audit2why",
+          "why": "Find the denial and fix the label/boolean/policy."
+        },
+        {
+          "cmd": "semanage fcontext -a -t <type> \"<path>(/.*)?\" && restorecon -Rv <path>",
+          "why": "Relabel the files."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "selinux-disable-config",
+      "title": "Permanently disables SELinux",
+      "severity": "high",
+      "raw": "SELINUX=(?:disabled|permissive)",
+      "message": "Persistent after reboot and removes a whole defence layer.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "sudoers-write",
+      "title": "Edits sudoers or account files directly",
+      "severity": "critical",
+      "raw": "(?:>>?|\\btee(?:\\s+-a)?)\\s*/etc/(?:sudoers(?:\\.d/\\S*)?|passwd|shadow|group|gshadow)\\b",
+      "message": "A syntax error in sudoers locks everyone out of sudo; corrupted passwd/shadow can prevent logins.",
+      "safer": [
+        {
+          "cmd": "sudo visudo -f /etc/sudoers.d/<name>",
+          "why": "visudo validates the syntax before saving."
+        },
+        {
+          "cmd": "vipw",
+          "why": "Use vipw/vigr for passwd/group edits."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "history-wipe",
+      "title": "Clears shell history",
+      "severity": "info",
+      "raw": "\\bhistory\\s+-c\\b|unset\\s+HISTFILE|>\\s*~?/?\\.?\\w*history",
+      "message": "Removes the audit trail of what was run — often against policy on shared/production hosts.",
+      "tags": [
+        "audit"
+      ]
+    },
+    {
+      "id": "kill-all",
+      "title": "Kills every process",
+      "severity": "critical",
+      "cmd": [
+        "kill"
+      ],
+      "when": "(?:^|\\s)-(?:9|KILL|SIGKILL|15|TERM)\\s+(?:--\\s+)?-1(?=\\s|$)|(?:^|\\s)--\\s+-1(?=\\s|$)",
+      "message": "`kill -1` as a PID means “every process you can signal” — as root that is the whole system including sshd.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kill-sigkill",
+      "title": "SIGKILL cannot be handled",
+      "severity": "medium",
+      "cmd": [
+        "kill",
+        "pkill",
+        "killall"
+      ],
+      "when": "{{SHORT:9}}|(?:^|\\s)-(?:SIGKILL|KILL)(?=\\s|$)|(?:^|\\s)-s\\s+(?:9|KILL|SIGKILL)(?=\\s|$)",
+      "message": "The process gets no chance to flush buffers, release locks or stop children: corrupted data, stale lock/PID files and orphaned workers are common.",
+      "safer": [
+        {
+          "find": "(^|\\s)-(?:9|KILL|SIGKILL)(?=\\s|$)",
+          "replace": "$1-TERM",
+          "why": "Send SIGTERM first, wait, and escalate to -9 only if it ignores it."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "pkill-pattern",
+      "title": "Pattern-based kill",
+      "severity": "medium",
+      "cmd": [
+        "pkill",
+        "killall"
+      ],
+      "not": "{{SHORT:x}}|{{LONG:exact}}|{{SHORT:i}}",
+      "when": ".",
+      "message": "The pattern matches by substring: `pkill java` stops every JVM on the host (including other teams’ services).",
+      "safer": [
+        {
+          "cmd": "pgrep -a {arg1}",
+          "why": "Preview which processes match."
+        },
+        {
+          "cmd": "pkill -x {arg1}",
+          "why": "Use -x for an exact name match."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "systemctl-lockout",
+      "title": "Stopping a service you may depend on",
+      "severity": "high",
+      "cmd": [
+        "systemctl"
+      ],
+      "when": "\\b(?:stop|disable|mask|kill|isolate)\\b.*\\b(?:sshd?(?:\\.service|\\.socket)?|NetworkManager|systemd-networkd|networking|network|firewalld|dbus|systemd-logind)\\b",
+      "message": "If you are connected over SSH, stopping ssh or the network can cut you off with no way back except console access.",
+      "safer": [
+        {
+          "cmd": "systemctl status {last}",
+          "why": "Check what depends on it (`systemctl list-dependencies --reverse {last}`)."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "systemctl-sshd-restart",
+      "title": "Restarting sshd with an untested config",
+      "severity": "medium",
+      "cmd": [
+        "systemctl",
+        "service"
+      ],
+      "when": "\\b(?:restart|reload)\\b.*\\bsshd?\\b|\\bsshd?\\b.*\\b(?:restart|reload)\\b",
+      "message": "A syntax error in sshd_config prevents new logins. Existing sessions usually survive — keep one open while testing.",
+      "safer": [
+        {
+          "cmd": "sudo sshd -t && sudo systemctl reload sshd",
+          "why": "Validate the config first; open a second session to test before closing the first."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "systemctl-power",
+      "title": "Reboots or powers off the machine",
+      "severity": "high",
+      "cmd": [
+        "systemctl"
+      ],
+      "when": "\\b(?:reboot|poweroff|halt|kexec|suspend|hibernate|rescue|emergency|isolate)\\b",
+      "message": "All services stop; remote sessions are dropped. Confirm the host and that nobody else is using it.",
+      "safer": [
+        {
+          "cmd": "who -a && uptime",
+          "why": "See who is logged in and how long the system has been up."
+        },
+        {
+          "cmd": "shutdown -r +5 \"Rebooting in 5 minutes\"",
+          "why": "Schedule with a warning (cancel with `shutdown -c`)."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "power-commands",
+      "title": "Reboots or powers off the machine",
+      "severity": "high",
+      "cmd": [
+        "reboot",
+        "shutdown",
+        "poweroff",
+        "halt",
+        "init",
+        "telinit"
+      ],
+      "when": ".",
+      "not": "(?:^|\\s)-c(?=\\s|$)|--help|(?:^|\\s)-k(?=\\s|$)",
+      "message": "All services stop and remote sessions are dropped. On a remote host you need console/IPMI access if it does not come back.",
+      "safer": [
+        {
+          "cmd": "who -a && uptime",
+          "why": "See who is logged in first."
+        },
+        {
+          "cmd": "shutdown -r +5 \"Rebooting for maintenance\"",
+          "why": "Schedule it with a warning message (cancel with `shutdown -c`)."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "systemctl-mask-set-default",
+      "title": "Changes boot behaviour",
+      "severity": "medium",
+      "cmd": [
+        "systemctl"
+      ],
+      "when": "\\b(?:mask|set-default|daemon-reexec)\\b",
+      "message": "Masking links the unit to /dev/null so nothing (even dependencies) can start it; set-default changes what the machine boots into.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "crontab-remove",
+      "title": "Removes the whole crontab",
+      "severity": "high",
+      "cmd": [
+        "crontab"
+      ],
+      "when": "(?:^|\\s)-r(?=\\s|$)",
+      "message": "-r deletes ALL cron jobs of the user immediately, with no confirmation (it sits right next to -e on the keyboard).",
+      "safer": [
+        {
+          "find": "(^|\\s)-r(?=\\s|$)",
+          "replace": "$1-ri",
+          "why": "-i asks before removing."
+        },
+        {
+          "cmd": "crontab -l > ~/crontab.backup",
+          "why": "Back it up first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "crontab-stdin",
+      "title": "Replaces the whole crontab from stdin",
+      "severity": "high",
+      "raw": "\\|\\s*(?:sudo\\s+)?crontab\\s+-(?:\\s|$)",
+      "message": "`… | crontab -` replaces every existing job with the piped text.",
+      "safer": [
+        {
+          "cmd": "(crontab -l 2>/dev/null; echo \"*/5 * * * * /path/job.sh\") | crontab -",
+          "why": "Append to the existing crontab instead of replacing it."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "rm-etc-cron-logrotate",
+      "title": "Edits scheduling/logging infrastructure",
+      "severity": "low",
+      "cmd": [
+        "logrotate"
+      ],
+      "when": "{{SHORT:f}}|{{LONG:force}}",
+      "message": "Forces rotation now even if not due — logs may be compressed/removed earlier than expected.",
+      "safer": [
+        {
+          "cmd": "logrotate -d /etc/logrotate.conf",
+          "why": "Debug/dry-run mode."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "sysctl-runtime",
+      "title": "Changes a kernel parameter at run time",
+      "severity": "medium",
+      "cmd": [
+        "sysctl"
+      ],
+      "when": "(?:^|\\s)-w(?=\\s|$)|\\s\\S+=\\S+",
+      "message": "Takes effect immediately for the whole host, is lost on reboot unless persisted, and bad values (ip_forward, rp_filter, somaxconn, overcommit) can break traffic or memory handling.",
+      "safer": [
+        {
+          "cmd": "sysctl <parameter>",
+          "why": "Read the current value first and note it for rollback; persist deliberately in /etc/sysctl.d/."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "ulimit-unlimited",
+      "title": "Raises a resource limit to unlimited",
+      "severity": "low",
+      "cmd": [
+        "ulimit"
+      ],
+      "when": "unlimited",
+      "message": "Runaway processes can exhaust memory/descriptors; prefer a sensible number.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "swapon-mkswap",
+      "title": "Reformats swap",
+      "severity": "medium",
+      "cmd": [
+        "mkswap"
+      ],
+      "when": ".",
+      "message": "mkswap wipes the target’s first block.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "iptables-flush",
+      "title": "Flushes firewall rules",
+      "severity": "high",
+      "cmd": [
+        "iptables",
+        "ip6tables",
+        "nft",
+        "ebtables"
+      ],
+      "when": "{{SHORT:F}}|{{LONG:flush}}|\\bflush\\s+ruleset\\b|(?:^|\\s)-X(?=\\s|$)",
+      "message": "With a default DROP policy you are locked out immediately; with ACCEPT you silently remove protection (NAT/forward rules also vanish — containers and Kubernetes lose connectivity).",
+      "safer": [
+        {
+          "cmd": "iptables-save > /root/iptables.backup",
+          "why": "Back up the rules (nft list ruleset > /root/nft.backup)."
+        },
+        {
+          "cmd": "echo \"iptables-restore < /root/iptables.backup\" | at now + 5 minutes",
+          "why": "Schedule an automatic rollback in case you lock yourself out."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "iptables-policy-drop",
+      "title": "Default policy DROP",
+      "severity": "critical",
+      "cmd": [
+        "iptables",
+        "ip6tables"
+      ],
+      "when": "{{SHORT:P}}\\s+(?:INPUT|FORWARD|OUTPUT)\\s+(?:DROP|REJECT)",
+      "message": "Without an earlier ACCEPT rule for SSH and ESTABLISHED,RELATED traffic, you lose your session instantly.",
+      "safer": [
+        {
+          "cmd": "iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT && iptables -A INPUT -p tcp --dport 22 -j ACCEPT",
+          "why": "Allow established connections and SSH BEFORE changing the policy."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "iptables-not-persistent",
+      "title": "Rules are not persistent",
+      "severity": "info",
+      "cmd": [
+        "iptables",
+        "ip6tables"
+      ],
+      "when": "{{SHORT:AIDRP}}",
+      "message": "Rule changes apply instantly but vanish on reboot unless saved (iptables-save / netfilter-persistent / firewalld --permanent).",
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "ufw-enable-reset",
+      "title": "ufw enable / reset",
+      "severity": "high",
+      "cmd": [
+        "ufw"
+      ],
+      "when": "\\b(?:enable|reset|default\\s+deny\\s+incoming)\\b",
+      "message": "Enabling ufw (or resetting it) over SSH can drop your own session if port 22 is not allowed first.",
+      "safer": [
+        {
+          "cmd": "ufw allow OpenSSH && ufw status verbose",
+          "why": "Allow SSH before enabling."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "firewalld-panic",
+      "title": "firewalld panic / removes SSH",
+      "severity": "critical",
+      "cmd": [
+        "firewall-cmd"
+      ],
+      "when": "--panic-on|--remove-service=ssh\\b|--remove-port=22/tcp",
+      "message": "Panic mode drops ALL packets, including your SSH session.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "firewalld-permanent",
+      "title": "firewalld permanent change",
+      "severity": "medium",
+      "cmd": [
+        "firewall-cmd"
+      ],
+      "when": "{{LONG:permanent}}",
+      "message": "Permanent rules apply after --reload or reboot — a mistake can surface later. Test with the runtime config first (omit --permanent), then --runtime-to-permanent.",
+      "safer": [
+        {
+          "find": "\\s+--permanent\\b",
+          "replace": "",
+          "why": "Apply at runtime first; make it permanent once verified (`firewall-cmd --runtime-to-permanent`)."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "ip-down-flush",
+      "title": "Takes down or flushes a network interface/route",
+      "severity": "high",
+      "cmd": [
+        "ip",
+        "ifconfig",
+        "ifdown",
+        "nmcli",
+        "route"
+      ],
+      "when": "\\blink\\s+set\\s+\\S+\\s+down\\b|\\baddr(?:ess)?\\s+(?:flush|del)\\b|\\broute\\s+(?:del|delete|flush)\\b|\\bdown\\b|connection\\s+(?:down|delete|modify)",
+      "message": "If this is the interface or default route you are connected through, the session dies and you cannot bring it back remotely.",
+      "safer": [
+        {
+          "cmd": "(sleep 120 && ip link set <if> up) &",
+          "why": "Run a time-delayed rollback in the background before the risky change."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "userdel-remove-home",
+      "title": "Deletes a user and their home directory",
+      "severity": "high",
+      "cmd": [
+        "userdel",
+        "deluser"
+      ],
+      "when": "{{SHORT:rf}}|{{LONG:remove}}|{{LONG:remove-home}}|{{LONG:remove-all-files}}",
+      "message": "The home directory and mail spool are deleted permanently.",
+      "safer": [
+        {
+          "find": "(^|\\s)-r(?=\\s|$)",
+          "replace": "$1",
+          "why": "Keep the home directory, archive it, then delete later."
+        },
+        {
+          "cmd": "tar czf /root/{arg1}-home.tgz /home/{arg1}",
+          "why": "Archive the home directory first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "usermod-replace-groups",
+      "title": "Replaces all supplementary groups",
+      "severity": "high",
+      "cmd": [
+        "usermod"
+      ],
+      "when": "(?:^|\\s)-G(?=\\s)",
+      "not": "{{SHORT:a}}|--append",
+      "message": "-G without -a REPLACES the user’s group list — e.g. removes sudo/wheel and can lock them out of admin rights.",
+      "safer": [
+        {
+          "find": "(^|\\s)-G(?=\\s)",
+          "replace": "$1-aG",
+          "why": "Use -aG to append."
+        }
+      ],
+      "tags": [
+        "privilege"
+      ]
+    },
+    {
+      "id": "usermod-privileged-group",
+      "title": "Grants a privileged group",
+      "severity": "high",
+      "cmd": [
+        "usermod",
+        "gpasswd",
+        "adduser",
+        "useradd"
+      ],
+      "when": "\\b(?:sudo|wheel|root|adm|docker|lxd|disk|shadow)\\b",
+      "message": "Membership of sudo/wheel is root; docker/lxd/disk is root-equivalent too. Grant it only deliberately and log why.",
+      "tags": [
+        "privilege"
+      ]
+    },
+    {
+      "id": "passwd-delete",
+      "title": "Removes or locks a password",
+      "severity": "high",
+      "cmd": [
+        "passwd"
+      ],
+      "when": "(?:^|\\s)(?:-d|--delete)(?=\\s|$)",
+      "message": "-d makes the account passwordless — anyone can log in locally (and on some PAM setups remotely).",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "passwd-lock-root",
+      "title": "Locks an account",
+      "severity": "medium",
+      "cmd": [
+        "passwd",
+        "usermod"
+      ],
+      "when": "(?:^|\\s)(?:-l|--lock|-L|-e|--expire)(?=\\s|$)",
+      "message": "Locking the only admin or root account can leave nobody able to administer the host.",
+      "safer": [
+        {
+          "cmd": "getent group sudo wheel",
+          "why": "Check another admin exists first."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "visudo-nopasswd",
+      "title": "Passwordless sudo",
+      "severity": "high",
+      "raw": "NOPASSWD\\s*:\\s*ALL",
+      "message": "Anyone who gets that account (or its SSH key) has unrestricted root.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "rsync-delete",
+      "title": "rsync --delete removes files at the destination",
+      "severity": "high",
+      "cmd": [
+        "rsync"
+      ],
+      "when": "--delete(?:-\\w+)?\\b|--remove-source-files|--del\\b",
+      "message": "Anything at the destination that is not in the source is deleted. Swapping source/destination or a missing trailing slash is destructive.",
+      "safer": [
+        {
+          "find": "\\brsync\\b",
+          "replace": "rsync -n",
+          "why": "Add -n (--dry-run) and add -v to see exactly what would change."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "tar-extract-root",
+      "title": "Extracts an archive into /",
+      "severity": "high",
+      "cmd": [
+        "tar",
+        "bsdtar"
+      ],
+      "when": [
+        "(?:^|\\s)-?[A-Za-z]*x[A-Za-z]*(?=\\s|$)",
+        "(?:^|\\s)-C\\s*/(?=\\s|$)|--directory=/(?=\\s|$)"
+      ],
+      "message": "Files in the archive overwrite system files with the archive’s owners and modes.",
+      "safer": [
+        {
+          "cmd": "tar -tvf {last} | head -50",
+          "why": "List the archive contents first."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "tar-remove-files",
+      "title": "tar removes source files",
+      "severity": "medium",
+      "cmd": [
+        "tar"
+      ],
+      "when": "{{LONG:remove-files}}",
+      "message": "Originals are deleted after being added. If the archive is corrupt or incomplete they are gone.",
+      "safer": [
+        {
+          "cmd": "tar -tzf archive.tgz >/dev/null && echo OK",
+          "why": "Verify the archive before deleting the source."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "tar-absolute",
+      "title": "Archives with absolute paths",
+      "severity": "low",
+      "cmd": [
+        "tar"
+      ],
+      "when": "{{SHORT:P}}|{{LONG:absolute-names}}",
+      "message": "Restoring will write to the original absolute locations.",
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "sed-inplace",
+      "title": "sed -i edits files in place",
+      "severity": "medium",
+      "cmd": [
+        "sed"
+      ],
+      "when": "{{SHORT:i}}|{{LONG:in-place}}",
+      "message": "The file is rewritten with no undo. A wrong regex corrupts configs; BSD/macOS sed needs `-i \"\"` and behaves differently.",
+      "safer": [
+        {
+          "find": "(^|\\s)-i(?=\\s)",
+          "replace": "$1-i.bak",
+          "why": "Keep a backup copy (file.bak)."
+        },
+        {
+          "cmd": "sed 's/old/new/' <file> | diff <file> -",
+          "why": "Preview as a diff without changing the file (run the same expression without -i)."
+        }
+      ],
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "perl-inplace",
+      "title": "perl -pi edits files in place",
+      "severity": "medium",
+      "cmd": [
+        "perl"
+      ],
+      "when": "(?:^|\\s)-[A-Za-z]*i(?:\\S*)?\\s",
+      "message": "In-place edit without a backup if no extension is given (-pi.bak keeps one).",
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "xargs-destructive",
+      "title": "xargs feeding a destructive command",
+      "severity": "medium",
+      "cmd": [
+        "rm",
+        "mv",
+        "chmod",
+        "chown",
+        "kill",
+        "shred"
+      ],
+      "requires": [
+        "xargs"
+      ],
+      "when": ".",
+      "message": "The argument list comes from standard input — check what is piped in before relying on it.",
+      "safer": [
+        {
+          "cmd": "echo",
+          "why": "Replace the final command with echo to preview the generated command lines."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "wget-clobber",
+      "title": "Overwrites on download",
+      "severity": "info",
+      "cmd": [
+        "curl",
+        "wget"
+      ],
+      "when": "(?:^|\\s)(?:-o|-O|--output|--output-document)\\s*(?:/etc|/usr|/bin|/sbin|/lib|/boot)\\S*",
+      "message": "Writes a download straight into a system path.",
+      "tags": [
+        "overwrite"
+      ]
+    },
+    {
+      "id": "git-force-push",
+      "title": "Force push rewrites remote history",
+      "severity": "high",
+      "cmd": [
+        "git"
+      ],
+      "when": [
+        "\\bpush\\b",
+        "{{SHORT:f}}|{{LONG:force}}"
+      ],
+      "message": "Teammates’ commits on that branch can be erased and their clones diverge. It is the standard way to lose work on shared branches.",
+      "safer": [
+        {
+          "find": "(^|\\s)(?:-f|--force)(?=\\s|$)",
+          "replace": "$1--force-with-lease",
+          "why": "Fails if someone pushed since you last fetched."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-force-push-protected",
+      "title": "Force push to a main/release branch",
+      "severity": "critical",
+      "cmd": [
+        "git"
+      ],
+      "when": [
+        "\\bpush\\b",
+        "{{SHORT:f}}|{{LONG:force}}",
+        "\\b(?:main|master|develop|release[\\w/-]*|prod|production|trunk)\\b"
+      ],
+      "message": "Rewrites history of a shared branch — CI, releases and everyone’s checkouts are affected. Most hosts let you protect these branches.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-push-delete",
+      "title": "Deletes a remote branch/tag",
+      "severity": "medium",
+      "cmd": [
+        "git"
+      ],
+      "when": "\\bpush\\b.*(?:\\s--delete\\b|\\s:\\S+|\\s-d\\b)",
+      "message": "The ref is removed on the remote; others will see it disappear.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-reset-hard",
+      "title": "git reset --hard discards local work",
+      "severity": "high",
+      "cmd": [
+        "git"
+      ],
+      "when": [
+        "\\breset\\b",
+        "{{LONG:hard}}"
+      ],
+      "message": "Uncommitted changes in tracked files are lost permanently (committed work can be recovered via reflog).",
+      "safer": [
+        {
+          "cmd": "git stash push -u -m \"before reset\"",
+          "why": "Stash (including untracked) first."
+        },
+        {
+          "cmd": "git branch backup-$(date +%s)",
+          "why": "Leave a branch pointing at the current commit."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-clean",
+      "title": "git clean deletes untracked files",
+      "severity": "high",
+      "cmd": [
+        "git"
+      ],
+      "when": [
+        "\\bclean\\b",
+        "{{SHORT:f}}|{{LONG:force}}"
+      ],
+      "message": "Untracked files are NOT in version control, so they cannot be recovered. With -x it also deletes ignored files such as .env and build outputs.",
+      "safer": [
+        {
+          "find": "(^|\\s)-([A-Za-z]*)f([A-Za-z]*)(?=\\s|$)",
+          "replace": "$1-$2n$3",
+          "why": "Dry run (-n) lists what would be deleted."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-discard-all",
+      "title": "Discards all working-tree changes",
+      "severity": "medium",
+      "cmd": [
+        "git"
+      ],
+      "when": "\\b(?:checkout|restore)\\b(?:\\s+--)?\\s+\\.(?=\\s|$)",
+      "message": "Every unstaged change in the tree is overwritten from the index/HEAD.",
+      "safer": [
+        {
+          "cmd": "git diff --stat",
+          "why": "See what would be lost."
+        },
+        {
+          "cmd": "git stash",
+          "why": "Stash instead of discarding."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-branch-force-delete",
+      "title": "Force-deletes a branch",
+      "severity": "medium",
+      "cmd": [
+        "git"
+      ],
+      "when": [
+        "\\bbranch\\b",
+        "{{SHORT:D}}"
+      ],
+      "message": "-D deletes even unmerged branches — commits become unreachable.",
+      "safer": [
+        {
+          "find": "(^|\\s)-D(?=\\s)",
+          "replace": "$1-d",
+          "why": "-d refuses to delete unmerged branches."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-rewrite-history",
+      "title": "Rewrites repository history",
+      "severity": "high",
+      "cmd": [
+        "git"
+      ],
+      "when": "\\b(?:filter-branch|filter-repo|replace)\\b|\\brebase\\b.*--root",
+      "message": "All commit hashes after the change are rewritten; every clone must be re-synced and you need a backup.",
+      "safer": [
+        {
+          "cmd": "git clone --mirror . ../repo-backup.git",
+          "why": "Take a mirror backup first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-prune-now",
+      "title": "Permanently drops unreachable commits",
+      "severity": "high",
+      "cmd": [
+        "git"
+      ],
+      "when": "\\bgc\\b.*--prune=now|\\breflog\\s+expire\\b.*--expire(?:-unreachable)?=now",
+      "message": "Removes the safety net (reflog/unreachable objects) used to recover from mistakes.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "git-no-verify",
+      "title": "Skips hooks",
+      "severity": "low",
+      "cmd": [
+        "git"
+      ],
+      "when": "--no-verify",
+      "message": "Bypasses pre-commit/pre-push checks (linting, secret scanning, tests).",
+      "tags": [
+        "process"
+      ]
+    },
+    {
+      "id": "docker-prune",
+      "title": "Prunes Docker objects",
+      "severity": "medium",
+      "cmd": [
+        "docker",
+        "podman",
+        "nerdctl"
+      ],
+      "when": "\\b(?:system|volume|image|container|builder|network)\\s+prune\\b",
+      "message": "Stopped containers, unused images/networks and (with volumes) unreferenced data volumes are deleted. Volumes of stopped database containers look “unused”.",
+      "safer": [
+        {
+          "cmd": "docker system df -v",
+          "why": "See what is using space first."
+        },
+        {
+          "cmd": "docker image prune --filter \"until=168h\"",
+          "why": "Prune only older objects."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "docker-prune-volumes",
+      "title": "Prunes Docker volumes",
+      "severity": "high",
+      "cmd": [
+        "docker",
+        "podman",
+        "nerdctl"
+      ],
+      "when": "\\bvolume\\s+prune\\b|\\bsystem\\s+prune\\b.*(?:--volumes|\\s-a\\b|--all)",
+      "message": "Named volumes not attached to a running container are deleted, including data of stopped databases. This cannot be undone.",
+      "safer": [
+        {
+          "cmd": "docker volume ls -f dangling=true",
+          "why": "List candidates and back up what matters."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "docker-rm-force",
+      "title": "Force-removes containers",
+      "severity": "medium",
+      "cmd": [
+        "docker",
+        "podman",
+        "nerdctl"
+      ],
+      "when": [
+        "\\b(?:rm|rmi|kill)\\b",
+        "{{SHORT:fv}}|{{LONG:force}}|{{LONG:volumes}}"
+      ],
+      "message": "-f kills running containers; -v removes their anonymous volumes; rmi -f removes images used by containers.",
+      "safer": [
+        {
+          "cmd": "docker ps -a --format \"table {{.Names}}\\t{{.Status}}\\t{{.Mounts}}\"",
+          "why": "Check status and mounts first."
+        },
+        {
+          "cmd": "docker stop {last}",
+          "why": "Stop gracefully before removing."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "docker-privileged",
+      "title": "Container gets host-level access",
+      "severity": "high",
+      "cmd": [
+        "docker",
+        "podman",
+        "nerdctl"
+      ],
+      "when": "--privileged|--pid[= ]host|--cap-add[= ](?:ALL|SYS_ADMIN|SYS_PTRACE|NET_ADMIN)|--security-opt[= ]\\S*unconfined|--device[= ]/dev/mem",
+      "message": "A privileged container is effectively root on the host; a compromise inside the container becomes a host compromise.",
+      "safer": [
+        {
+          "why": "Grant only the capability you need (--cap-add=NET_ADMIN) or a specific --device."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "docker-mount-host",
+      "title": "Mounts the Docker socket or host root",
+      "severity": "high",
+      "cmd": [
+        "docker",
+        "podman",
+        "nerdctl"
+      ],
+      "when": "(?:-v|--volume|--mount)[= ]\\S*(?:/var/run/docker\\.sock|docker\\.sock|:/host\\b|^/:|\\s/:/)|(?:-v|--volume)\\s+/:",
+      "message": "Access to docker.sock or / lets the container start privileged containers and read/write the entire host.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "docker-compose-down-v",
+      "title": "compose down removes volumes",
+      "severity": "high",
+      "cmd": [
+        "docker",
+        "docker-compose",
+        "podman-compose"
+      ],
+      "when": [
+        "\\bdown\\b",
+        "{{SHORT:v}}|{{LONG:volumes}}|{{LONG:rmi}}"
+      ],
+      "message": "Named volumes (databases, uploads) declared in the compose file are deleted with the stack.",
+      "safer": [
+        {
+          "find": "\\s+(?:-v|--volumes)(?=\\s|$)",
+          "replace": "",
+          "why": "Run `down` without -v to keep your data volumes."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "docker-latest",
+      "title": "Image tag is :latest",
+      "severity": "info",
+      "cmd": [
+        "docker",
+        "podman",
+        "nerdctl"
+      ],
+      "when": ":latest\\b",
+      "message": ":latest changes under you — pin a version or digest for reproducible deployments.",
+      "tags": [
+        "process"
+      ]
+    },
+    {
+      "id": "kubectl-delete",
+      "title": "kubectl delete is immediate",
+      "severity": "medium",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "{{WORD:delete}}",
+      "not": "--dry-run",
+      "message": "There is no recycle bin. Controllers recreate pods, but Services, ConfigMaps, Secrets, PVCs and CRDs stay deleted — and deleting a CRD deletes every custom resource of that kind.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run=server",
+          "why": "Server-side dry run validates and shows what would be deleted."
+        },
+        {
+          "cmd": "kubectl get <kind> {last} -o yaml > backup.yaml",
+          "why": "Export the object(s) first so you can re-apply them."
+        },
+        {
+          "cmd": "kubectl config current-context",
+          "why": "Confirm the cluster you are pointing at."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubectl-delete-all",
+      "title": "Deletes all objects of a kind",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "{{WORD:delete}}",
+        "{{LONG:all}}|(?:^|\\s)-A(?=\\s|$)|--all-namespaces"
+      ],
+      "not": "--dry-run",
+      "message": "`--all` removes every matching object in scope; combined with -A / --all-namespaces it spans the whole cluster.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run=server",
+          "why": "Dry-run to list the victims."
+        },
+        {
+          "cmd": "kubectl get <kind> --all-namespaces",
+          "why": "List what matches first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubectl-delete-namespace",
+      "title": "Deletes a namespace",
+      "severity": "critical",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bdelete\\s+(?:namespaces?|ns)\\b",
+      "message": "Everything in the namespace is deleted: workloads, Services, Secrets, ConfigMaps and PVCs (and the volumes behind them when reclaimPolicy is Delete).",
+      "safer": [
+        {
+          "cmd": "kubectl get all,pvc,cm,secret,ingress -n {last}",
+          "why": "Review what lives in the namespace."
+        },
+        {
+          "cmd": "kubectl delete ns {last} --dry-run=server",
+          "why": "Dry run first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubectl-delete-storage",
+      "title": "Deletes persistent storage",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bdelete\\s+(?:pvc|pv|persistentvolumeclaims?|persistentvolumes?|volumesnapshots?|storageclass(?:es)?)\\b",
+      "message": "Data loss: with reclaimPolicy Delete the cloud disk is destroyed together with the PVC.",
+      "safer": [
+        {
+          "cmd": "kubectl get pv -o custom-columns=NAME:.metadata.name,RECLAIM:.spec.persistentVolumeReclaimPolicy,CLAIM:.spec.claimRef.name",
+          "why": "Check reclaim policies first; patch to Retain if needed."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubectl-force-delete",
+      "title": "Force delete skips graceful shutdown",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "{{WORD:delete}}",
+        "{{LONG:force}}|--grace-period(?:=|\\s+)0\\b"
+      ],
+      "message": "The object is removed from the API without waiting for the kubelet; a StatefulSet pod can end up running twice (split-brain, volume corruption).",
+      "safer": [
+        {
+          "find": "\\s+--force\\b|\\s+--grace-period(?:=|\\s+)0\\b",
+          "flags": "g",
+          "replace": "",
+          "why": "Delete gracefully and give it time (`--timeout=120s`)."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubectl-apply",
+      "title": "kubectl apply changes the live cluster",
+      "severity": "low",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bapply\\b",
+      "not": "--dry-run|\\bdiff\\b",
+      "message": "Applies immediately; whatever differs between the manifest and the live object is changed, including image tags and replica counts.",
+      "safer": [
+        {
+          "find": "\\bapply\\b",
+          "replace": "diff",
+          "why": "`kubectl diff` shows exactly what would change."
+        },
+        {
+          "find": "$",
+          "replace": " --dry-run=server",
+          "why": "Server-side dry run validates against admission webhooks."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "kubectl-apply-prune",
+      "title": "apply --prune deletes objects",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "\\bapply\\b",
+        "--prune"
+      ],
+      "message": "--prune deletes live objects that are not in the applied set (matching the selector).",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run=server",
+          "why": "Dry-run and inspect the pruned objects."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubectl-replace-force",
+      "title": "Delete-and-recreate",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "\\b(?:replace|apply)\\b",
+        "{{LONG:force}}"
+      ],
+      "message": "--force deletes the objects first and then recreates them: downtime and lost status/UID.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "kubectl-scale-zero",
+      "title": "Scales a workload to zero",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "\\bscale\\b",
+        "--replicas(?:=|\\s+)0\\b"
+      ],
+      "message": "All pods stop: an immediate outage for that workload.",
+      "safer": [
+        {
+          "cmd": "kubectl get hpa,pdb -n <ns>",
+          "why": "Check autoscalers/PDBs and who depends on it."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "kubectl-drain",
+      "title": "Evicts all pods from a node",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bdrain\\b",
+      "message": "Pods are evicted (PDBs may block or, with --disable-eviction/--force, be bypassed). --delete-emptydir-data loses emptyDir contents; unmanaged pods are not rescheduled.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run=server",
+          "why": "Preview which pods would be evicted."
+        },
+        {
+          "cmd": "kubectl get pods -A -o wide --field-selector spec.nodeName={last}",
+          "why": "List what runs on the node."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "kubectl-taint-noexecute",
+      "title": "NoExecute taint evicts pods immediately",
+      "severity": "high",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "\\btaint\\b",
+        "NoExecute"
+      ],
+      "message": "All pods without a matching toleration are evicted at once.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "kubectl-rollout-restart",
+      "title": "Restarts every pod of a workload",
+      "severity": "medium",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\brollout\\s+(?:restart|undo)\\b",
+      "message": "Pods are replaced (rolling). With maxUnavailable/replicas=1, readiness issues or no PDB mean user-visible downtime; `undo` reverts to the previous ReplicaSet — confirm which one.",
+      "safer": [
+        {
+          "cmd": "kubectl rollout history {last}",
+          "why": "Check the revision history before undoing."
+        },
+        {
+          "cmd": "kubectl get pdb -n <ns>",
+          "why": "Check disruption budgets."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "kubectl-edit-live",
+      "title": "Edits a live object in place",
+      "severity": "medium",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\b(?:edit|patch|label|annotate)\\b|\\bset\\s+(?:image|env|resources|selector|serviceaccount|subject)\\b",
+      "not": "--dry-run|\\bget\\b|--list|--local",
+      "message": "Live edits bypass Git/CI, are not reviewed and are overwritten by the next apply (drift).",
+      "safer": [
+        {
+          "cmd": "kubectl get <kind> {last} -o yaml > before.yaml",
+          "why": "Save the current object for rollback."
+        },
+        {
+          "find": "$",
+          "replace": " --dry-run=server -o yaml",
+          "why": "Preview the patched object."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "kubectl-get-secret-output",
+      "title": "Prints Secret contents",
+      "severity": "medium",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": [
+        "\\bget\\s+(?:secrets?\\b|secret/\\S+)",
+        "(?:^|\\s)(?:-o|--output)(?:=|\\s*)(?:yaml|json|jsonpath|go-template|custom)"
+      ],
+      "message": "Secret values are only base64-encoded, not encrypted — they land in your terminal scrollback, logs and screen shares.",
+      "safer": [
+        {
+          "cmd": "kubectl describe secret {last}",
+          "why": "Describe shows keys and sizes without values."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "kubectl-exec-prod",
+      "title": "Interactive access to a running container",
+      "severity": "info",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\b(?:exec|debug|attach|cp|port-forward)\\b",
+      "message": "Changes made by hand inside a pod are lost on restart and are invisible to your audit trail unless API audit logging is on.",
+      "tags": [
+        "process"
+      ]
+    },
+    {
+      "id": "kubectl-context-switch",
+      "title": "Switches the active cluster",
+      "severity": "low",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bconfig\\s+(?:use-context|set-context|delete-(?:context|cluster|user))\\b",
+      "message": "All following kubectl commands in this shell/session now target the new context — the most common way to run something against production by mistake.",
+      "safer": [
+        {
+          "cmd": "kubectl config current-context",
+          "why": "Verify before you mutate anything. Consider `--context` per command or kubectx/kubie with a prompt indicator."
+        }
+      ],
+      "tags": [
+        "gotcha"
+      ]
+    },
+    {
+      "id": "kubectl-cluster-admin",
+      "title": "Grants cluster-admin",
+      "severity": "critical",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bcreate\\s+(?:cluster)?rolebinding\\b.*(?:cluster-admin|--clusterrole[= ]cluster-admin)|--clusterrole[= ]cluster-admin",
+      "message": "cluster-admin is unrestricted control of the whole cluster, including secrets.",
+      "tags": [
+        "privilege"
+      ]
+    },
+    {
+      "id": "kubectl-delete-crd",
+      "title": "Deletes a CRD",
+      "severity": "critical",
+      "cmd": [
+        "kubectl",
+        "oc"
+      ],
+      "when": "\\bdelete\\s+(?:crd|customresourcedefinitions?)\\b",
+      "message": "Deleting a CRD deletes ALL custom resources of that kind in every namespace.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "helm-uninstall",
+      "title": "Removes a Helm release",
+      "severity": "high",
+      "cmd": [
+        "helm"
+      ],
+      "when": "\\b(?:uninstall|delete|un)\\b",
+      "not": "--dry-run",
+      "message": "Every resource of the release is deleted (hooks may delete data; PVCs of StatefulSets usually remain). History is gone unless --keep-history.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run",
+          "why": "Dry run shows what would be removed."
+        },
+        {
+          "cmd": "helm get all {last} > release-backup.yaml",
+          "why": "Save values + manifest first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "helm-upgrade",
+      "title": "helm upgrade/install changes live resources",
+      "severity": "medium",
+      "cmd": [
+        "helm"
+      ],
+      "when": "\\b(?:upgrade|install|rollback)\\b",
+      "not": "--dry-run|template|diff",
+      "message": "Chart or values changes roll out immediately; a wrong values file or chart version is applied cluster-wide for that release.",
+      "safer": [
+        {
+          "cmd": "helm diff upgrade {args}",
+          "why": "The helm-diff plugin shows the exact manifest changes."
+        },
+        {
+          "find": "$",
+          "replace": " --dry-run --debug",
+          "why": "Render and validate against the cluster without installing."
+        },
+        {
+          "cmd": "helm template {args}",
+          "why": "Render the manifests locally."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "helm-force",
+      "title": "helm --force recreates resources",
+      "severity": "high",
+      "cmd": [
+        "helm"
+      ],
+      "when": "{{LONG:force}}",
+      "message": "--force deletes and recreates resources that cannot be patched — downtime.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "helm-set-secret",
+      "title": "Secret passed with --set",
+      "severity": "medium",
+      "cmd": [
+        "helm"
+      ],
+      "when": "--set(?:-string)?[= ]\\S*(?:password|secret|token|key)\\S*=",
+      "message": "The value ends up in shell history and in the release’s stored values (visible via `helm get values`).",
+      "safer": [
+        {
+          "why": "Use an existing Secret reference, sealed-secrets/external-secrets, or a values file with 600 permissions."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "etcd-snapshot-restore",
+      "title": "Restores / defragments etcd",
+      "severity": "critical",
+      "cmd": [
+        "etcdctl",
+        "etcdutl"
+      ],
+      "when": "\\b(?:snapshot\\s+restore|del|defrag|member\\s+remove|alarm\\s+disarm)\\b",
+      "message": "Restoring replaces cluster state; del removes keys; defrag blocks a member while it runs. A wrong step can take down the control plane.",
+      "safer": [
+        {
+          "cmd": "etcdctl snapshot save /backup/etcd-$(date +%F).db",
+          "why": "Take a fresh snapshot first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "kubeadm-reset",
+      "title": "kubeadm reset / upgrade / certs",
+      "severity": "high",
+      "cmd": [
+        "kubeadm"
+      ],
+      "when": "\\b(?:reset|upgrade\\s+apply|certs\\s+renew|init\\s+phase)\\b",
+      "message": "reset removes the node from the cluster and deletes its Kubernetes state; upgrade apply changes the control plane in place.",
+      "safer": [
+        {
+          "cmd": "kubeadm upgrade plan",
+          "why": "Preview upgrade paths first (and back up /etc/kubernetes + etcd)."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "terraform-auto-approve",
+      "title": "Applies without showing the plan",
+      "severity": "high",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "-auto-approve|--terragrunt-non-interactive",
+      "message": "No review step: any drift, wrong workspace/var-file or typo is applied to real infrastructure immediately.",
+      "safer": [
+        {
+          "find": "\\s+-auto-approve\\b",
+          "replace": "",
+          "why": "Let Terraform show the plan and ask for confirmation."
+        },
+        {
+          "cmd": "terraform plan -out=tfplan && terraform apply tfplan",
+          "why": "Apply exactly the plan you reviewed."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "terraform-destroy",
+      "title": "Destroys infrastructure",
+      "severity": "critical",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "\\bdestroy\\b|\\bapply\\b.*-destroy|run-all\\s+destroy",
+      "message": "Every resource in the state (or the -target set) is deleted — databases, buckets, disks and DNS included unless protected by prevent_destroy.",
+      "safer": [
+        {
+          "cmd": "terraform plan -destroy",
+          "why": "Review what would be destroyed."
+        },
+        {
+          "cmd": "terraform workspace show && terraform state list",
+          "why": "Confirm the workspace and the resources in scope."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "terraform-target",
+      "title": "Partial apply with -target",
+      "severity": "medium",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "(?:^|\\s)-target(?:=|\\s+)\\S+",
+      "message": "Skips dependency analysis for everything else; state and config can drift apart. HashiCorp advises it only for exceptional situations.",
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "terraform-state-edit",
+      "title": "Edits Terraform state by hand",
+      "severity": "high",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "\\bstate\\s+(?:rm|mv|push|replace-provider)\\b|\\b(?:taint|untaint)\\b",
+      "message": "State surgery can orphan real resources (they keep existing and costing money) or make Terraform recreate them.",
+      "safer": [
+        {
+          "cmd": "terraform state pull > backup-$(date +%s).tfstate",
+          "why": "Back up the state first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "terraform-force-unlock",
+      "title": "Bypasses the state lock",
+      "severity": "high",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "force-unlock|-lock=false",
+      "message": "If another run is really in progress, forcing the lock (or disabling locking) can corrupt the state.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "terraform-replace",
+      "title": "Forces a resource to be recreated",
+      "severity": "medium",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "(?:^|\\s)-replace(?:=|\\s+)\\S+",
+      "message": "The resource is destroyed and created again: downtime and possible data loss for stateful resources.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "terraform-var-secret",
+      "title": "Secret passed with -var",
+      "severity": "medium",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "(?:^|\\s)-var[= ]['\"]?\\w*(?:password|secret|token|key)\\w*=",
+      "message": "Visible in history and process list.",
+      "safer": [
+        {
+          "cmd": "export TF_VAR_password=\"$(pass show db/prod)\"",
+          "why": "Use TF_VAR_* from a secret store or a -var-file with 600 permissions."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "terraform-apply-generic",
+      "title": "terraform apply changes real infrastructure",
+      "severity": "low",
+      "cmd": [
+        "terraform",
+        "tofu",
+        "terragrunt"
+      ],
+      "when": "\\bapply\\b",
+      "not": "-auto-approve|\\btfplan\\b|\\.tfplan|-destroy|-refresh-only|-plan",
+      "message": "Re-read the plan before typing “yes”: look for lines marked “destroy” or “must be replaced”.",
+      "safer": [
+        {
+          "cmd": "terraform plan -out=tfplan",
+          "why": "Create a saved plan, review it, then `terraform apply tfplan`."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "ansible-all-hosts",
+      "title": "Changing module on every host",
+      "severity": "high",
+      "cmd": [
+        "ansible"
+      ],
+      "when": [
+        "(?:^|\\s)all(?=\\s|$)",
+        "(?:^|\\s)-m\\s*(?:shell|command|raw|script|copy|file|apt|yum|dnf|package|service|systemd|user|lineinfile|template|reboot|cron|git|pip)\\b"
+      ],
+      "not": "--check|-C",
+      "message": "The whole inventory is changed at once, with no canary.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --check --diff",
+          "why": "Dry-run (`--check --diff`) shows changes without applying them."
+        },
+        {
+          "why": "Limit to one host first (`--limit <host>`), then a small group."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "ansible-playbook-all",
+      "title": "Playbook limited to all hosts",
+      "severity": "high",
+      "cmd": [
+        "ansible-playbook"
+      ],
+      "when": "(?:-l|--limit)[= ]\\s*all\\b",
+      "not": "--check|-C",
+      "message": "Every host in the inventory is changed at once.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --check --diff",
+          "why": "Dry-run first."
+        },
+        {
+          "why": "Roll out gradually with --limit <group> and `serial:` in the play."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "ansible-playbook-nocheck",
+      "title": "Playbook applies changes",
+      "severity": "low",
+      "cmd": [
+        "ansible-playbook"
+      ],
+      "when": ".",
+      "not": "--check|-C|--syntax-check|--list-hosts|--list-tasks|--list-tags|--step",
+      "message": "Without --check you cannot see what will change first; without --limit it targets every host in the play.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --check --diff --limit <host-or-group>",
+          "why": "Dry-run on a subset first."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "ansible-shell-module",
+      "title": "Ad-hoc shell/command on many hosts",
+      "severity": "medium",
+      "cmd": [
+        "ansible"
+      ],
+      "when": "(?:^|\\s)-m\\s*(?:shell|command|raw|script)\\b|\\bstate=absent\\b",
+      "message": "Arbitrary commands (or file/package removal) run in parallel on all matched hosts.",
+      "safer": [
+        {
+          "cmd": "ansible <group> -m ping --limit <host>",
+          "why": "Test connectivity and scope on one host first."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "ansible-vault-decrypt",
+      "title": "Decrypts secrets to disk",
+      "severity": "medium",
+      "cmd": [
+        "ansible-vault"
+      ],
+      "when": "\\b(?:decrypt|view|rekey)\\b",
+      "message": "`decrypt` writes plaintext secrets to disk (and shell history may keep the vault password).",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "aws-s3-rm-recursive",
+      "title": "Deletes S3 objects recursively",
+      "severity": "high",
+      "cmd": [
+        "aws"
+      ],
+      "when": [
+        "\\bs3\\s+rm\\b",
+        "--recursive"
+      ],
+      "not": "--dryrun",
+      "message": "Objects are deleted immediately; on unversioned buckets they are gone for good.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dryrun",
+          "why": "--dryrun lists what would be deleted."
+        },
+        {
+          "cmd": "aws s3api get-bucket-versioning --bucket <bucket>",
+          "why": "Check whether versioning can save you."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "aws-s3-sync-delete",
+      "title": "S3 sync --delete",
+      "severity": "high",
+      "cmd": [
+        "aws"
+      ],
+      "when": [
+        "\\bs3\\s+sync\\b",
+        "--delete"
+      ],
+      "not": "--dryrun",
+      "message": "Destination objects missing from the source are deleted. Swapped source/destination arguments wipe the wrong side.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dryrun",
+          "why": "Preview first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "aws-s3-rb-force",
+      "title": "Deletes a bucket and its contents",
+      "severity": "critical",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\bs3\\s+rb\\b.*--force|\\bs3api\\s+delete-bucket\\b|\\bs3api\\s+delete-objects\\b",
+      "message": "Bucket and all objects are removed.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "aws-s3-public",
+      "title": "Makes data public",
+      "severity": "critical",
+      "cmd": [
+        "aws"
+      ],
+      "when": "--acl\\s+(?:public-read|public-read-write|authenticated-read)|put-bucket-policy.*\"Principal\"\\s*:\\s*\"\\*\"|put-public-access-block.*false",
+      "message": "Public buckets are a leading cause of data breaches.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "aws-ec2-terminate",
+      "title": "Terminates EC2 instances",
+      "severity": "high",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\bec2\\s+(?:terminate-instances|delete-(?:volume|snapshot|security-group|vpc|subnet|key-pair|nat-gateway|internet-gateway|launch-template)|deregister-image)\\b",
+      "not": "--dry-run",
+      "message": "Irreversible: instance-store data and volumes with DeleteOnTermination are lost.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run",
+          "why": "EC2 supports --dry-run: checks permissions and parameters without acting."
+        },
+        {
+          "cmd": "aws ec2 describe-instances --instance-ids <id> --query \"Reservations[].Instances[].[InstanceId,State.Name,Tags]\"",
+          "why": "Confirm the instance identity."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "aws-ec2-stop",
+      "title": "Stops EC2 instances",
+      "severity": "medium",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\bec2\\s+(?:stop-instances|reboot-instances)\\b",
+      "not": "--dry-run",
+      "message": "Instance-store data is lost on stop, public IPs change unless Elastic IPs are used.",
+      "safer": [
+        {
+          "find": "$",
+          "replace": " --dry-run",
+          "why": "Dry-run first."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "aws-open-sg",
+      "title": "Opens a security group to the internet",
+      "severity": "high",
+      "cmd": [
+        "aws"
+      ],
+      "when": "authorize-security-group-ingress.*(?:0\\.0\\.0\\.0/0|::/0)",
+      "message": "Ports become reachable from anywhere. Never do this for SSH/RDP/databases.",
+      "safer": [
+        {
+          "why": "Restrict to your IP/CIDR (--cidr <your-ip>/32) or use SSM Session Manager instead of open SSH."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "aws-rds-delete",
+      "title": "Deletes a database",
+      "severity": "critical",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\brds\\s+delete-(?:db-instance|db-cluster|db-snapshot)\\b|--skip-final-snapshot",
+      "message": "--skip-final-snapshot deletes the DB without a last backup; automated backups are removed with the instance unless retained.",
+      "safer": [
+        {
+          "find": "\\s+--skip-final-snapshot\\b",
+          "replace": " --final-db-snapshot-identifier <name>",
+          "why": "Keep a final snapshot."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "aws-destructive-misc",
+      "title": "Deletes a managed resource",
+      "severity": "high",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\b(?:cloudformation\\s+delete-stack|dynamodb\\s+delete-table|lambda\\s+delete-function|logs\\s+delete-log-group|sqs\\s+(?:purge-queue|delete-queue)|eks\\s+delete-(?:cluster|nodegroup)|ecr\\s+(?:batch-delete-image|delete-repository)|kms\\s+schedule-key-deletion|secretsmanager\\s+delete-secret|route53\\s+delete-hosted-zone|elasticache\\s+delete-\\S+|iam\\s+delete-(?:user|role|policy|access-key)|sns\\s+delete-topic)\\b",
+      "message": "Managed resources are removed — often with no recovery path (KMS key deletion makes encrypted data unreadable after the waiting period; --force-delete-without-recovery skips it).",
+      "safer": [
+        {
+          "cmd": "aws sts get-caller-identity",
+          "why": "Confirm the account and role you are using."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "aws-route53-change",
+      "title": "Changes DNS records",
+      "severity": "medium",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\broute53\\s+change-resource-record-sets\\b",
+      "message": "DNS changes take effect immediately worldwide (cached for the TTL) and can take a service offline.",
+      "safer": [
+        {
+          "cmd": "aws route53 list-resource-record-sets --hosted-zone-id <id> > dns-backup.json",
+          "why": "Export the zone first."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "aws-iam-admin",
+      "title": "Grants administrator access",
+      "severity": "critical",
+      "cmd": [
+        "aws"
+      ],
+      "when": "AdministratorAccess|attach-(?:user|role|group)-policy.*(?:\\*|FullAccess)|\"Action\"\\s*:\\s*\"\\*\"|create-access-key|update-assume-role-policy|put-(?:user|role|group)-policy",
+      "message": "Over-broad IAM changes are a common escalation path; access keys are long-lived credentials.",
+      "safer": [
+        {
+          "why": "Use least-privilege policies, roles with short-lived credentials (SSO/STS) and review with IAM Access Analyzer."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "aws-secrets-print",
+      "title": "Prints secrets",
+      "severity": "low",
+      "cmd": [
+        "aws"
+      ],
+      "when": "\\b(?:secretsmanager\\s+get-secret-value|ssm\\s+get-parameters?\\b.*--with-decryption|kms\\s+decrypt)\\b",
+      "message": "Secret values go to your terminal and scrollback; avoid --output text in shared sessions.",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "az-group-delete",
+      "title": "Deletes a resource group",
+      "severity": "critical",
+      "cmd": [
+        "az"
+      ],
+      "when": "\\bgroup\\s+delete\\b",
+      "message": "Deletes the resource group and EVERYTHING inside it (VMs, databases, storage, networks); --yes skips the prompt.",
+      "safer": [
+        {
+          "find": "\\s+(?:--yes|-y)\\b",
+          "replace": "",
+          "why": "Keep the confirmation prompt."
+        },
+        {
+          "cmd": "az resource list -g {last} -o table",
+          "why": "Review everything inside first."
+        },
+        {
+          "cmd": "az lock create --name keep --lock-type CanNotDelete -g <rg>",
+          "why": "Protect important groups with a delete lock."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "az-delete-resource",
+      "title": "Deletes Azure resources",
+      "severity": "high",
+      "cmd": [
+        "az"
+      ],
+      "when": "\\b(?:vm|aks|storage\\s+account|sql\\s+(?:server|db|mi)|webapp|functionapp|keyvault|cosmosdb|network\\s+(?:vnet|nsg|public-ip|lb)|acr|disk|snapshot|resource|redis|postgres|mysql)\\s+(?:delete|purge)\\b",
+      "message": "Deletion is immediate; Key Vault purge and storage account deletion are irreversible after retention.",
+      "safer": [
+        {
+          "cmd": "az resource list -o table",
+          "why": "Verify names and subscription."
+        },
+        {
+          "cmd": "az account show -o table",
+          "why": "Confirm the active subscription."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "az-deployment-complete",
+      "title": "Deployment in Complete mode",
+      "severity": "critical",
+      "cmd": [
+        "az"
+      ],
+      "when": "\\bdeployment\\b.*--mode\\s+Complete\\b",
+      "message": "Complete mode DELETES every resource in the group that is not in the template.",
+      "safer": [
+        {
+          "cmd": "az deployment group what-if -g <rg> --template-file <file>",
+          "why": "Run what-if to see creates/deletes before deploying."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "az-role-assignment",
+      "title": "Grants Azure RBAC roles",
+      "severity": "high",
+      "cmd": [
+        "az"
+      ],
+      "when": "\\brole\\s+assignment\\s+create\\b.*(?:Owner|Contributor|User Access Administrator)|--role\\s+(?:Owner|Contributor)|create-for-rbac",
+      "message": "Owner/Contributor at subscription scope is very broad; create-for-rbac prints a secret once.",
+      "safer": [
+        {
+          "why": "Scope to a resource group and use a built-in least-privilege role or managed identity."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "az-nsg-open",
+      "title": "Opens a network rule to the internet",
+      "severity": "high",
+      "cmd": [
+        "az"
+      ],
+      "when": "--source-address-prefixes?\\s+(?:\\*|Internet|0\\.0\\.0\\.0/0)",
+      "message": "Ports become reachable from anywhere.",
+      "safer": [
+        {
+          "why": "Restrict the source to your IP range, or use Bastion/JIT access."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "gcloud-destructive",
+      "title": "Deletes Google Cloud resources",
+      "severity": "high",
+      "cmd": [
+        "gcloud",
+        "gsutil"
+      ],
+      "when": "\\b(?:projects\\s+delete|compute\\s+(?:instances|disks|snapshots|networks|firewall-rules)\\s+delete|container\\s+clusters\\s+delete|sql\\s+instances\\s+delete|storage\\s+(?:rm|buckets\\s+delete)|rm\\s+-r|rb\\b|(?:functions|run\\s+services|pubsub\\s+topics|dns\\s+(?:managed-zones|record-sets))\\s+delete|kms\\s+keys\\s+versions\\s+destroy)\\b",
+      "message": "Deletion is immediate; deleting a project starts a 30-day shutdown of EVERYTHING in it. --quiet skips prompts.",
+      "safer": [
+        {
+          "cmd": "gcloud config list",
+          "why": "Confirm project/account first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "gcloud-public-iam",
+      "title": "Makes a resource public",
+      "severity": "critical",
+      "cmd": [
+        "gcloud",
+        "gsutil"
+      ],
+      "when": "allUsers|allAuthenticatedUsers",
+      "message": "Grants access to anyone on the internet (or any Google account).",
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "sql-drop-truncate",
+      "title": "DROP / TRUNCATE statement",
+      "severity": "critical",
+      "raw": "\\b(?:DROP\\s+(?:DATABASE|TABLE|SCHEMA|INDEX|COLUMN|USER|ROLE)|TRUNCATE(?:\\s+TABLE)?)\\b",
+      "flags": "i",
+      "message": "Data or structure is removed immediately and often cannot be rolled back (DDL is auto-committed in MySQL). TRUNCATE ignores row-level safeguards.",
+      "safer": [
+        {
+          "cmd": "pg_dump -Fc <db> > before.dump",
+          "why": "Take a backup (mysqldump / pg_dump) first."
+        },
+        {
+          "why": "Run inside a transaction (BEGIN; … ROLLBACK;) on PostgreSQL, and check `current_database()`."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "sql-delete-no-where",
+      "title": "DELETE without WHERE",
+      "severity": "high",
+      "raw": "\\bDELETE\\s+FROM\\s+[\\w.\"\\`]+",
+      "not": "\\bWHERE\\b",
+      "flags": "i",
+      "message": "Deletes every row in the table.",
+      "safer": [
+        {
+          "cmd": "SELECT count(*) FROM <table> WHERE <condition>;",
+          "why": "Run the same WHERE as a SELECT first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "sql-update-no-where",
+      "title": "UPDATE without WHERE",
+      "severity": "high",
+      "raw": "\\bUPDATE\\s+[\\w.\"\\`]+\\s+SET\\b",
+      "not": "\\bWHERE\\b",
+      "flags": "i",
+      "message": "Changes every row in the table.",
+      "safer": [
+        {
+          "cmd": "BEGIN; UPDATE … WHERE …; -- check row count, then COMMIT or ROLLBACK",
+          "why": "Use a transaction and verify the affected row count."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "redis-flush",
+      "title": "Wipes Redis data",
+      "severity": "critical",
+      "raw": "\\b(?:FLUSHALL|FLUSHDB)\\b",
+      "flags": "i",
+      "message": "All keys (of the DB or the whole instance) are deleted; with replication the wipe propagates to replicas.",
+      "safer": [
+        {
+          "cmd": "redis-cli --rdb /tmp/backup.rdb",
+          "why": "Take an RDB snapshot first."
+        },
+        {
+          "cmd": "redis-cli INFO keyspace",
+          "why": "Check which DB/instance you are connected to."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "redis-keys-star",
+      "title": "KEYS blocks the server",
+      "severity": "high",
+      "raw": "\\bredis-cli\\b[^|;&\\n]*\\bKEYS\\b",
+      "flags": "i",
+      "message": "KEYS scans the entire keyspace in a single blocking call — on a big production instance this stalls every client.",
+      "safer": [
+        {
+          "find": "\\bKEYS\\s+",
+          "flags": "i",
+          "replace": "--scan --pattern ",
+          "why": "SCAN iterates incrementally without blocking."
+        }
+      ],
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "redis-admin",
+      "title": "Redis admin command",
+      "severity": "high",
+      "raw": "\\bredis-cli\\b[^|;&\\n]*\\b(?:SHUTDOWN|DEBUG\\s+(?:SLEEP|SEGFAULT)|CONFIG\\s+SET|SLAVEOF|REPLICAOF|FAILOVER|CLUSTER\\s+(?:RESET|FAILOVER|FORGET))\\b",
+      "flags": "i",
+      "message": "Can stop the server, change replication or reconfigure it live.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "postgres-drop",
+      "title": "Drops a database or role",
+      "severity": "critical",
+      "cmd": [
+        "dropdb",
+        "dropuser",
+        "pg_dropcluster"
+      ],
+      "when": ".",
+      "message": "The database/role is removed immediately.",
+      "safer": [
+        {
+          "cmd": "pg_dump -Fc <db> > before.dump",
+          "why": "Dump the target first."
+        },
+        {
+          "cmd": "psql -c \"select current_database(), inet_server_addr()\"",
+          "why": "Confirm which server/database you are on."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "postgres-restore-clean",
+      "title": "pg_restore --clean drops objects first",
+      "severity": "high",
+      "cmd": [
+        "pg_restore"
+      ],
+      "when": "{{SHORT:c}}|{{LONG:clean}}|{{LONG:create}}",
+      "message": "Existing tables/objects are dropped before they are recreated — on the wrong database that means data loss.",
+      "safer": [
+        {
+          "cmd": "pg_dump -Fc <db> > before.dump",
+          "why": "Dump the target first."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "postgres-stop-immediate",
+      "title": "Stops PostgreSQL abruptly",
+      "severity": "high",
+      "cmd": [
+        "pg_ctl",
+        "pg_ctlcluster"
+      ],
+      "when": "\\b(?:stop\\b.*(?:-m|--mode)[= ]immediate|promote|restart)\\b",
+      "message": "Immediate shutdown needs crash recovery; promote makes a standby independent (split-brain risk).",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "vacuum-full",
+      "title": "VACUUM FULL locks tables",
+      "severity": "medium",
+      "cmd": [
+        "vacuumdb"
+      ],
+      "when": "{{SHORT:f}}|{{LONG:full}}",
+      "message": "Takes an ACCESS EXCLUSIVE lock and rewrites the table: queries block until it finishes.",
+      "tags": [
+        "availability"
+      ]
+    },
+    {
+      "id": "mongo-drop",
+      "title": "MongoDB drop",
+      "severity": "critical",
+      "raw": "\\.drop(?:Database)?\\(|\\bmongorestore\\b[^|;&\\n]*--drop\\b",
+      "message": "Collections/databases are dropped immediately.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "mysqladmin-drop",
+      "title": "mysqladmin drop / shutdown",
+      "severity": "critical",
+      "cmd": [
+        "mysqladmin"
+      ],
+      "when": "\\b(?:drop|shutdown|kill|flush-hosts|reload)\\b",
+      "message": "Drops databases or stops the server.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "pkg-remove-essential",
+      "title": "Removes an essential package",
+      "severity": "critical",
+      "cmd": [
+        "apt",
+        "apt-get",
+        "aptitude",
+        "dnf",
+        "yum",
+        "zypper",
+        "rpm",
+        "dpkg",
+        "pacman",
+        "apk"
+      ],
+      "when": "\\b(?:remove|purge|erase|autoremove|-e|-r|-R|-Rns)\\b.*\\b(?:systemd|glibc|libc6|sudo|openssh(?:-server)?|network-?manager|netplan\\S*|grub\\S*|linux-image\\S*|kernel\\S*|bash|python3?|dnf|yum|rpm|apt|dpkg|coreutils|shadow|pam)\\b",
+      "message": "Removing core packages can leave the system unbootable or unmanageable (e.g. `yum remove python` removes yum itself).",
+      "safer": [
+        {
+          "cmd": "apt-get -s remove <pkg>",
+          "why": "Simulate (-s) to see what else would be removed (dnf: `--assumeno`)."
+        }
+      ],
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "rpm-nodeps",
+      "title": "Bypasses dependency checks",
+      "severity": "critical",
+      "cmd": [
+        "rpm",
+        "dpkg"
+      ],
+      "when": "--nodeps|--force(?:-all|-depends|-confmiss)?\\b|--replacefiles|--replacepkgs",
+      "message": "Installs/removes packages ignoring dependencies — the usual way to break the package database.",
+      "tags": [
+        "destructive"
+      ]
+    },
+    {
+      "id": "pkg-auto-yes",
+      "title": "Auto-confirm package changes",
+      "severity": "low",
+      "cmd": [
+        "apt",
+        "apt-get",
+        "dnf",
+        "yum",
+        "zypper"
+      ],
+      "when": "(?:^|\\s)(?:-y|--yes|--assume-yes|-qq)(?=\\s|$)",
+      "message": "No chance to read the list of packages that will be removed or upgraded.",
+      "safer": [
+        {
+          "find": "\\s+(?:-y|--yes|--assume-yes)\\b",
+          "replace": "",
+          "why": "Read the transaction summary before confirming."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "pkg-full-upgrade",
+      "title": "Large system upgrade",
+      "severity": "medium",
+      "cmd": [
+        "apt",
+        "apt-get",
+        "dnf",
+        "yum",
+        "do-release-upgrade",
+        "zypper"
+      ],
+      "when": "\\b(?:dist-upgrade|full-upgrade|distro-sync|system-upgrade|upgrade\\s+--releasever|dup)\\b",
+      "message": "Can replace the kernel, libc, init and many daemons at once — take a snapshot and schedule a reboot window.",
+      "safer": [
+        {
+          "cmd": "apt list --upgradable",
+          "why": "Review pending upgrades first (dnf: `dnf check-update`)."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "pip-system",
+      "title": "Installs into the system Python",
+      "severity": "medium",
+      "cmd": [
+        "pip",
+        "pip3"
+      ],
+      "when": "--break-system-packages|--user\\s+--force-reinstall",
+      "message": "Can overwrite packages that the OS tools depend on.",
+      "safer": [
+        {
+          "cmd": "python3 -m venv .venv && . .venv/bin/activate && pip install <pkg>",
+          "why": "Use a virtual environment (or pipx for CLIs)."
+        }
+      ],
+      "tags": [
+        "change"
+      ]
+    },
+    {
+      "id": "npm-global-sudo",
+      "title": "sudo npm install -g",
+      "severity": "medium",
+      "raw": "\\bsudo\\s+(?:npm|yarn|pip3?|gem)\\s+(?:install|i|add)\\b",
+      "message": "Package install scripts run as root.",
+      "safer": [
+        {
+          "why": "Use a version manager/venv or a per-user prefix instead of sudo."
+        }
+      ],
+      "tags": [
+        "security"
+      ]
+    }
+  ],
+  "prod": {
+    "signals": [
+      {
+        "id": "prod-name",
+        "kind": "prod",
+        "label": "Targets something named “prod”",
+        "regex": "(?:^|[\\s=/@:._-])(?:prod|production|prd|prodn|live)(?=$|[\\s=/@:._\\d-])",
+        "flags": "i",
+        "message": "A namespace, context, host, profile, bucket, account or resource-group in this command is named production.",
+        "mitigation": "Confirm context/account first (`kubectl config current-context`, `aws sts get-caller-identity`, `az account show`, `hostname`), run the read-only or dry-run form, and have a rollback ready."
+      },
+      {
+        "id": "all-namespaces",
+        "kind": "blast",
+        "needs": "mutating",
+        "label": "Applies to every namespace",
+        "regex": "(?:^|\\s)(?:-A|--all-namespaces)(?=\\s|$)",
+        "message": "The scope is the whole cluster, not one namespace.",
+        "mitigation": "Scope it with -n <namespace> instead of -A."
+      },
+      {
+        "id": "all-objects",
+        "kind": "blast",
+        "needs": "mutating",
+        "label": "Applies to all matching objects",
+        "regex": "(?:^|\\s)--all(?:=\\S*)?(?=\\s|$)",
+        "message": "--all selects everything that matches, not one named object.",
+        "mitigation": "Name the object or use a label selector (-l app=foo) and list it first with `get`."
+      },
+      {
+        "id": "force-flag",
+        "kind": "blast",
+        "needs": "mutating",
+        "label": "Force flag bypasses safety checks",
+        "regex": "(?:^|\\s)(?:--force(?:=\\S*)?|--grace-period=0|--disable-eviction|--no-preserve-root|--force-delete|--skip-final-snapshot)(?=\\s|$)",
+        "message": "Confirmations, graceful shutdown or dependency checks are skipped.",
+        "mitigation": "Remove the force flag and see what the tool refuses — that message is usually the real information."
+      },
+      {
+        "id": "auto-confirm",
+        "kind": "blast",
+        "needs": "mutating",
+        "label": "Confirmation prompt skipped",
+        "regex": "(?:^|\\s)(?:-y|--yes|--assume-yes|-auto-approve|--auto-approve|--force-yes|--non-interactive|--no-confirm|--skip-confirmation|--quiet-delete)(?=\\s|$)",
+        "message": "Nothing will ask “are you sure?”.",
+        "mitigation": "Drop the flag so you see the prompt/plan, or run the dry-run variant first."
+      },
+      {
+        "id": "wildcard-delete",
+        "kind": "blast",
+        "label": "Wildcard in a destructive command",
+        "regex": "\\b(?:delete|rm|remove|destroy|drop|purge|terminate|uninstall|prune)\\b[^|;&\\n]*[*]",
+        "message": "A * pattern matches more than you think, and more over time.",
+        "mitigation": "Print the expansion first: `echo <your glob>` or `ls <your glob>`."
+      },
+      {
+        "id": "system-path",
+        "kind": "blast",
+        "needs": "mutating",
+        "label": "Touches a system path",
+        "regex": "(?:^|\\s)(?:/etc|/boot|/usr|/bin|/sbin|/lib|/lib64|/var/lib|/root|/opt|/dev/(?:sd|nvme|vd|xvd)\\w*)(?:/|\\s|$)",
+        "message": "System directories and raw devices hold things the OS needs to boot or run.",
+        "mitigation": "Take a backup/snapshot first (cp -a, etckeeper, LVM/cloud snapshot)."
+      },
+      {
+        "id": "open-to-world",
+        "kind": "blast",
+        "label": "Opens access to everyone",
+        "regex": "0\\.0\\.0\\.0/0|::/0|allUsers|allAuthenticatedUsers|--acl\\s+public-read|(?:^|\\s)(?:--bind|-b|--listen)[= ]0\\.0\\.0\\.0",
+        "message": "The target becomes reachable from the whole internet (or any Google account).",
+        "mitigation": "Restrict to specific CIDRs/identities."
+      },
+      {
+        "id": "insecure-flag",
+        "kind": "note",
+        "label": "Security checks disabled",
+        "regex": "(?:^|\\s)(?:-k|--insecure|--no-check-certificate|--no-verify-ssl|--insecure-skip-tls-verify)(?=\\s|$)|StrictHostKeyChecking[= ]no",
+        "message": "TLS or host-key verification is turned off.",
+        "mitigation": "Trust the specific CA / pin the host key instead."
+      },
+      {
+        "id": "latest-tag",
+        "kind": "note",
+        "label": "Uses the :latest tag",
+        "regex": ":latest\\b",
+        "message": ":latest is a moving target — the same command can deploy different code tomorrow.",
+        "mitigation": "Pin a version tag or digest (image@sha256:…)."
+      }
+    ]
+  }
+}

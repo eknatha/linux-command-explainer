@@ -1,0 +1,829 @@
+{
+  "category": "packages",
+  "commands": [
+    {
+      "name": "apt",
+      "match": [
+        "apt"
+      ],
+      "summary": "Debian/Ubuntu package manager",
+      "risk": "high",
+      "risk_reason": "Installs/removes software as root; autoremove/purge delete data.",
+      "cautions": [
+        "Simulate with -s first and read the “will be REMOVED” list.",
+        "`apt upgrade`/`full-upgrade` can restart services and replace kernels — schedule maintenance.",
+        "Don’t mix third-party repositories carelessly; pin versions in production.",
+        "Back up configs before purge."
+      ],
+      "explanation": "High-level package tool: update, install, remove, upgrade, autoremove.",
+      "flags": [
+        {
+          "flag": "update",
+          "desc": "Refresh the package index"
+        },
+        {
+          "flag": "install",
+          "desc": "Install"
+        },
+        {
+          "flag": "remove",
+          "desc": "Remove packages (keep config)"
+        },
+        {
+          "flag": "purge",
+          "desc": "Remove packages and config",
+          "caution": "Deletes configuration."
+        },
+        {
+          "flag": "autoremove",
+          "desc": "Remove unused dependencies",
+          "caution": "May remove things you still need."
+        },
+        {
+          "flag": "-s",
+          "desc": "-s",
+          "caution": "Simulate"
+        },
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Simulate"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "apt list --upgradable",
+          "desc": "What can be upgraded?"
+        },
+        {
+          "cmd": "apt install -s nginx",
+          "desc": "Simulate"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "apt install -s <pkg>",
+          "why": "Simulate"
+        },
+        {
+          "cmd": "apt-mark showhold",
+          "why": "Check held packages"
+        }
+      ],
+      "suggestions": [
+        "apt-get",
+        "dpkg"
+      ],
+      "low_when": [
+        "\\b(list|search|show|policy|depends)\\b|\\s-s\\b|--dry-run"
+      ],
+      "low_unless": [
+        "install|remove|purge|upgrade|autoremove|dist-upgrade"
+      ]
+    },
+    {
+      "name": "apt-get",
+      "match": [
+        "apt-get"
+      ],
+      "summary": "Debian package tool",
+      "risk": "high",
+      "risk_reason": "Installs/removes packages as root.",
+      "cautions": [
+        "-y hides removals — simulate first.",
+        "Run apt-get update before install to avoid stale indexes."
+      ],
+      "explanation": "Scriptable apt interface. See the flags and examples below, and run `man apt-get` for the full reference.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Simulate"
+        },
+        {
+          "flag": "-y",
+          "desc": "Assume yes",
+          "caution": "Skips confirmation prompts."
+        },
+        {
+          "flag": "install",
+          "desc": "Install"
+        },
+        {
+          "flag": "remove",
+          "desc": "Remove"
+        },
+        {
+          "flag": "dist-upgrade",
+          "desc": "Upgrade with dependency changes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "apt-get -s upgrade",
+          "desc": "Simulate an upgrade"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "apt-get -s <action> <pkg>",
+          "why": "Simulate"
+        }
+      ],
+      "suggestions": [
+        "apt",
+        "dpkg"
+      ],
+      "low_when": [
+        "-s\\b|--simulate|--dry-run|\\b(check|source|download)\\b"
+      ],
+      "low_unless": [
+        "install|remove|purge|upgrade|autoremove"
+      ]
+    },
+    {
+      "name": "dpkg",
+      "match": [
+        "dpkg"
+      ],
+      "summary": "Debian package manager (low level)",
+      "risk": "high",
+      "risk_reason": "--force options bypass dependency checks.",
+      "cautions": [
+        "--force-* breaks dependencies.",
+        "Only install .deb files from trusted sources."
+      ],
+      "explanation": "Installs .deb files and queries installed packages.",
+      "flags": [
+        {
+          "flag": "-l",
+          "desc": "List packages"
+        },
+        {
+          "flag": "-L",
+          "desc": "Files of a package"
+        },
+        {
+          "flag": "-S",
+          "desc": "Which package owns a file"
+        },
+        {
+          "flag": "-i",
+          "desc": "Install a .deb"
+        },
+        {
+          "flag": "--purge",
+          "long": "--purge",
+          "desc": "Remove with config"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dpkg -l | grep nginx",
+          "desc": "Is it installed?"
+        },
+        {
+          "cmd": "dpkg -S /usr/bin/ls",
+          "desc": "Owner"
+        }
+      ],
+      "suggestions": [
+        "apt"
+      ],
+      "low_when": [
+        "\\s-(l|L|S|s|V)\\b|--list|--listfiles|--search|--status"
+      ],
+      "low_unless": [
+        "-i|-r|-P|--purge|--remove|--force"
+      ]
+    },
+    {
+      "name": "yum",
+      "match": [
+        "yum"
+      ],
+      "summary": "RHEL/CentOS package manager (legacy)",
+      "risk": "high",
+      "risk_reason": "Installs/removes software as root.",
+      "cautions": [
+        "Use `--assumeno` to preview; `yum history undo` can roll back a transaction."
+      ],
+      "explanation": "Legacy tool; dnf is the successor. See the flags and examples below, and run `man yum` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "yum check-update",
+          "desc": "Updates available"
+        },
+        {
+          "cmd": "yum history",
+          "desc": "Transaction history"
+        }
+      ],
+      "suggestions": [
+        "dnf"
+      ],
+      "low_when": [
+        "check-update|list|info|search|history(?! undo)"
+      ],
+      "low_unless": [
+        "install|remove|erase|update|upgrade|history undo"
+      ]
+    },
+    {
+      "name": "dnf",
+      "match": [
+        "dnf"
+      ],
+      "summary": "RHEL/Fedora package manager",
+      "risk": "high",
+      "risk_reason": "Installs/removes packages as root; removes can cascade.",
+      "cautions": [
+        "Use --assumeno to preview.",
+        "Remove can uninstall dependent packages (e.g. sudo) — read the list.",
+        "Use `dnf history undo` to roll back mistakes."
+      ],
+      "explanation": "Package manager with transaction history for rollback.",
+      "flags": [
+        {
+          "flag": "install",
+          "desc": "Install"
+        },
+        {
+          "flag": "remove",
+          "desc": "Remove (check dependency removals)"
+        },
+        {
+          "flag": "upgrade",
+          "desc": "Upgrade all",
+          "caution": "May restart services/change kernel."
+        },
+        {
+          "flag": "history",
+          "desc": "Past transactions"
+        },
+        {
+          "flag": "history undo",
+          "desc": "Undo a transaction"
+        },
+        {
+          "flag": "--assumeno",
+          "long": "--assumeno",
+          "desc": "Preview only"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dnf check-update",
+          "desc": "What is available?"
+        },
+        {
+          "cmd": "dnf history",
+          "desc": "Transactions"
+        },
+        {
+          "cmd": "dnf upgrade --assumeno",
+          "desc": "Preview"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "dnf upgrade --assumeno",
+          "why": "Preview"
+        },
+        {
+          "cmd": "dnf history undo <id>",
+          "why": "Roll back"
+        }
+      ],
+      "suggestions": [
+        "rpm",
+        "yum"
+      ],
+      "low_when": [
+        "check-update|list|info|search|repolist|provides|history$|history list|history info|--assumeno"
+      ],
+      "low_unless": [
+        "install|remove|erase|upgrade|update|autoremove|history undo"
+      ]
+    },
+    {
+      "name": "rpm",
+      "match": [
+        "rpm"
+      ],
+      "summary": "RPM package tool",
+      "risk": "high",
+      "risk_reason": "--force/--nodeps bypass safety checks.",
+      "cautions": [
+        "Never use --nodeps/--force casually.",
+        "Verify signatures (rpm -K) of downloaded RPMs."
+      ],
+      "explanation": "Query and install RPM packages. See the flags and examples below, and run `man rpm` for the full reference.",
+      "flags": [
+        {
+          "flag": "-qa",
+          "desc": "All packages"
+        },
+        {
+          "flag": "-qi",
+          "desc": "Package info"
+        },
+        {
+          "flag": "-ql",
+          "desc": "Files of a package"
+        },
+        {
+          "flag": "-qf",
+          "desc": "Owner of a file"
+        },
+        {
+          "flag": "--nodeps",
+          "long": "--nodeps",
+          "desc": "Skip dependency checks",
+          "caution": "Can break the system."
+        },
+        {
+          "flag": "-V",
+          "desc": "Verify a package"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "rpm -qf /usr/bin/ls",
+          "desc": "Who owns this file?"
+        },
+        {
+          "cmd": "rpm -V openssh-server",
+          "desc": "Verify"
+        }
+      ],
+      "suggestions": [
+        "dnf"
+      ],
+      "low_when": [
+        "-q|-V|--query|--verify|-K"
+      ],
+      "low_unless": [
+        "-i|-U|-e|--erase|--nodeps|--force"
+      ]
+    },
+    {
+      "name": "zypper",
+      "match": [
+        "zypper"
+      ],
+      "summary": "SUSE package manager",
+      "risk": "high",
+      "risk_reason": "Installs/removes packages as root.",
+      "cautions": [
+        "Use --dry-run before installs/updates."
+      ],
+      "explanation": "SUSE package tool. See the flags and examples below, and run `man zypper` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "zypper lu",
+          "desc": "List updates"
+        },
+        {
+          "cmd": "zypper se nginx",
+          "desc": "Search"
+        }
+      ],
+      "suggestions": [
+        "rpm"
+      ],
+      "low_when": [
+        "\\b(lu|se|info|lr|ps)\\b|--dry-run"
+      ],
+      "low_unless": [
+        "install|in\\b|remove|rm\\b|update|up\\b|dup"
+      ]
+    },
+    {
+      "name": "pacman",
+      "match": [
+        "pacman"
+      ],
+      "summary": "Arch package manager",
+      "risk": "high",
+      "risk_reason": "-Syu upgrades everything; -Rns removes configs.",
+      "cautions": [
+        "Partial upgrades (-Sy without -u) break Arch systems.",
+        "Read the news before big upgrades."
+      ],
+      "explanation": "Arch Linux packages. See the flags and examples below, and run `man pacman` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "pacman -Qi bash",
+          "desc": "Package info"
+        },
+        {
+          "cmd": "pacman -Syu",
+          "desc": "Full upgrade"
+        }
+      ],
+      "suggestions": [
+        "yay"
+      ],
+      "low_when": [
+        "-Q|-Ss|-Si"
+      ],
+      "low_unless": [
+        "-S[yu]|-R|-U"
+      ]
+    },
+    {
+      "name": "apk",
+      "match": [
+        "apk"
+      ],
+      "summary": "Alpine package manager",
+      "risk": "medium",
+      "risk_reason": "Installs packages as root (often in containers).",
+      "cautions": [
+        "Pin versions in Dockerfiles."
+      ],
+      "explanation": "Alpine’s package tool. See the flags and examples below, and run `man apk` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "apk add --no-cache curl",
+          "desc": "Install without cache"
+        },
+        {
+          "cmd": "apk info",
+          "desc": "List"
+        }
+      ],
+      "suggestions": [
+        "docker"
+      ],
+      "low_when": [
+        "info|search|list"
+      ],
+      "low_unless": [
+        "add|del|upgrade"
+      ]
+    },
+    {
+      "name": "snap",
+      "match": [
+        "snap"
+      ],
+      "summary": "Snap package manager",
+      "risk": "medium",
+      "risk_reason": "Auto-updates and confinement may surprise.",
+      "cautions": [
+        "Classic confinement gives full system access."
+      ],
+      "explanation": "Installs snaps. See the flags and examples below, and run `man snap` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "snap list",
+          "desc": "Installed snaps"
+        },
+        {
+          "cmd": "snap refresh --hold",
+          "desc": "Pause updates"
+        }
+      ],
+      "suggestions": [
+        "apt"
+      ],
+      "low_when": [
+        "list|info|find|services"
+      ],
+      "low_unless": [
+        "install|remove|refresh|connect"
+      ]
+    },
+    {
+      "name": "flatpak",
+      "match": [
+        "flatpak"
+      ],
+      "summary": "Flatpak package manager",
+      "risk": "low",
+      "risk_reason": "Sandboxed apps.",
+      "explanation": "Installs sandboxed desktop apps. See the flags and examples below, and run `man flatpak` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "flatpak list",
+          "desc": "Installed"
+        }
+      ],
+      "suggestions": [
+        "snap"
+      ]
+    },
+    {
+      "name": "pip",
+      "match": [
+        "pip"
+      ],
+      "summary": "Python package installer",
+      "risk": "high",
+      "risk_reason": "Installing packages runs arbitrary setup code.",
+      "cautions": [
+        "Use virtual environments; never `sudo pip install`.",
+        "Typosquatted packages exist — verify names; use hash-pinned requirements.",
+        "--break-system-packages can break OS tools."
+      ],
+      "explanation": "Installs Python packages from PyPI. See the flags and examples below, and run `man pip` for the full reference.",
+      "flags": [
+        {
+          "flag": "install",
+          "desc": "Install"
+        },
+        {
+          "flag": "uninstall",
+          "desc": "Remove"
+        },
+        {
+          "flag": "--user",
+          "long": "--user",
+          "desc": "Per-user install"
+        },
+        {
+          "flag": "-r",
+          "desc": "Requirements file"
+        },
+        {
+          "flag": "--break-system-packages",
+          "long": "--break-system-packages",
+          "desc": "Override distro protection",
+          "caution": "Can break system Python tools."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "pip list --outdated",
+          "desc": "Outdated"
+        },
+        {
+          "cmd": "python3 -m venv .venv && . .venv/bin/activate",
+          "desc": "Use a virtualenv"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "python3 -m venv .venv",
+          "why": "Isolate installs in a virtualenv"
+        }
+      ],
+      "suggestions": [
+        "python3"
+      ],
+      "low_when": [
+        "\\b(list|show|freeze|check|search|--version)\\b"
+      ],
+      "low_unless": [
+        "install|uninstall|download"
+      ]
+    },
+    {
+      "name": "npm",
+      "match": [
+        "npm"
+      ],
+      "summary": "Node.js package manager",
+      "risk": "high",
+      "risk_reason": "Install scripts run arbitrary code; -g changes global state.",
+      "cautions": [
+        "Packages can run scripts at install time — use `npm ci --ignore-scripts` for untrusted code.",
+        "Never `sudo npm install -g`; use a prefix or nvm.",
+        "`npm audit fix --force` may bring breaking upgrades."
+      ],
+      "explanation": "Installs Node packages. See the flags and examples below, and run `man npm` for the full reference.",
+      "flags": [
+        {
+          "flag": "install",
+          "desc": "Install"
+        },
+        {
+          "flag": "ci",
+          "desc": "Clean install from lockfile"
+        },
+        {
+          "flag": "audit",
+          "desc": "Check vulnerabilities"
+        },
+        {
+          "flag": "-g",
+          "desc": "-g",
+          "caution": "Global install"
+        },
+        {
+          "flag": "--ignore-scripts",
+          "long": "--ignore-scripts",
+          "desc": "Skip install scripts"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "npm ci",
+          "desc": "Reproducible install"
+        },
+        {
+          "cmd": "npm audit",
+          "desc": "Vulnerabilities"
+        }
+      ],
+      "suggestions": [
+        "node"
+      ],
+      "low_when": [
+        "\\b(ls|list|audit(?! fix)|outdated|view|--version|doctor)\\b"
+      ],
+      "low_unless": [
+        "install|i\\b|ci|uninstall|update|publish|audit fix"
+      ]
+    },
+    {
+      "name": "gem",
+      "match": [
+        "gem"
+      ],
+      "summary": "Ruby gem installer",
+      "risk": "medium",
+      "risk_reason": "Installs code that may run native extensions.",
+      "cautions": [
+        "Use Bundler and lockfiles."
+      ],
+      "explanation": "RubyGems. See the flags and examples below, and run `man gem` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gem list",
+          "desc": "Installed gems"
+        }
+      ],
+      "suggestions": [
+        "pip"
+      ],
+      "low_when": [
+        "list|search|info"
+      ],
+      "low_unless": [
+        "install|uninstall|update"
+      ]
+    },
+    {
+      "name": "cargo",
+      "match": [
+        "cargo"
+      ],
+      "summary": "Rust package manager",
+      "risk": "medium",
+      "risk_reason": "Build scripts run arbitrary code.",
+      "cautions": [
+        "`cargo install` compiles and runs build.rs scripts from the crate."
+      ],
+      "explanation": "Build and install Rust crates. See the flags and examples below, and run `man cargo` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "cargo build --release",
+          "desc": "Build"
+        },
+        {
+          "cmd": "cargo install --locked ripgrep",
+          "desc": "Install a tool"
+        }
+      ],
+      "suggestions": [
+        "rustup"
+      ],
+      "low_when": [
+        "check|tree|search|--version|doc"
+      ],
+      "low_unless": [
+        "install|publish|build|run"
+      ]
+    },
+    {
+      "name": "go",
+      "match": [
+        "go"
+      ],
+      "summary": "Go toolchain",
+      "risk": "low",
+      "risk_reason": "Downloads modules.",
+      "cautions": [
+        "`go install` of remote packages runs unvetted code — pin versions."
+      ],
+      "explanation": "Build, test and manage Go modules. See the flags and examples below, and run `man go` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "go build ./...",
+          "desc": "Build"
+        },
+        {
+          "cmd": "go mod tidy",
+          "desc": "Tidy modules"
+        }
+      ],
+      "suggestions": [
+        "git"
+      ],
+      "low_when": [
+        "version|env|list|vet|doc"
+      ],
+      "low_unless": [
+        "install|get|run|build"
+      ]
+    },
+    {
+      "name": "brew",
+      "match": [
+        "brew"
+      ],
+      "summary": "Homebrew package manager",
+      "risk": "medium",
+      "risk_reason": "Installs software; upgrades can change many packages.",
+      "cautions": [
+        "Run as a normal user, not root.",
+        "`brew upgrade` upgrades everything."
+      ],
+      "explanation": "Package manager for macOS/Linux. See the flags and examples below, and run `man brew` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "brew list",
+          "desc": "Installed"
+        },
+        {
+          "cmd": "brew upgrade --dry-run",
+          "desc": "Preview"
+        }
+      ],
+      "suggestions": [
+        "apt"
+      ],
+      "low_when": [
+        "list|info|search|outdated|deps|--version"
+      ],
+      "low_unless": [
+        "install|uninstall|upgrade|remove"
+      ]
+    },
+    {
+      "name": "make",
+      "match": [
+        "make"
+      ],
+      "summary": "Build tool",
+      "risk": "high",
+      "risk_reason": "Runs whatever the Makefile says, often as the invoking user.",
+      "cautions": [
+        "Read the Makefile of untrusted projects before running `make` — it can execute any command.",
+        "`sudo make install` writes to system directories and has no uninstall; prefer packages or checkinstall.",
+        "Use -n to preview."
+      ],
+      "explanation": "Executes targets from a Makefile; `make install` copies files to system paths.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "-n",
+          "caution": "Print commands without running them"
+        },
+        {
+          "flag": "-j",
+          "desc": "Parallel jobs"
+        },
+        {
+          "flag": "-C",
+          "desc": "Change directory first"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "make -n install",
+          "desc": "Preview what install would do"
+        },
+        {
+          "cmd": "make -j$(nproc)",
+          "desc": "Parallel build"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "make -n <target>",
+          "why": "Preview commands"
+        }
+      ],
+      "suggestions": [
+        "gcc"
+      ],
+      "low_when": [
+        "\\s-n\\b|--dry-run|\\s-p\\b"
+      ],
+      "low_unless": []
+    }
+  ]
+}

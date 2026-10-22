@@ -1,0 +1,1377 @@
+{
+  "category": "git",
+  "commands": [
+    {
+      "name": "git",
+      "summary": "Distributed version control system for tracking and managing code changes.",
+      "risk": "medium",
+      "risk_reason": "Force push and history rewrite on shared branches can overwrite collaborators' work.",
+      "cautions": [
+        "`git push --force` and other history rewrites can erase teammates’ commits; prefer --force-with-lease.",
+        "`git reset --hard` and `git clean -fd` delete uncommitted/untracked work that cannot be recovered.",
+        "Check `git status` and `git remote -v` before pushing so you do not push to the wrong remote or branch."
+      ],
+      "explanation": "git tracks file changes through commits and supports branching and merging. The working directory, staging area (index), and repository are distinct zones. Remote operations interact with upstream repositories.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "git log --oneline --graph --all --decorate",
+          "desc": "Visualize full branch history as a compact decorated graph"
+        },
+        {
+          "cmd": "git stash push -m 'WIP: feature-x' && git checkout main",
+          "desc": "Stash current work and switch to main"
+        },
+        {
+          "cmd": "git diff HEAD~3 -- src/api/",
+          "desc": "Show changes in src/api/ over the last 3 commits"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git push --force-with-lease",
+          "why": "Force push that refuses to overwrite commits you have not seen."
+        }
+      ],
+      "suggestions": [
+        "git-flow",
+        "tig",
+        "gh",
+        "hub"
+      ],
+      "pro_tip": "Use `git reflog` to recover lost commits after a bad reset or rebase — git keeps unreachable commits for ~90 days.",
+      "low_when": [
+        "\\b(log|status|diff|show|blame|reflog|remote -v|branch( -a| -vv| --list)?\\s*$|ls-files|describe|shortlog|bisect log|stash list|config --list|reset --soft|fetch|restore --staged)\\b"
+      ],
+      "low_unless": [
+        "--hard",
+        "push",
+        "clean",
+        "--force",
+        "-f\\b"
+      ]
+    },
+    {
+      "name": "git log",
+      "summary": "Browse, filter, and format Git commit history.",
+      "risk": "low",
+      "risk_reason": "Read-only history viewer.",
+      "explanation": "git log displays the commit history with flexible formatting. Supports filtering by author, date, path, and content. The --graph flag visualizes branch topology. A well-formatted git log is essential for code review, debugging, and release management.",
+      "flags": [
+        {
+          "flag": "--oneline",
+          "desc": "Compact one-line per commit"
+        },
+        {
+          "flag": "--graph",
+          "desc": "ASCII branch topology graph"
+        },
+        {
+          "flag": "--author",
+          "desc": "Filter by author"
+        },
+        {
+          "flag": "--since",
+          "desc": "Filter commits since a date"
+        },
+        {
+          "flag": "--stat",
+          "desc": "Show file change stats per commit"
+        },
+        {
+          "flag": "-p",
+          "long": "--patch",
+          "desc": "Show full diff per commit"
+        },
+        {
+          "flag": "--follow",
+          "desc": "Follow file renames"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git log --oneline --graph --decorate --all",
+          "desc": "Visual branch history for all branches"
+        },
+        {
+          "cmd": "git log --since='2 weeks ago' --author='Eknatha' --oneline",
+          "desc": "Recent commits by specific author"
+        },
+        {
+          "cmd": "git log --stat HEAD~5..HEAD",
+          "desc": "Files changed in last 5 commits"
+        },
+        {
+          "cmd": "git log -S 'function_name' --oneline",
+          "desc": "Find when a specific string was added/removed"
+        },
+        {
+          "cmd": "git log --follow -p -- path/to/file.go",
+          "desc": "Full history of a file including renames"
+        }
+      ],
+      "suggestions": [
+        "git stash",
+        "git rebase",
+        "diff"
+      ],
+      "pro_tip": "Add `git log --oneline --graph --decorate --all` as an alias `git lg` — the graph view reveals merge topology that linear history completely hides."
+    },
+    {
+      "name": "git stash",
+      "summary": "Temporarily save and restore uncommitted work.",
+      "risk": "low",
+      "risk_reason": "Stashes can be accidentally dropped; they're not a backup.",
+      "explanation": "git stash saves your working directory changes and index to a stack, letting you switch contexts cleanly and restore later. Supports multiple stashes, partial stashing with -p, and stashing untracked files with -u.",
+      "flags": [
+        {
+          "flag": "push -m",
+          "desc": "Stash with a descriptive message"
+        },
+        {
+          "flag": "pop",
+          "desc": "Apply most recent stash and remove it"
+        },
+        {
+          "flag": "apply",
+          "desc": "Apply stash without removing it"
+        },
+        {
+          "flag": "list",
+          "desc": "Show all stashes"
+        },
+        {
+          "flag": "drop",
+          "desc": "Delete a specific stash"
+        },
+        {
+          "flag": "-u",
+          "desc": "Include untracked files"
+        },
+        {
+          "flag": "-p",
+          "desc": "Interactively choose hunks to stash"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git stash push -m 'WIP: refactor auth module'",
+          "desc": "Stash with descriptive message"
+        },
+        {
+          "cmd": "git stash list",
+          "desc": "View all stashes"
+        },
+        {
+          "cmd": "git stash pop",
+          "desc": "Restore most recent stash"
+        },
+        {
+          "cmd": "git stash show -p stash@{1}",
+          "desc": "View diff of second stash"
+        }
+      ],
+      "suggestions": [
+        "git log",
+        "git rebase",
+        "git"
+      ],
+      "pro_tip": "Use `git stash push -u -m 'description'` to include untracked files — otherwise new files you've created stay in the working tree and may contaminate the branch you switch to."
+    },
+    {
+      "name": "git rebase",
+      "summary": "Reapply commits on top of another base commit; rewrite history.",
+      "risk": "high",
+      "risk_reason": "Rewrites commit history; dangerous on shared/public branches.",
+      "cautions": [
+        "Rewrites commit hashes — never rebase commits that others have already pulled.",
+        "Wrongly resolved conflicts during a rebase silently drop changes; review with `git diff ORIG_HEAD`.",
+        "You can abort an unfinished rebase with `git rebase --abort`; afterwards recover with `git reflog`."
+      ],
+      "explanation": "git rebase replays commits from one branch on top of another, producing a linear history. Interactive rebase (-i) lets you squash, reorder, edit, and drop commits. Never rebase public/shared branches — it rewrites history and forces conflicts for others.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--interactive",
+          "desc": "Interactive rebase: edit, squash, reorder commits"
+        },
+        {
+          "flag": "--onto",
+          "desc": "Rebase onto a specific commit"
+        },
+        {
+          "flag": "--abort",
+          "desc": "Abort and restore original state"
+        },
+        {
+          "flag": "--continue",
+          "desc": "Continue after resolving conflicts"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git rebase main",
+          "desc": "Rebase current branch on top of main"
+        },
+        {
+          "cmd": "git rebase -i HEAD~5",
+          "desc": "Interactively clean up last 5 commits before PR"
+        },
+        {
+          "cmd": "git rebase --abort",
+          "desc": "Safely cancel a rebase in progress"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git branch backup-before-rebase",
+          "why": "Leave a pointer to the old history so you can always reset to it."
+        },
+        {
+          "cmd": "git reflog",
+          "why": "Find the pre-rebase commit if something goes wrong."
+        }
+      ],
+      "suggestions": [
+        "git log",
+        "git stash",
+        "diff"
+      ],
+      "pro_tip": "Use interactive rebase (`git rebase -i HEAD~N`) before raising PRs to squash fixup commits and write meaningful commit messages — keeps the project history clean and reviewable.",
+      "low_when": [
+        "--abort|--continue|--skip"
+      ]
+    },
+    {
+      "name": "git cherry-pick",
+      "summary": "Apply specific commits from one branch to another.",
+      "risk": "medium",
+      "risk_reason": "Can create duplicate commits and cause conflicts.",
+      "cautions": [
+        "Creates a duplicate commit with a new hash — later merges may conflict or apply the change twice.",
+        "Use -x to record the original commit hash in the message for traceability."
+      ],
+      "explanation": "git cherry-pick applies the changes introduced by specific commits (by hash) to the current branch, creating new commits with the same changes. Useful for backporting fixes to release branches without merging all changes.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--no-commit",
+          "desc": "Apply changes without creating a commit"
+        },
+        {
+          "flag": "-x",
+          "desc": "Append original commit hash to message"
+        },
+        {
+          "flag": "--abort",
+          "desc": "Cancel cherry-pick in progress"
+        },
+        {
+          "flag": "--continue",
+          "desc": "Continue after resolving conflicts"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git cherry-pick abc1234",
+          "desc": "Apply commit abc1234 to current branch"
+        },
+        {
+          "cmd": "git cherry-pick abc1234..def5678",
+          "desc": "Apply a range of commits"
+        },
+        {
+          "cmd": "git cherry-pick -n abc1234",
+          "desc": "Stage changes without committing"
+        }
+      ],
+      "suggestions": [
+        "git rebase",
+        "git log",
+        "diff"
+      ],
+      "pro_tip": "Use `git cherry-pick -x` to include the original commit hash in the message — creates a paper trail linking the backport to the original fix, invaluable for tracking."
+    },
+    {
+      "name": "git add",
+      "match": [
+        "git add"
+      ],
+      "summary": "Stage changes",
+      "risk": "low",
+      "risk_reason": "Only modifies the index.",
+      "cautions": [
+        "`git add .` can stage secrets, .env files and build output — check git status/diff --staged.",
+        "Add .gitignore entries for credentials."
+      ],
+      "explanation": "Stages files for the next commit. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-p",
+          "desc": "Interactively choose hunks"
+        },
+        {
+          "flag": "-A",
+          "desc": "Stage everything incl. deletions"
+        },
+        {
+          "flag": "-u",
+          "desc": "Only tracked files"
+        },
+        {
+          "flag": "-n",
+          "desc": "Dry run"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git add -p",
+          "desc": "Stage selectively"
+        },
+        {
+          "cmd": "git add -n .",
+          "desc": "Preview"
+        }
+      ],
+      "suggestions": [
+        "git commit",
+        "git status"
+      ]
+    },
+    {
+      "name": "git commit",
+      "match": [
+        "git commit"
+      ],
+      "summary": "Record staged changes",
+      "risk": "low",
+      "risk_reason": "Local only until pushed.",
+      "cautions": [
+        "Never commit secrets — rotate any key that was committed even if you remove it later.",
+        "--amend on pushed commits requires a force push.",
+        "--no-verify skips pre-commit/security hooks."
+      ],
+      "explanation": "Creates a commit from the index. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-m",
+          "desc": "Message"
+        },
+        {
+          "flag": "--amend",
+          "long": "--amend",
+          "desc": "Rewrite the last commit",
+          "caution": "Changes history; don’t amend pushed commits."
+        },
+        {
+          "flag": "-a",
+          "desc": "Stage tracked changes automatically"
+        },
+        {
+          "flag": "--no-verify",
+          "long": "--no-verify",
+          "desc": "Skip hooks",
+          "caution": "Bypasses safety checks."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git commit -m \"Fix login redirect\"",
+          "desc": "Commit"
+        },
+        {
+          "cmd": "git commit --amend --no-edit",
+          "desc": "Add to the last commit"
+        }
+      ],
+      "suggestions": [
+        "git add",
+        "git push"
+      ]
+    },
+    {
+      "name": "git push",
+      "match": [
+        "git push"
+      ],
+      "summary": "Upload commits",
+      "risk": "high",
+      "risk_reason": "Publishes changes; --force can overwrite others’ commits.",
+      "cautions": [
+        "Check `git remote -v` and the branch before pushing.",
+        "Never force-push shared branches (main, release).",
+        "--delete removes a remote branch for everyone.",
+        "Pushed secrets are public history — rotate them."
+      ],
+      "explanation": "Sends local commits to a remote branch. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "--force",
+          "long": "--force",
+          "desc": "Overwrite remote history",
+          "caution": "Can destroy teammates’ commits."
+        },
+        {
+          "flag": "--force-with-lease",
+          "long": "--force-with-lease",
+          "desc": "Safer force push"
+        },
+        {
+          "flag": "--tags",
+          "long": "--tags",
+          "desc": "Push all tags"
+        },
+        {
+          "flag": "--delete",
+          "long": "--delete",
+          "desc": "Delete a remote branch"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git push origin main",
+          "desc": "Push main"
+        },
+        {
+          "cmd": "git push --force-with-lease",
+          "desc": "Safer force push"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git push --force-with-lease",
+          "why": "Instead of --force"
+        },
+        {
+          "cmd": "git push --dry-run",
+          "why": "Preview what would be pushed"
+        }
+      ],
+      "suggestions": [
+        "git pull",
+        "git fetch"
+      ],
+      "low_when": [
+        "--dry-run"
+      ],
+      "low_unless": []
+    },
+    {
+      "name": "git pull",
+      "match": [
+        "git pull"
+      ],
+      "summary": "Fetch and integrate",
+      "risk": "medium",
+      "risk_reason": "Merges remote changes into your branch; conflicts and surprise merges.",
+      "cautions": [
+        "Uncommitted changes may conflict — stash or commit first.",
+        "Prefer `git fetch` + review, or --ff-only."
+      ],
+      "explanation": "Fetch + merge (or rebase with --rebase).",
+      "flags": [
+        {
+          "flag": "--rebase",
+          "long": "--rebase",
+          "desc": "Rebase instead of merge"
+        },
+        {
+          "flag": "--ff-only",
+          "long": "--ff-only",
+          "desc": "Refuse to create merge commits"
+        },
+        {
+          "flag": "-p",
+          "desc": "Prune deleted remote branches"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git pull --ff-only",
+          "desc": "Safe fast-forward only"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git fetch && git log HEAD..origin/<branch> --oneline",
+          "why": "Review incoming commits first"
+        },
+        {
+          "cmd": "git pull --ff-only",
+          "why": "Avoid surprise merges"
+        }
+      ],
+      "suggestions": [
+        "git fetch",
+        "git push"
+      ]
+    },
+    {
+      "name": "git fetch",
+      "match": [
+        "git fetch"
+      ],
+      "summary": "Download remote changes",
+      "risk": "low",
+      "risk_reason": "Updates remote-tracking branches only.",
+      "explanation": "Gets objects and refs without modifying your working tree.",
+      "flags": [
+        {
+          "flag": "--prune",
+          "long": "--prune",
+          "desc": "Delete stale remote-tracking branches"
+        },
+        {
+          "flag": "--all",
+          "long": "--all",
+          "desc": "All remotes"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git fetch --all --prune",
+          "desc": "Update everything"
+        }
+      ],
+      "suggestions": [
+        "git pull",
+        "git log"
+      ]
+    },
+    {
+      "name": "git clone",
+      "match": [
+        "git clone"
+      ],
+      "summary": "Copy a repository",
+      "risk": "low",
+      "risk_reason": "Downloads code that may run hooks/scripts later.",
+      "cautions": [
+        "Review untrusted repositories before running their scripts/Makefiles.",
+        "Embedded credentials in URLs end up in .git/config."
+      ],
+      "explanation": "Creates a local copy of a repo. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "--depth",
+          "long": "--depth",
+          "desc": "Shallow clone"
+        },
+        {
+          "flag": "--branch",
+          "long": "--branch",
+          "desc": "Clone a branch"
+        },
+        {
+          "flag": "--recurse-submodules",
+          "long": "--recurse-submodules",
+          "desc": "Include submodules"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git clone --depth 1 https://github.com/org/repo.git",
+          "desc": "Shallow clone"
+        }
+      ],
+      "suggestions": [
+        "git fetch"
+      ]
+    },
+    {
+      "name": "git status",
+      "match": [
+        "git status"
+      ],
+      "summary": "Show working tree state",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Shows staged, unstaged and untracked files.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Short format"
+        },
+        {
+          "flag": "-b",
+          "desc": "Show branch"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git status -sb",
+          "desc": "Compact status"
+        }
+      ],
+      "suggestions": [
+        "git diff",
+        "git add"
+      ]
+    },
+    {
+      "name": "git diff",
+      "match": [
+        "git diff"
+      ],
+      "summary": "Show changes",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "cautions": [
+        "Diffs may include secrets — don’t paste them publicly."
+      ],
+      "explanation": "Compares working tree, index and commits.",
+      "flags": [
+        {
+          "flag": "--staged",
+          "long": "--staged",
+          "desc": "Staged changes"
+        },
+        {
+          "flag": "--stat",
+          "long": "--stat",
+          "desc": "Summary"
+        },
+        {
+          "flag": "-w",
+          "desc": "Ignore whitespace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git diff --staged",
+          "desc": "Review before committing"
+        },
+        {
+          "cmd": "git diff main...HEAD",
+          "desc": "Changes on this branch"
+        }
+      ],
+      "suggestions": [
+        "git status",
+        "git log"
+      ]
+    },
+    {
+      "name": "git merge",
+      "match": [
+        "git merge"
+      ],
+      "summary": "Join histories",
+      "risk": "medium",
+      "risk_reason": "Creates merge commits and conflicts.",
+      "cautions": [
+        "Check you are on the right branch before merging.",
+        "Resolve conflicts carefully; run tests before pushing."
+      ],
+      "explanation": "Integrates another branch into the current one.",
+      "flags": [
+        {
+          "flag": "--no-ff",
+          "long": "--no-ff",
+          "desc": "Always create a merge commit"
+        },
+        {
+          "flag": "--abort",
+          "long": "--abort",
+          "desc": "Cancel an in-progress merge"
+        },
+        {
+          "flag": "--squash",
+          "long": "--squash",
+          "desc": "Squash into one change"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git merge --no-ff feature",
+          "desc": "Merge with a merge commit"
+        },
+        {
+          "cmd": "git merge --abort",
+          "desc": "Cancel"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git merge --no-commit --no-ff <branch>",
+          "why": "Merge without committing to inspect first"
+        }
+      ],
+      "suggestions": [
+        "git rebase",
+        "git status"
+      ]
+    },
+    {
+      "name": "git reset",
+      "match": [
+        "git reset"
+      ],
+      "summary": "Move HEAD / reset index",
+      "risk": "high",
+      "risk_reason": "--hard permanently discards uncommitted work; resetting pushed history needs a force push.",
+      "cautions": [
+        "`git reset --hard` deletes uncommitted modifications with no recovery.",
+        "Resetting shared branches rewrites history for everyone.",
+        "Recover lost commits with `git reflog` (within ~90 days)."
+      ],
+      "explanation": "Moves the current branch to another commit; --soft keeps changes staged, --mixed unstages, --hard discards.",
+      "flags": [
+        {
+          "flag": "--soft",
+          "long": "--soft",
+          "desc": "Keep changes staged"
+        },
+        {
+          "flag": "--mixed",
+          "long": "--mixed",
+          "desc": "Keep changes unstaged (default)"
+        },
+        {
+          "flag": "--hard",
+          "long": "--hard",
+          "desc": "Discard all changes",
+          "caution": "Uncommitted work is lost permanently."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git reset --soft HEAD~1",
+          "desc": "Undo the last commit, keep changes"
+        },
+        {
+          "cmd": "git reset HEAD file",
+          "desc": "Unstage a file"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git stash push -u -m \"backup\"",
+          "why": "Stash before a hard reset"
+        },
+        {
+          "cmd": "git reset --soft HEAD~1",
+          "why": "Keeps your changes"
+        },
+        {
+          "cmd": "git revert <commit>",
+          "why": "Safe for pushed commits"
+        }
+      ],
+      "suggestions": [
+        "git reflog",
+        "git revert",
+        "git stash"
+      ],
+      "low_when": [
+        "--soft|--mixed|\\bHEAD\\s+\\S+$|^\\s*(HEAD|--)?\\s*\\S*$"
+      ],
+      "low_unless": [
+        "--hard|--merge|--keep"
+      ]
+    },
+    {
+      "name": "git revert",
+      "match": [
+        "git revert"
+      ],
+      "summary": "Undo a commit with a new commit",
+      "risk": "low",
+      "risk_reason": "Creates a new commit; history is preserved.",
+      "cautions": [
+        "Reverting a merge needs -m 1 and complicates re-merging."
+      ],
+      "explanation": "Applies the inverse of a commit — safe for shared branches.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "No commit"
+        },
+        {
+          "flag": "-m",
+          "desc": "Mainline for merge commits"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git revert HEAD",
+          "desc": "Undo the last commit safely"
+        }
+      ],
+      "suggestions": [
+        "git reset"
+      ]
+    },
+    {
+      "name": "git checkout",
+      "match": [
+        "git checkout"
+      ],
+      "summary": "Switch branches or restore files",
+      "risk": "medium",
+      "risk_reason": "Can overwrite uncommitted changes in files.",
+      "cautions": [
+        "`git checkout -- file` or `git checkout .` irreversibly discards local edits."
+      ],
+      "explanation": "Older multi-purpose command; prefer git switch / git restore.",
+      "flags": [
+        {
+          "flag": "-b",
+          "desc": "Create and switch"
+        },
+        {
+          "flag": "--",
+          "desc": "Restore paths from index",
+          "caution": "Discards unstaged changes."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git checkout -b feature/x",
+          "desc": "New branch"
+        },
+        {
+          "cmd": "git checkout -- file.txt",
+          "desc": "Discard changes in a file"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git stash push -u",
+          "why": "Stash first"
+        },
+        {
+          "cmd": "git switch <branch>",
+          "why": "Use switch for branches"
+        },
+        {
+          "cmd": "git restore --staged <file>",
+          "why": "Use restore for files"
+        }
+      ],
+      "suggestions": [
+        "git switch",
+        "git restore"
+      ],
+      "low_when": [
+        "^\\s*-b\\b|^\\s*[\\w./-]+\\s*$"
+      ],
+      "low_unless": [
+        "--\\s|\\s\\.\\s*$"
+      ]
+    },
+    {
+      "name": "git switch",
+      "match": [
+        "git switch"
+      ],
+      "summary": "Switch branches",
+      "risk": "low",
+      "risk_reason": "Fails instead of overwriting uncommitted changes.",
+      "explanation": "Modern replacement for branch switching.",
+      "flags": [
+        {
+          "flag": "-c",
+          "desc": "Create a branch"
+        },
+        {
+          "flag": "-",
+          "desc": "Previous branch"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git switch -c feature/x",
+          "desc": "Create and switch"
+        },
+        {
+          "cmd": "git switch -",
+          "desc": "Back to the previous branch"
+        }
+      ],
+      "suggestions": [
+        "git branch",
+        "git checkout"
+      ]
+    },
+    {
+      "name": "git restore",
+      "match": [
+        "git restore"
+      ],
+      "summary": "Restore files",
+      "risk": "high",
+      "risk_reason": "Discards working-tree changes without confirmation.",
+      "cautions": [
+        "Without --staged, edits are lost permanently."
+      ],
+      "explanation": "Restores paths from the index or a commit; --staged unstages.",
+      "flags": [
+        {
+          "flag": "--staged",
+          "long": "--staged",
+          "desc": "Unstage"
+        },
+        {
+          "flag": "--source",
+          "long": "--source",
+          "desc": "Restore from a commit"
+        },
+        {
+          "flag": "--worktree",
+          "long": "--worktree",
+          "desc": "Restore the working tree (default)",
+          "caution": "Discards local edits."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git restore --staged file",
+          "desc": "Unstage"
+        },
+        {
+          "cmd": "git restore file",
+          "desc": "Discard edits"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git diff <file>",
+          "why": "Look at what you would lose"
+        },
+        {
+          "cmd": "git stash push <file>",
+          "why": "Keep a backup"
+        }
+      ],
+      "suggestions": [
+        "git checkout",
+        "git stash"
+      ],
+      "low_when": [
+        "--staged"
+      ],
+      "low_unless": []
+    },
+    {
+      "name": "git branch",
+      "match": [
+        "git branch"
+      ],
+      "summary": "List, create or delete branches",
+      "risk": "medium",
+      "risk_reason": "-D deletes branches including unmerged work.",
+      "cautions": [
+        "Prefer -d; -D discards unmerged commits."
+      ],
+      "explanation": "Manages local branches. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-a",
+          "desc": "All branches"
+        },
+        {
+          "flag": "-vv",
+          "desc": "Verbose with upstream"
+        },
+        {
+          "flag": "-d",
+          "desc": "Delete (merged only)"
+        },
+        {
+          "flag": "-D",
+          "desc": "Force delete",
+          "caution": "Loses unmerged commits (recoverable via reflog)."
+        },
+        {
+          "flag": "-m",
+          "desc": "Rename"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git branch -vv",
+          "desc": "Branches and tracking"
+        },
+        {
+          "cmd": "git branch -d old",
+          "desc": "Delete a merged branch"
+        }
+      ],
+      "suggestions": [
+        "git switch",
+        "git log"
+      ],
+      "low_when": [
+        "^\\s*$|\\s-(a|r|v|vv|l)\\b|--list|--merged|--no-merged"
+      ],
+      "low_unless": [
+        "-D|--delete|-d\\b|-m\\b"
+      ]
+    },
+    {
+      "name": "git tag",
+      "match": [
+        "git tag"
+      ],
+      "summary": "Create or list tags",
+      "risk": "low",
+      "risk_reason": "Tags can be moved or deleted remotely.",
+      "cautions": [
+        "Don’t move published tags; consumers pin them."
+      ],
+      "explanation": "Marks releases. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-a",
+          "desc": "Annotated tag"
+        },
+        {
+          "flag": "-d",
+          "desc": "Delete a tag"
+        },
+        {
+          "flag": "-s",
+          "desc": "Signed tag"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git tag -a v1.0.0 -m \"release\"",
+          "desc": "Create"
+        },
+        {
+          "cmd": "git push origin v1.0.0",
+          "desc": "Publish"
+        }
+      ],
+      "suggestions": [
+        "git push"
+      ]
+    },
+    {
+      "name": "git remote",
+      "match": [
+        "git remote"
+      ],
+      "summary": "Manage remotes",
+      "risk": "medium",
+      "risk_reason": "Wrong remote URL sends code to the wrong place.",
+      "cautions": [
+        "Check the URL before pushing proprietary code."
+      ],
+      "explanation": "Lists and edits remote repositories. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-v",
+          "desc": "Show URLs"
+        },
+        {
+          "flag": "add",
+          "desc": "Add"
+        },
+        {
+          "flag": "set-url",
+          "desc": "Change URL"
+        },
+        {
+          "flag": "remove",
+          "desc": "Remove"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git remote -v",
+          "desc": "Show remotes"
+        }
+      ],
+      "suggestions": [
+        "git push"
+      ],
+      "low_when": [
+        "-v|show|get-url"
+      ],
+      "low_unless": [
+        "add|set-url|remove|rename"
+      ]
+    },
+    {
+      "name": "git reflog",
+      "match": [
+        "git reflog"
+      ],
+      "summary": "History of HEAD movements",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Lets you recover commits lost to resets or rebases.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "git reflog",
+          "desc": "Recent HEAD positions"
+        },
+        {
+          "cmd": "git reset --hard HEAD@{2}",
+          "desc": "Restore a previous state"
+        }
+      ],
+      "suggestions": [
+        "git reset"
+      ]
+    },
+    {
+      "name": "git clean",
+      "match": [
+        "git clean"
+      ],
+      "summary": "Remove untracked files",
+      "risk": "high",
+      "risk_reason": "Deletes untracked files permanently.",
+      "cautions": [
+        "Always run with -n first.",
+        "-x deletes ignored files such as .env and local configs."
+      ],
+      "explanation": "Removes files not tracked by git. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-n",
+          "desc": "Dry run"
+        },
+        {
+          "flag": "-f",
+          "desc": "Force (required)",
+          "caution": "Deletes files."
+        },
+        {
+          "flag": "-d",
+          "desc": "Include directories"
+        },
+        {
+          "flag": "-x",
+          "desc": "Include ignored files",
+          "caution": "Deletes .env, build output, local config."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git clean -nd",
+          "desc": "Dry run"
+        },
+        {
+          "cmd": "git clean -fd",
+          "desc": "Delete untracked files and dirs"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "git clean -nd",
+          "why": "Dry run"
+        },
+        {
+          "cmd": "git stash push -u",
+          "why": "Keep a copy"
+        }
+      ],
+      "suggestions": [
+        "git status"
+      ],
+      "low_when": [
+        "\\s-[a-z]*n[a-z]*\\b|--dry-run"
+      ],
+      "low_unless": []
+    },
+    {
+      "name": "git bisect",
+      "match": [
+        "git bisect"
+      ],
+      "summary": "Binary search for a bad commit",
+      "risk": "low",
+      "risk_reason": "Changes HEAD while running.",
+      "cautions": [
+        "Commit or stash work first; always run `git bisect reset` when done."
+      ],
+      "explanation": "Finds the commit that introduced a bug. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "start",
+          "desc": "Begin"
+        },
+        {
+          "flag": "good",
+          "desc": "Mark good"
+        },
+        {
+          "flag": "bad",
+          "desc": "Mark bad"
+        },
+        {
+          "flag": "reset",
+          "desc": "End"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git bisect start",
+          "desc": "Begin"
+        }
+      ],
+      "suggestions": [
+        "git log"
+      ]
+    },
+    {
+      "name": "git blame",
+      "match": [
+        "git blame"
+      ],
+      "summary": "Show who changed each line",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Annotates lines with the last commit. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "-L",
+          "desc": "Line range"
+        },
+        {
+          "flag": "-w",
+          "desc": "Ignore whitespace"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git blame -L 10,30 file",
+          "desc": "Blame lines 10-30"
+        }
+      ],
+      "suggestions": [
+        "git log"
+      ]
+    },
+    {
+      "name": "git submodule",
+      "match": [
+        "git submodule"
+      ],
+      "summary": "Manage nested repositories",
+      "risk": "medium",
+      "risk_reason": "Detached HEADs and pinned commits cause surprises.",
+      "cautions": [
+        "Submodules may point at untrusted repositories."
+      ],
+      "explanation": "Initialises and updates submodules. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "git submodule update --init --recursive",
+          "desc": "Fetch submodules"
+        }
+      ],
+      "suggestions": [
+        "git clone"
+      ]
+    },
+    {
+      "name": "git worktree",
+      "match": [
+        "git worktree"
+      ],
+      "summary": "Multiple working trees",
+      "risk": "low",
+      "risk_reason": "Extra directories to clean up.",
+      "explanation": "Check out several branches at once. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "git worktree add ../hotfix hotfix",
+          "desc": "New tree for a branch"
+        }
+      ],
+      "suggestions": [
+        "git branch"
+      ]
+    },
+    {
+      "name": "git config",
+      "match": [
+        "git config"
+      ],
+      "summary": "Read/set configuration",
+      "risk": "medium",
+      "risk_reason": "Can store credentials or alter hooks/aliases.",
+      "cautions": [
+        "Credential helpers storing plaintext are insecure; use a keychain.",
+        "Aliases can execute shell commands."
+      ],
+      "explanation": "Manages git settings. See the flags and examples below, and run `man git` for the full reference.",
+      "flags": [
+        {
+          "flag": "--global",
+          "long": "--global",
+          "desc": "User-wide"
+        },
+        {
+          "flag": "--list",
+          "long": "--list",
+          "desc": "Show all"
+        },
+        {
+          "flag": "--unset",
+          "long": "--unset",
+          "desc": "Remove a key"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "git config --global user.email \"me@example.com\"",
+          "desc": "Set email"
+        }
+      ],
+      "suggestions": [
+        "git commit"
+      ],
+      "low_when": [
+        "--list|--get\\b|-l\\b"
+      ],
+      "low_unless": [
+        "--unset|--add|\\s\\S+\\s+\\S+$"
+      ]
+    },
+    {
+      "name": "gh",
+      "summary": "GitHub CLI",
+      "risk": "medium",
+      "risk_reason": "Acts on your GitHub account (creates PRs, merges, deletes repos).",
+      "cautions": [
+        "`gh repo delete` and `gh pr merge` are irreversible on remotes.",
+        "Scopes of your token define the blast radius; use least-privilege tokens."
+      ],
+      "explanation": "Work with PRs, issues and repos from the terminal.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gh pr create --fill",
+          "desc": "Open a PR"
+        },
+        {
+          "cmd": "gh pr checks",
+          "desc": "CI status"
+        },
+        {
+          "cmd": "gh repo view",
+          "desc": "Repo info"
+        }
+      ],
+      "suggestions": [
+        "git push"
+      ],
+      "low_when": [
+        "\\b(view|list|status|checks|diff)\\b"
+      ],
+      "low_unless": [
+        "delete|merge|close|create|edit"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "intents": [
+    {
+      "id": "aws-whoami",
+      "title": "Which AWS account am I in",
+      "match": [
+        [
+          "which",
+          "who",
+          "what",
+          "current",
+          "check",
+          "show"
+        ],
+        [
+          "aws"
+        ],
+        [
+          "account",
+          "identity",
+          "user",
+          "profile"
+        ]
+      ],
+      "say": [
+        "which aws account am i in"
+      ],
+      "slots": {},
+      "cmd": "aws sts get-caller-identity",
+      "notes": "Run this before any change so you do not act on the wrong account.",
+      "alts": [],
+      "min": 2,
+      "category": "cloud"
+    },
+    {
+      "id": "aws-s3-ls",
+      "title": "List an S3 bucket",
+      "match": [
+        [
+          "list",
+          "show",
+          "ls"
+        ],
+        [
+          "s3",
+          "bucket"
+        ]
+      ],
+      "say": [
+        "list an s3 bucket"
+      ],
+      "slots": {
+        "bucket": {
+          "from": "bucket",
+          "default": "my-bucket",
+          "label": "bucket"
+        }
+      },
+      "cmd": "aws s3 ls s3://{bucket}/ --human-readable --summarize",
+      "notes": "",
+      "alts": [],
+      "category": "cloud"
+    },
+    {
+      "id": "aws-s3-sync",
+      "title": "Sync a folder to S3",
+      "match": [
+        [
+          "sync",
+          "upload",
+          "copy",
+          "backup"
+        ],
+        [
+          "s3",
+          "bucket"
+        ]
+      ],
+      "say": [
+        "sync a folder to s3"
+      ],
+      "slots": {
+        "path": {
+          "from": "path",
+          "default": "./dir",
+          "label": "source dir"
+        },
+        "bucket": {
+          "from": "bucket",
+          "default": "my-bucket",
+          "label": "bucket"
+        }
+      },
+      "cmd": "aws s3 sync {path} s3://{bucket}/ --dryrun",
+      "notes": "--dryrun shows what would happen; remove it to run. Never add --delete without reviewing the dry run.",
+      "alts": [],
+      "category": "cloud"
+    },
+    {
+      "id": "aws-ec2-list",
+      "title": "List EC2 instances",
+      "match": [
+        [
+          "list",
+          "show"
+        ],
+        [
+          "ec2",
+          "instances",
+          "aws",
+          "servers"
+        ]
+      ],
+      "say": [
+        "list ec2 instances"
+      ],
+      "slots": {},
+      "cmd": "aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId,State.Name,PrivateIpAddress,Tags[?Key==`Name`]|[0].Value]' --output table",
+      "notes": "",
+      "alts": [],
+      "category": "cloud"
+    },
+    {
+      "id": "azure-account",
+      "title": "Show current Azure subscription",
+      "match": [
+        [
+          "show",
+          "current",
+          "which"
+        ],
+        [
+          "azure",
+          "subscription",
+          "account"
+        ]
+      ],
+      "say": [
+        "show current azure subscription"
+      ],
+      "slots": {},
+      "cmd": "az account show -o table",
+      "notes": "Verify the subscription before making changes.",
+      "alts": [],
+      "category": "cloud"
+    },
+    {
+      "id": "gcp-project",
+      "title": "Show current GCP project",
+      "match": [
+        [
+          "show",
+          "current",
+          "which"
+        ],
+        [
+          "gcp",
+          "gcloud",
+          "project",
+          "google cloud"
+        ]
+      ],
+      "say": [
+        "show current gcp project"
+      ],
+      "slots": {},
+      "cmd": "gcloud config list",
+      "notes": "",
+      "alts": [],
+      "category": "cloud"
+    }
+  ]
+}

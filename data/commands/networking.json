@@ -1,0 +1,2827 @@
+{
+  "category": "networking",
+  "commands": [
+    {
+      "name": "ssh",
+      "summary": "Securely connect to a remote host over an encrypted SSH tunnel.",
+      "risk": "medium",
+      "risk_reason": "Grants remote access; misconfigured keys or jump hosts can be security risks.",
+      "cautions": [
+        "Verify host-key fingerprints on first connection; never disable StrictHostKeyChecking in scripts for production.",
+        "Agent forwarding (-A) lets the remote host use your keys — prefer -J (ProxyJump).",
+        "Port forwards (-L/-R/-D) can expose internal services; bind to 127.0.0.1."
+      ],
+      "explanation": "ssh creates an encrypted connection to a remote machine. Key-based authentication (-i) is strongly preferred over passwords. -J enables jump host proxying through bastion servers. -L/-R set up local/remote port forwarding tunnels.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Specify private key file for authentication"
+        },
+        {
+          "flag": "-p",
+          "desc": "Connect to a non-standard SSH port"
+        },
+        {
+          "flag": "-L",
+          "desc": "Local port forwarding: tunnel a remote port to localhost"
+        },
+        {
+          "flag": "-R",
+          "desc": "Remote port forwarding: expose local port on remote host"
+        },
+        {
+          "flag": "-J",
+          "desc": "Jump/bastion host proxy"
+        },
+        {
+          "flag": "-N",
+          "desc": "Do not execute a remote command (useful for tunnels)"
+        },
+        {
+          "flag": "-v",
+          "desc": "Verbose mode for debugging connection issues"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ssh -i ~/.ssh/prod.pem ubuntu@10.0.1.5",
+          "desc": "Connect to EC2 instance with a PEM key"
+        },
+        {
+          "cmd": "ssh -L 5432:db.internal:5432 bastion.host",
+          "desc": "Tunnel PostgreSQL through bastion to localhost:5432"
+        },
+        {
+          "cmd": "ssh -J bastion.host user@private.server",
+          "desc": "Connect to private server through a jump/bastion host"
+        }
+      ],
+      "suggestions": [
+        "scp",
+        "rsync",
+        "ssh-keygen",
+        "ssh-copy-id",
+        "mosh"
+      ],
+      "pro_tip": "Configure `~/.ssh/config` with Host aliases — replace `ssh -i key.pem -p 2222 user@long.host.com` with just `ssh prod`.",
+      "low_when": [
+        "\\s-V\\b|-Q\\b|\\s-G\\b"
+      ]
+    },
+    {
+      "name": "curl",
+      "summary": "Transfer data to or from a server using HTTP, HTTPS, FTP, and more.",
+      "risk": "low",
+      "risk_reason": "Read-only by default; piping responses to shell can execute arbitrary code.",
+      "cautions": [
+        "`curl … | sh` runs unseen remote code — download, read, then run.",
+        "-k/--insecure disables TLS verification; -u user:pass puts credentials in history and the process list."
+      ],
+      "explanation": "curl is the Swiss Army knife for HTTP. -I sends HEAD request (headers only). -o saves to file. -s enables silent mode. -X sets the HTTP method. Essential for API testing, downloading files, and debugging web requests.",
+      "flags": [
+        {
+          "flag": "-I",
+          "long": "--head",
+          "desc": "Fetch HTTP headers only (HEAD request)"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Write output to a file"
+        },
+        {
+          "flag": "-L",
+          "long": "--location",
+          "desc": "Follow HTTP redirects"
+        },
+        {
+          "flag": "-s",
+          "long": "--silent",
+          "desc": "Silent mode — no progress bar"
+        },
+        {
+          "flag": "-X",
+          "long": "--request",
+          "desc": "Specify HTTP method (GET, POST, PUT, DELETE)"
+        },
+        {
+          "flag": "-H",
+          "long": "--header",
+          "desc": "Add a custom HTTP header"
+        },
+        {
+          "flag": "-d",
+          "long": "--data",
+          "desc": "Send POST body data"
+        },
+        {
+          "flag": "-k",
+          "long": "--insecure",
+          "desc": "Skip SSL certificate verification (testing only)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "curl -I https://example.com",
+          "desc": "Check HTTP response headers and status code"
+        },
+        {
+          "cmd": "curl -X POST -H 'Content-Type: application/json' -d '{\"key\":\"val\"}' https://api.example.com/data",
+          "desc": "Send JSON POST to a REST API endpoint"
+        },
+        {
+          "cmd": "curl -fsSL https://get.docker.com | bash",
+          "desc": "Download and execute Docker install script"
+        }
+      ],
+      "suggestions": [
+        "wget",
+        "httpie",
+        "nc",
+        "jq",
+        "openssl"
+      ],
+      "pro_tip": "Check HTTP status codes in scripts: `curl -w '\\n%{http_code}' -s -o /dev/null https://url` — no download, just the status."
+    },
+    {
+      "name": "ss",
+      "summary": "Investigate socket statistics — the modern, faster replacement for netstat.",
+      "risk": "low",
+      "risk_reason": "Read-only network socket inspection.",
+      "explanation": "ss queries the kernel directly for socket information — faster and more accurate than netstat. -tulnp is the canonical combination: TCP, UDP, Listening, Numeric, with Process info. Use to verify which services listen on which ports.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--tcp",
+          "desc": "Show TCP sockets"
+        },
+        {
+          "flag": "-u",
+          "long": "--udp",
+          "desc": "Show UDP sockets"
+        },
+        {
+          "flag": "-l",
+          "long": "--listening",
+          "desc": "Show only listening sockets"
+        },
+        {
+          "flag": "-n",
+          "long": "--numeric",
+          "desc": "Don't resolve service names or hostnames"
+        },
+        {
+          "flag": "-p",
+          "long": "--processes",
+          "desc": "Show the process using each socket"
+        },
+        {
+          "flag": "-4",
+          "desc": "Show only IPv4 sockets"
+        },
+        {
+          "flag": "-6",
+          "desc": "Show only IPv6 sockets"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ss -tulnp",
+          "desc": "Show all listening TCP/UDP ports with process names — standard network debug command"
+        },
+        {
+          "cmd": "ss -tnp state established",
+          "desc": "Show established TCP connections with processes"
+        },
+        {
+          "cmd": "ss -tulnp | grep :443",
+          "desc": "Check which process is listening on HTTPS port 443"
+        }
+      ],
+      "suggestions": [
+        "netstat",
+        "lsof",
+        "nmap",
+        "curl",
+        "nc"
+      ],
+      "pro_tip": "Use `ss -s` for a quick socket count summary by state — great for spotting connection storms or TIME_WAIT buildup."
+    },
+    {
+      "name": "ping",
+      "summary": "Test network connectivity and measure round-trip latency.",
+      "risk": "low",
+      "risk_reason": "ICMP traffic may be blocked by firewalls.",
+      "cautions": [
+        "`ping -f` (flood) needs root and can overload targets or links; only use on your own networks."
+      ],
+      "explanation": "ping sends ICMP echo requests to test if a host is reachable and measure round-trip time. On Linux, ping runs indefinitely by default (unlike macOS) — use -c to limit packets. The -i flag controls interval, -s sets packet size for bandwidth testing.",
+      "flags": [
+        {
+          "flag": "-c",
+          "long": "--count",
+          "desc": "Number of packets to send"
+        },
+        {
+          "flag": "-i",
+          "long": "--interval",
+          "desc": "Seconds between packets"
+        },
+        {
+          "flag": "-t",
+          "long": "--ttl",
+          "desc": "Set Time To Live"
+        },
+        {
+          "flag": "-s",
+          "long": "--size",
+          "desc": "Packet size in bytes"
+        },
+        {
+          "flag": "-W",
+          "long": "--timeout",
+          "desc": "Seconds to wait for reply"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ping -c 4 8.8.8.8",
+          "desc": "Send 4 packets to Google DNS"
+        },
+        {
+          "cmd": "ping -c 100 -i 0.2 10.0.0.1 | tail -2",
+          "desc": "Fast flood test and show statistics only"
+        },
+        {
+          "cmd": "ping -c 1 -W 2 host && echo UP || echo DOWN",
+          "desc": "Binary up/down check in scripts"
+        }
+      ],
+      "suggestions": [
+        "traceroute",
+        "dig",
+        "nc"
+      ],
+      "pro_tip": "Use `ping -c 100 -q host` for a quick latency baseline — the -q flag shows only statistics. Compare min/avg/max/mdev to identify jitter vs consistent latency issues."
+    },
+    {
+      "name": "dig",
+      "summary": "Query DNS servers for records and debug DNS resolution.",
+      "risk": "low",
+      "risk_reason": "Read-only DNS lookup.",
+      "cautions": [
+        "Querying external DNS servers from production can leak internal hostnames; use `+short` and the right resolver (@server)."
+      ],
+      "explanation": "dig (domain information groper) queries DNS servers and displays detailed responses including record type, TTL, and which server responded. The go-to tool for DNS debugging — far more informative than nslookup.",
+      "flags": [
+        {
+          "flag": "+short",
+          "desc": "Print only the answer, no headers"
+        },
+        {
+          "flag": "+noall +answer",
+          "desc": "Show only the answer section"
+        },
+        {
+          "flag": "@server",
+          "desc": "Query a specific DNS server"
+        },
+        {
+          "flag": "-x",
+          "desc": "Reverse DNS lookup"
+        },
+        {
+          "flag": "-t",
+          "desc": "Specify record type (A, AAAA, MX, TXT, NS, CNAME, SOA)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dig eknathalabs.com A +short",
+          "desc": "Quick A record lookup"
+        },
+        {
+          "cmd": "dig @8.8.8.8 eknathalabs.com TXT",
+          "desc": "Query Google DNS for TXT records"
+        },
+        {
+          "cmd": "dig -x 1.1.1.1 +short",
+          "desc": "Reverse DNS: IP to hostname"
+        },
+        {
+          "cmd": "dig eknathalabs.com MX +noall +answer",
+          "desc": "Show MX records cleanly"
+        },
+        {
+          "cmd": "dig +trace eknathalabs.com",
+          "desc": "Full DNS resolution chain from root"
+        }
+      ],
+      "suggestions": [
+        "host",
+        "nslookup",
+        "ping"
+      ],
+      "pro_tip": "Use `dig +trace` to follow the full resolution path from root servers — reveals exactly which DNS server is serving stale or incorrect records during a propagation issue."
+    },
+    {
+      "name": "iptables",
+      "summary": "Configure the Linux kernel firewall — manage network packet filtering rules.",
+      "risk": "high",
+      "risk_reason": "Wrong rules can lock you out of SSH or drop critical traffic permanently.",
+      "cautions": [
+        "Rules apply immediately; a wrong rule can drop your own SSH session.",
+        "Allow ESTABLISHED,RELATED and SSH BEFORE changing default policies.",
+        "Rules are not persistent — save them, and schedule a rollback before big changes."
+      ],
+      "explanation": "iptables manages netfilter rules through chains. INPUT/OUTPUT/FORWARD handle incoming, outgoing, and routed traffic. Rules are evaluated top-to-bottom; first match wins. Save rules with iptables-save before making changes.",
+      "flags": [
+        {
+          "flag": "-A",
+          "long": "--append",
+          "desc": "Append a rule to a chain"
+        },
+        {
+          "flag": "-I",
+          "long": "--insert",
+          "desc": "Insert a rule at the top (highest priority)"
+        },
+        {
+          "flag": "-D",
+          "long": "--delete",
+          "desc": "Delete a specific rule"
+        },
+        {
+          "flag": "-L",
+          "long": "--list",
+          "desc": "List all rules in a chain"
+        },
+        {
+          "flag": "-n",
+          "long": "--numeric",
+          "desc": "Show numeric IPs without hostname resolution"
+        },
+        {
+          "flag": "-F",
+          "long": "--flush",
+          "desc": "Delete all rules from a chain"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iptables -L -nv",
+          "desc": "List all firewall rules with packet/byte counts numerically"
+        },
+        {
+          "cmd": "iptables -A INPUT -p tcp --dport 22 -s 10.0.0.0/8 -j ACCEPT",
+          "desc": "Allow SSH only from private 10.x.x.x range"
+        },
+        {
+          "cmd": "iptables-save > /etc/iptables/rules.v4",
+          "desc": "Save current rules to persist across reboots"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "iptables-save > /root/iptables.backup",
+          "why": "Back up the current rules."
+        },
+        {
+          "cmd": "echo 'iptables-restore < /root/iptables.backup' | at now + 5 minutes",
+          "why": "Auto-rollback if you lock yourself out (cancel with atrm once verified)."
+        }
+      ],
+      "suggestions": [
+        "ufw",
+        "nftables",
+        "firewalld",
+        "ss",
+        "fail2ban"
+      ],
+      "pro_tip": "Before adding restrictive rules on a remote server: `echo 'iptables -F' | at now + 5 minutes` — schedules a flush so you can't permanently lock yourself out.",
+      "low_when": [
+        "\\s-(L|S|C)\\b|--list|--list-rules"
+      ],
+      "low_unless": [
+        "\\s-(F|X|D|A|I|R|P|Z)\\b|--flush|--delete|--append|--insert|--policy"
+      ]
+    },
+    {
+      "name": "wget",
+      "summary": "Download files from the web non-interactively.",
+      "risk": "low",
+      "risk_reason": "Downloads files; piping output to shell can execute arbitrary code.",
+      "cautions": [
+        "`wget -O- … | sh` runs unseen remote code.",
+        "--no-check-certificate disables TLS verification; downloads overwrite existing files with the same name unless -nc is used."
+      ],
+      "explanation": "wget specializes in downloading and supports recursive website mirroring. Unlike curl it saves to a file by default. -c resumes interrupted downloads. -q suppresses output for scripts.",
+      "flags": [
+        {
+          "flag": "-O",
+          "desc": "Save to a specific filename"
+        },
+        {
+          "flag": "-c",
+          "long": "--continue",
+          "desc": "Resume a partially downloaded file"
+        },
+        {
+          "flag": "-q",
+          "long": "--quiet",
+          "desc": "Silent mode"
+        },
+        {
+          "flag": "-r",
+          "long": "--recursive",
+          "desc": "Download recursively (website mirroring)"
+        },
+        {
+          "flag": "-P",
+          "long": "--directory-prefix",
+          "desc": "Set download directory"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "wget -c https://releases.ubuntu.com/22.04/ubuntu-22.04.4-live-server-amd64.iso",
+          "desc": "Download Ubuntu ISO with resume support"
+        },
+        {
+          "cmd": "wget -q -O - https://example.com/install.sh | bash",
+          "desc": "Download and pipe install script to bash silently"
+        },
+        {
+          "cmd": "wget --spider https://example.com/file",
+          "desc": "Check if URL exists without downloading"
+        }
+      ],
+      "suggestions": [
+        "curl",
+        "aria2c",
+        "axel"
+      ],
+      "pro_tip": "Use `wget --spider` to check if a URL exists without downloading — perfect for health check scripts."
+    },
+    {
+      "name": "netstat",
+      "summary": "Display network connections, routing tables, and interface statistics.",
+      "risk": "low",
+      "risk_reason": "Read-only network inspection.",
+      "explanation": "netstat is the classic network diagnostics tool. On modern Linux systems `ss` is preferred — faster and more accurate. -tulnp shows all listening services with process info.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "TCP connections"
+        },
+        {
+          "flag": "-u",
+          "desc": "UDP connections"
+        },
+        {
+          "flag": "-l",
+          "desc": "Listening sockets only"
+        },
+        {
+          "flag": "-n",
+          "desc": "Numeric addresses (no DNS)"
+        },
+        {
+          "flag": "-p",
+          "desc": "Show process name and PID"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "netstat -tulnp",
+          "desc": "Show all listening TCP/UDP services with PIDs"
+        },
+        {
+          "cmd": "netstat -rn",
+          "desc": "Display kernel routing table numerically"
+        }
+      ],
+      "suggestions": [
+        "ss",
+        "ip route",
+        "lsof",
+        "nmap"
+      ],
+      "pro_tip": "`ss` is the modern replacement for `netstat`. Add `alias netstat='ss'` to your ~/.bashrc to build the habit."
+    },
+    {
+      "name": "nmap",
+      "summary": "Network scanner — discover hosts and probe open ports on a network.",
+      "risk": "medium",
+      "risk_reason": "Port scanning triggers IDS/IPS alerts and is illegal on networks you don't own.",
+      "cautions": [
+        "Scan only systems you own or are authorised in writing to test.",
+        "Aggressive timing/scripts (-T4, -A, --script) can crash fragile devices or trigger IDS alerts.",
+        "Scanning from a cloud VM can violate the provider’s acceptable-use policy."
+      ],
+      "explanation": "nmap probes hosts and ports to map network topology. Always obtain explicit written permission before scanning any network you don't own or operate.",
+      "flags": [
+        {
+          "flag": "-sV",
+          "desc": "Detect service versions on open ports"
+        },
+        {
+          "flag": "-O",
+          "desc": "Enable OS detection"
+        },
+        {
+          "flag": "-p",
+          "desc": "Ports to scan (-p 22,80,443 or -p 1-1024)"
+        },
+        {
+          "flag": "-sn",
+          "desc": "Ping scan only — discover live hosts"
+        },
+        {
+          "flag": "--open",
+          "desc": "Show only open ports"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nmap -sn 10.0.0.0/24",
+          "desc": "Discover live hosts in a /24 subnet"
+        },
+        {
+          "cmd": "nmap -sV -p 22,80,443 10.0.1.5",
+          "desc": "Check specific ports and detect service versions"
+        }
+      ],
+      "suggestions": [
+        "masscan",
+        "netcat",
+        "ss",
+        "dig",
+        "curl"
+      ],
+      "pro_tip": "Use `-T4` for faster scanning on local networks. Use `-T2` on slow WAN to avoid triggering rate limits.",
+      "low_when": [
+        "\\s-sL\\b|--iflist"
+      ]
+    },
+    {
+      "name": "tcpdump",
+      "summary": "Capture and analyze raw network packets on a network interface.",
+      "risk": "low",
+      "risk_reason": "Captures all traffic including plaintext credentials and sensitive data.",
+      "cautions": [
+        "Captures can contain passwords, tokens and personal data — capture the minimum, store files securely, delete them afterwards.",
+        "On busy interfaces an unfiltered capture can fill the disk; use filters, -c and -s."
+      ],
+      "explanation": "tcpdump captures packets matching Berkeley Packet Filter (BPF) expressions. Requires root. -i specifies the interface. Write to .pcap files for analysis in Wireshark.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Network interface to capture on (use 'any' for all)"
+        },
+        {
+          "flag": "-n",
+          "desc": "Don't resolve hostnames or port names"
+        },
+        {
+          "flag": "-w",
+          "desc": "Write packets to a .pcap file"
+        },
+        {
+          "flag": "-c",
+          "desc": "Exit after capturing N packets"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tcpdump -i eth0 -n port 80 -w /tmp/http.pcap",
+          "desc": "Capture HTTP traffic to file for Wireshark analysis"
+        },
+        {
+          "cmd": "tcpdump -i any -n 'host 10.0.1.5 and port 5432'",
+          "desc": "Capture PostgreSQL traffic to/from a specific host"
+        },
+        {
+          "cmd": "tcpdump -i eth0 -n -c 100 port 53",
+          "desc": "Capture 100 DNS queries and exit"
+        }
+      ],
+      "suggestions": [
+        "wireshark",
+        "nmap",
+        "ss",
+        "iptables",
+        "tshark"
+      ],
+      "pro_tip": "Combine with -G and -W to auto-rotate capture files: `-G 60 -W 10` keeps 10 files of 60 seconds each."
+    },
+    {
+      "name": "ip",
+      "summary": "Configure and display network interfaces, routes, and addresses.",
+      "risk": "high",
+      "risk_reason": "Can disconnect network interfaces or alter routing on live systems.",
+      "cautions": [
+        "Taking down an interface or deleting the default route over SSH ends your session.",
+        "Changes are not persistent — they vanish on reboot (use NetworkManager/netplan/systemd-networkd to persist).",
+        "Verify first with `ip -br a` and `ip route get <ip>`."
+      ],
+      "explanation": "ip is the modern replacement for ifconfig and route. It manages network interfaces, IP addresses, routes, ARP tables, and network namespaces. Changes made with ip are temporary (lost on reboot) unless written to network configuration files.",
+      "flags": [
+        {
+          "flag": "-br",
+          "long": "--brief",
+          "desc": "Brief one-line output per object"
+        },
+        {
+          "flag": "-j",
+          "long": "--json",
+          "desc": "Output in JSON format"
+        },
+        {
+          "flag": "-4",
+          "desc": "Show IPv4 only"
+        },
+        {
+          "flag": "-6",
+          "desc": "Show IPv6 only"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ip addr show",
+          "desc": "Show all interface addresses"
+        },
+        {
+          "cmd": "ip -br addr",
+          "desc": "Brief interface summary (cleaner output)"
+        },
+        {
+          "cmd": "ip route show",
+          "desc": "Show routing table"
+        },
+        {
+          "cmd": "ip route get 8.8.8.8",
+          "desc": "Show which interface/gateway reaches a destination"
+        },
+        {
+          "cmd": "ip link set eth0 up",
+          "desc": "Bring interface up"
+        },
+        {
+          "cmd": "ip addr add 192.168.1.100/24 dev eth0",
+          "desc": "Add an IP address to interface"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "(sleep 120 && ip link set <if> up) &",
+          "why": "Safety net: re-enable the interface automatically."
+        },
+        {
+          "cmd": "ip route get <destination>",
+          "why": "See which route would be used before modifying routes."
+        }
+      ],
+      "suggestions": [
+        "ss",
+        "ping",
+        "netstat"
+      ],
+      "pro_tip": "Use `ip route get <destination>` to instantly see which gateway and interface will be used to reach any IP — faster and more definitive than tracing routing tables manually.",
+      "low_when": [
+        "\\b(-br|show|addr show|a s|route show|link show|neigh show|route get|-s link)\\b|^\\s*(-[a-z]+\\s+)*(a|addr|link|route|r|neigh)\\s*$"
+      ],
+      "low_unless": [
+        "\\b(add|del|delete|flush|set|replace|change|down)\\b"
+      ]
+    },
+    {
+      "name": "nc",
+      "summary": "Netcat: TCP/UDP networking Swiss Army knife for testing and transfer.",
+      "risk": "medium",
+      "risk_reason": "Can open ports or create reverse shells if misused.",
+      "cautions": [
+        "`nc -l` opens a port with no authentication or encryption.",
+        "-e / -c can provide remote shells — only in authorised tests.",
+        "Netcat variants (OpenBSD, ncat, traditional) have different flags."
+      ],
+      "explanation": "nc (netcat) creates raw TCP/UDP connections for port testing, data transfer, and service simulation. Essential for testing if a port is open without a full client, checking firewall rules, or transferring files between systems.",
+      "flags": [
+        {
+          "flag": "-v",
+          "long": "--verbose",
+          "desc": "Verbose output"
+        },
+        {
+          "flag": "-z",
+          "long": "--zero-io",
+          "desc": "Zero-I/O mode: scan without sending data"
+        },
+        {
+          "flag": "-w",
+          "long": "--timeout",
+          "desc": "Connection timeout in seconds"
+        },
+        {
+          "flag": "-l",
+          "long": "--listen",
+          "desc": "Listen mode: act as server"
+        },
+        {
+          "flag": "-u",
+          "long": "--udp",
+          "desc": "Use UDP instead of TCP"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nc -zv 10.0.0.1 443",
+          "desc": "Test if port 443 is open on host"
+        },
+        {
+          "cmd": "nc -zv 10.0.0.1 8080-8090",
+          "desc": "Scan port range"
+        },
+        {
+          "cmd": "nc -l 9999 | tar xz -C /target",
+          "desc": "Receive and extract tar stream"
+        },
+        {
+          "cmd": "tar cz /source | nc 10.0.0.2 9999",
+          "desc": "Send directory as tar stream"
+        },
+        {
+          "cmd": "echo 'GET / HTTP/1.0\r\n' | nc google.com 80",
+          "desc": "Raw HTTP request"
+        }
+      ],
+      "suggestions": [
+        "ss",
+        "curl",
+        "ping"
+      ],
+      "pro_tip": "Use `nc -zv host port 2>&1 | grep -i 'succeeded\\|refused'` in health-check scripts — it tests TCP reachability without needing the actual application client."
+    },
+    {
+      "name": "traceroute",
+      "summary": "Trace the network path to a host, hop by hop.",
+      "risk": "low",
+      "risk_reason": "ICMP/UDP probes may be logged by network devices.",
+      "cautions": [
+        "Probes many hosts along the path; some networks treat it as scanning."
+      ],
+      "explanation": "traceroute sends packets with incrementing TTL values to discover each router hop between source and destination. Reveals routing paths, identifies where packets are dropped, and measures latency at each hop — essential for network troubleshooting.",
+      "flags": [
+        {
+          "flag": "-n",
+          "long": "--numeric",
+          "desc": "Don't resolve hostnames (faster)"
+        },
+        {
+          "flag": "-T",
+          "long": "--tcp",
+          "desc": "Use TCP SYN probes (bypasses ICMP blocks)"
+        },
+        {
+          "flag": "-p",
+          "long": "--port",
+          "desc": "Destination port for TCP/UDP probes"
+        },
+        {
+          "flag": "-m",
+          "long": "--max-hops",
+          "desc": "Maximum number of hops"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "traceroute 8.8.8.8",
+          "desc": "Trace route to Google DNS"
+        },
+        {
+          "cmd": "traceroute -n google.com",
+          "desc": "Trace without DNS resolution (faster output)"
+        },
+        {
+          "cmd": "traceroute -T -p 443 api.service.com",
+          "desc": "TCP trace to HTTPS port (works through firewalls)"
+        }
+      ],
+      "suggestions": [
+        "ping",
+        "dig",
+        "ip"
+      ],
+      "pro_tip": "Use `traceroute -T -p 443` when ICMP is blocked — TCP SYN probes on the target port actually follow the production traffic path and bypass ICMP-blocking firewalls."
+    },
+    {
+      "name": "ethtool",
+      "summary": "Query and control network driver and hardware settings.",
+      "risk": "medium",
+      "risk_reason": "Changing settings on live NICs can cause network disruption.",
+      "cautions": [
+        "Changing speed/duplex/offload or ring settings on a live NIC can drop connectivity.",
+        "Settings are not persistent; apply via NetworkManager/udev once verified.",
+        "Never force speed/duplex on only one side of a link."
+      ],
+      "explanation": "ethtool queries and configures Ethernet device settings: link speed, duplex, offload features, driver info, and statistics. Essential for NIC performance tuning, diagnosing link issues, and verifying network card capabilities.",
+      "flags": [
+        {
+          "flag": "-i",
+          "long": "--driver",
+          "desc": "Show driver info for a device"
+        },
+        {
+          "flag": "-S",
+          "long": "--statistics",
+          "desc": "Show NIC statistics"
+        },
+        {
+          "flag": "-k",
+          "long": "--show-features",
+          "desc": "Show offload features"
+        },
+        {
+          "flag": "-K",
+          "long": "--features",
+          "desc": "Enable/disable offload features"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ethtool eth0",
+          "desc": "Show link speed, duplex, and auto-negotiation status"
+        },
+        {
+          "cmd": "ethtool -i eth0",
+          "desc": "Show driver and firmware version"
+        },
+        {
+          "cmd": "ethtool -S eth0 | grep -i drop",
+          "desc": "Check for dropped packets at NIC level"
+        },
+        {
+          "cmd": "ethtool -k eth0 | grep tx-checksumming",
+          "desc": "Check if TX checksum offload is enabled"
+        }
+      ],
+      "suggestions": [
+        "ip",
+        "ss",
+        "dmesg"
+      ],
+      "pro_tip": "Run `ethtool -S eth0 | grep -i 'drop\\|error'` when diagnosing packet loss — NIC-level drops are invisible to application-level monitoring and often missed."
+    },
+    {
+      "name": "firewalld",
+      "summary": "Dynamic firewall daemon managing zones, services, and ports.",
+      "risk": "high",
+      "risk_reason": "Incorrect rules can lock out SSH or expose services.",
+      "cautions": [
+        "Without --permanent a change vanishes on reload; with --permanent it only applies after --reload — a mistake can surface later.",
+        "--panic-on drops all traffic including your SSH session.",
+        "Zones decide which rules apply — check the interface’s zone (--get-active-zones)."
+      ],
+      "explanation": "firewalld is the default firewall management tool on RHEL/CentOS/Fedora and their derivatives. It organizes rules into zones (public, trusted, internal, dmz) and uses services/ports instead of raw iptables chains. Changes with --permanent persist across reboots; without it, changes are runtime-only.",
+      "flags": [
+        {
+          "flag": "--zone",
+          "desc": "Target zone (default: active zone)"
+        },
+        {
+          "flag": "--permanent",
+          "desc": "Make change persistent (survives reboot)"
+        },
+        {
+          "flag": "--runtime-to-permanent",
+          "desc": "Save all runtime rules to permanent"
+        },
+        {
+          "flag": "--reload",
+          "desc": "Reload permanent rules into runtime"
+        },
+        {
+          "flag": "--list-all",
+          "desc": "List all settings for a zone"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "firewall-cmd --state",
+          "desc": "Check if firewalld is running"
+        },
+        {
+          "cmd": "firewall-cmd --list-all",
+          "desc": "Show all rules in active zone"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --add-service=https && firewall-cmd --reload",
+          "desc": "Open HTTPS permanently"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --add-port=8080/tcp && firewall-cmd --reload",
+          "desc": "Open custom port 8080/tcp permanently"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --remove-service=http && firewall-cmd --reload",
+          "desc": "Block HTTP permanently"
+        },
+        {
+          "cmd": "firewall-cmd --get-active-zones",
+          "desc": "Show active zones and their interfaces"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --zone=trusted --add-source=10.0.0.0/8",
+          "desc": "Trust entire 10.x.x.x network"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "firewall-cmd --list-all",
+          "why": "Review the active configuration first."
+        },
+        {
+          "cmd": "firewall-cmd --runtime-to-permanent",
+          "why": "Test at runtime, then persist."
+        }
+      ],
+      "suggestions": [
+        "iptables",
+        "ss",
+        "nmap"
+      ],
+      "pro_tip": "Always pair `--permanent` with `--reload` in a single operation — setting permanent without reload leaves runtime unchanged, leading to a 'why didn't my rule apply?' confusion.",
+      "low_when": [
+        "--list|--get|--query|--state"
+      ],
+      "low_unless": [
+        "--add|--remove|--reload|--set|--panic|--permanent"
+      ]
+    },
+    {
+      "name": "firewall-cmd",
+      "summary": "CLI tool to interact with the firewalld service.",
+      "risk": "high",
+      "risk_reason": "Rule changes affect live network access.",
+      "cautions": [
+        "Test rules at runtime first; persist with --runtime-to-permanent once verified.",
+        "Never remove the ssh service from the active zone on a remote host.",
+        "Rich rules are evaluated in order — a broad reject can shadow later accepts."
+      ],
+      "explanation": "firewall-cmd is the command-line client for firewalld. It supports rich rules for complex filtering (source IP + port + protocol), port forwarding, masquerading, and IP sets. Rich rules give you iptables-level power with firewalld's zone management.",
+      "flags": [
+        {
+          "flag": "--add-rich-rule",
+          "desc": "Add a rich rule with complex matching"
+        },
+        {
+          "flag": "--add-masquerade",
+          "desc": "Enable IP masquerading (NAT)"
+        },
+        {
+          "flag": "--add-forward-port",
+          "desc": "Add port forwarding rule"
+        },
+        {
+          "flag": "--query-service",
+          "desc": "Check if a service is enabled"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "firewall-cmd --permanent --add-rich-rule='rule family=ipv4 source address=192.168.1.0/24 port port=22 protocol=tcp accept'",
+          "desc": "Allow SSH only from specific subnet"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --add-rich-rule='rule family=ipv4 source address=10.0.0.5 reject'",
+          "desc": "Block a specific IP"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080",
+          "desc": "Forward port 80 to 8080"
+        },
+        {
+          "cmd": "firewall-cmd --permanent --zone=public --add-masquerade",
+          "desc": "Enable NAT masquerading"
+        },
+        {
+          "cmd": "firewall-cmd --query-service=ssh",
+          "desc": "Check if SSH service is allowed"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "firewall-cmd --list-all",
+          "why": "See the current zone configuration."
+        }
+      ],
+      "suggestions": [
+        "firewalld",
+        "iptables",
+        "ss"
+      ],
+      "pro_tip": "Use rich rules for IP-based allow/deny instead of iptables — they integrate with zones and persist cleanly. Test with `--timeout=30` to auto-revert if you accidentally lock yourself out.",
+      "low_when": [
+        "--list|--get|--query|--state|--info"
+      ],
+      "low_unless": [
+        "--add|--remove|--reload|--set|--panic|--runtime-to|--permanent"
+      ]
+    },
+    {
+      "name": "ufw",
+      "summary": "Uncomplicated Firewall — simple iptables frontend for Ubuntu/Debian.",
+      "risk": "high",
+      "risk_reason": "Enabling ufw without allowing SSH will lock out remote access.",
+      "cautions": [
+        "Run `ufw allow OpenSSH` (or your SSH port) BEFORE `ufw enable`.",
+        "`ufw reset` deletes all rules.",
+        "Docker-published ports bypass ufw unless configured."
+      ],
+      "explanation": "ufw (Uncomplicated Firewall) provides a simpler interface to iptables, widely used on Ubuntu and Debian systems. Rules are written in plain English (allow/deny + port/service). Always allow SSH before enabling ufw to avoid self-lockout.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ufw status verbose",
+          "desc": "Show all rules and status"
+        },
+        {
+          "cmd": "ufw allow ssh",
+          "desc": "Allow SSH (do this BEFORE enabling ufw)"
+        },
+        {
+          "cmd": "ufw allow 443/tcp",
+          "desc": "Allow HTTPS"
+        },
+        {
+          "cmd": "ufw deny from 203.0.113.5",
+          "desc": "Block a specific IP"
+        },
+        {
+          "cmd": "ufw enable",
+          "desc": "Enable firewall (apply all rules)"
+        },
+        {
+          "cmd": "ufw delete allow 80/tcp",
+          "desc": "Remove a specific rule"
+        },
+        {
+          "cmd": "ufw reset",
+          "desc": "Reset all rules to default (disables ufw)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ufw allow OpenSSH && ufw status verbose",
+          "why": "Allow SSH first, then verify."
+        }
+      ],
+      "suggestions": [
+        "firewalld",
+        "iptables",
+        "ss"
+      ],
+      "pro_tip": "On fresh Ubuntu servers, run `ufw allow ssh && ufw allow 443/tcp && ufw enable` in a single SSH session — if SSH fails, the session stays open and you can fix it.",
+      "low_when": [
+        "\\bstatus\\b|\\bshow\\b"
+      ],
+      "low_unless": [
+        "allow|deny|reject|delete|enable|disable|reset|limit|insert"
+      ]
+    },
+    {
+      "name": "nftables",
+      "summary": "Modern Linux packet filtering framework replacing iptables.",
+      "risk": "high",
+      "risk_reason": "Incorrect rules can block all traffic or expose services.",
+      "cautions": [
+        "`nft flush ruleset` wipes every rule, including NAT used by containers/Kubernetes.",
+        "Load rules atomically from a file and test with `nft -c -f file`.",
+        "Keep a backup: nft list ruleset > /root/nft.backup."
+      ],
+      "explanation": "nftables is the successor to iptables/ip6tables, using a unified syntax for IPv4, IPv6, ARP, and bridge filtering. It's the default on Debian 10+, RHEL 8+. Rules are organized into tables → chains → rules. The nft command manages everything.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nft list ruleset",
+          "desc": "Show all current nftables rules"
+        },
+        {
+          "cmd": "nft add table inet filter",
+          "desc": "Create a table for IPv4+IPv6 filtering"
+        },
+        {
+          "cmd": "nft add chain inet filter input '{ type filter hook input priority 0; policy drop; }'",
+          "desc": "Create input chain with default drop policy"
+        },
+        {
+          "cmd": "nft add rule inet filter input tcp dport 22 accept",
+          "desc": "Allow SSH"
+        },
+        {
+          "cmd": "nft -f /etc/nftables.conf",
+          "desc": "Load rules from config file"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "nft -c -f /etc/nftables.conf",
+          "why": "Check the syntax without applying."
+        },
+        {
+          "cmd": "nft list ruleset > /root/nft.backup",
+          "why": "Back up first."
+        }
+      ],
+      "suggestions": [
+        "iptables",
+        "firewalld",
+        "ufw"
+      ],
+      "pro_tip": "Use `nft list ruleset > /etc/nftables.conf` to export and save current rules — then `nft -f /etc/nftables.conf` on boot to restore them. Much cleaner than iptables-save.",
+      "low_when": [
+        "\\blist\\b|\\bmonitor\\b|\\s-c\\b"
+      ],
+      "low_unless": [
+        "flush|delete|add|insert|replace|-f\\b"
+      ]
+    },
+    {
+      "name": "ss advanced",
+      "kind": "topic",
+      "parent": "ss",
+      "summary": "Advanced socket statistics: filter by state, process, and address.",
+      "risk": "low",
+      "risk_reason": "Read-only network state inspection.",
+      "explanation": "ss (socket statistics) is the modern replacement for netstat. Beyond basic port listing, it supports powerful filters by TCP state, destination, source, and process. The state filter lets you count and analyze connections in specific TCP states — critical for diagnosing connection exhaustion.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--tcp",
+          "desc": "TCP sockets only"
+        },
+        {
+          "flag": "-u",
+          "long": "--udp",
+          "desc": "UDP sockets only"
+        },
+        {
+          "flag": "-l",
+          "long": "--listening",
+          "desc": "Listening sockets only"
+        },
+        {
+          "flag": "-p",
+          "long": "--processes",
+          "desc": "Show process using the socket"
+        },
+        {
+          "flag": "-n",
+          "long": "--numeric",
+          "desc": "Don't resolve hostnames"
+        },
+        {
+          "flag": "-s",
+          "long": "--summary",
+          "desc": "Summary statistics"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ss -s",
+          "desc": "Socket summary: total TCP, UDP, ESTABLISHED counts"
+        },
+        {
+          "cmd": "ss -tnp state established",
+          "desc": "All established TCP connections with process names"
+        },
+        {
+          "cmd": "ss -tnp state time-wait | wc -l",
+          "desc": "Count TIME_WAIT connections (connection exhaustion indicator)"
+        },
+        {
+          "cmd": "ss -tnp dst :443",
+          "desc": "All connections to HTTPS port"
+        },
+        {
+          "cmd": "ss -lnp | grep :8080",
+          "desc": "Check what's listening on port 8080"
+        },
+        {
+          "cmd": "ss -tnp state established '( dport = :5432 )'",
+          "desc": "Active connections to PostgreSQL"
+        }
+      ],
+      "suggestions": [
+        "netstat",
+        "lsof",
+        "ip"
+      ],
+      "pro_tip": "Use `ss -s` for an instant health snapshot — if TIME_WAIT count is very high (thousands), your app isn't reusing connections. Enable TCP keep-alive or connection pooling."
+    },
+    {
+      "name": "tcpdump advanced",
+      "kind": "topic",
+      "parent": "tcpdump",
+      "summary": "Advanced tcpdump: capture, filter, and analyze network traffic.",
+      "risk": "low",
+      "risk_reason": "Captures all traffic visible on interface including plaintext credentials.",
+      "explanation": "tcpdump captures network packets and displays or saves them for analysis. Beyond basic capture, it supports BPF filter expressions to target specific hosts, ports, or protocols. Captured files in pcap format can be analyzed in Wireshark.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Interface to capture on"
+        },
+        {
+          "flag": "-w",
+          "desc": "Write to pcap file"
+        },
+        {
+          "flag": "-r",
+          "desc": "Read from pcap file"
+        },
+        {
+          "flag": "-n",
+          "desc": "Don't resolve hostnames"
+        },
+        {
+          "flag": "-v/-vv/-vvv",
+          "desc": "Verbosity levels"
+        },
+        {
+          "flag": "-c",
+          "desc": "Capture N packets then stop"
+        },
+        {
+          "flag": "-s",
+          "desc": "Snap length (0 = full packet)"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tcpdump -i eth0 -w /tmp/capture.pcap",
+          "desc": "Capture all traffic to file"
+        },
+        {
+          "cmd": "tcpdump -i eth0 host 10.0.0.1 and port 443",
+          "desc": "Capture HTTPS traffic to/from specific host"
+        },
+        {
+          "cmd": "tcpdump -i any port 53 -n",
+          "desc": "Monitor all DNS queries"
+        },
+        {
+          "cmd": "tcpdump -r capture.pcap -n | grep HTTP",
+          "desc": "Analyze saved pcap for HTTP"
+        },
+        {
+          "cmd": "tcpdump -i eth0 'tcp[tcpflags] & tcp-syn != 0'",
+          "desc": "Capture only SYN packets (detect port scans)"
+        }
+      ],
+      "suggestions": [
+        "ss advanced",
+        "nc",
+        "nmap"
+      ],
+      "pro_tip": "Use `tcpdump -i any -w - | ssh user@analyst-host 'wireshark -k -i -'` to stream live capture directly to a remote Wireshark — analyze production traffic without storing pcap files locally."
+    },
+    {
+      "name": "netstat advanced",
+      "kind": "topic",
+      "parent": "netstat",
+      "summary": "Network statistics: connections, routing, interfaces (legacy but still widely installed).",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "netstat shows network connections, routing tables, interface statistics, and more. While ss is faster and more modern, netstat is more widely installed and familiar. -tlnp is the canonical one-liner for 'what's listening on what port' on servers without ss.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "TCP connections"
+        },
+        {
+          "flag": "-u",
+          "desc": "UDP connections"
+        },
+        {
+          "flag": "-l",
+          "desc": "Listening sockets only"
+        },
+        {
+          "flag": "-n",
+          "desc": "Numeric (don't resolve hostnames)"
+        },
+        {
+          "flag": "-p",
+          "desc": "Show PID/program name"
+        },
+        {
+          "flag": "-r",
+          "desc": "Display routing table"
+        },
+        {
+          "flag": "-i",
+          "desc": "Network interface statistics"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "netstat -tlnp",
+          "desc": "All listening TCP ports with process names"
+        },
+        {
+          "cmd": "netstat -an | grep :80 | wc -l",
+          "desc": "Count connections to port 80"
+        },
+        {
+          "cmd": "netstat -i",
+          "desc": "Interface statistics (packets, errors, drops)"
+        },
+        {
+          "cmd": "netstat -rn",
+          "desc": "Routing table"
+        },
+        {
+          "cmd": "netstat -anp | grep TIME_WAIT | wc -l",
+          "desc": "Count TIME_WAIT connections"
+        }
+      ],
+      "suggestions": [
+        "ss advanced",
+        "ip",
+        "lsof"
+      ],
+      "pro_tip": "Prefer `ss -tlnp` on modern systems — netstat reads from /proc and can be slow on systems with many connections, while ss uses kernel netlink sockets and is orders of magnitude faster."
+    },
+    {
+      "name": "curl advanced",
+      "kind": "topic",
+      "parent": "curl",
+      "summary": "Advanced curl: REST API testing, headers, auth, and timing.",
+      "risk": "low",
+      "risk_reason": "Sending data to wrong endpoints can have side effects.",
+      "explanation": "Beyond basic downloads, curl supports all HTTP methods, custom headers, authentication, JSON bodies, and detailed timing breakdowns. The -w format flag extracts timing metrics making curl a powerful HTTP performance testing tool.",
+      "flags": [
+        {
+          "flag": "-X",
+          "long": "--request",
+          "desc": "HTTP method (GET, POST, PUT, DELETE, PATCH)"
+        },
+        {
+          "flag": "-H",
+          "long": "--header",
+          "desc": "Add request header"
+        },
+        {
+          "flag": "-d",
+          "long": "--data",
+          "desc": "Request body"
+        },
+        {
+          "flag": "-u",
+          "long": "--user",
+          "desc": "Basic auth user:password"
+        },
+        {
+          "flag": "-k",
+          "long": "--insecure",
+          "desc": "Skip TLS verification"
+        },
+        {
+          "flag": "-w",
+          "long": "--write-out",
+          "desc": "Output format for response metrics"
+        },
+        {
+          "flag": "-s",
+          "long": "--silent",
+          "desc": "Suppress progress meter"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Write response to file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "curl -X POST -H 'Content-Type: application/json' -d '{\"key\":\"value\"}' https://api.example.com/v1/resource",
+          "desc": "POST JSON to REST API"
+        },
+        {
+          "cmd": "curl -H 'Authorization: Bearer TOKEN' https://api.example.com/protected",
+          "desc": "API call with Bearer token"
+        },
+        {
+          "cmd": "curl -w '\\nTime: %{time_total}s\\nHTTP: %{http_code}\\n' -so /dev/null https://api.example.com",
+          "desc": "Check response time and HTTP status only"
+        },
+        {
+          "cmd": "curl -I https://example.com",
+          "desc": "HEAD request: show only response headers"
+        },
+        {
+          "cmd": "curl -u admin:password https://jenkins.example.com/api/json | jq '.jobs[].name'",
+          "desc": "Basic auth + jq parsing"
+        }
+      ],
+      "suggestions": [
+        "jq",
+        "nc",
+        "openssl advanced"
+      ],
+      "pro_tip": "Use `curl -w '%{time_namelookup} %{time_connect} %{time_starttransfer} %{time_total}\\n' -so /dev/null URL` to break down DNS, TCP connect, and TTFB — pinpoints exactly where latency occurs."
+    },
+    {
+      "name": "tcpkill",
+      "summary": "Kill TCP connections by host/port pattern.",
+      "risk": "high",
+      "risk_reason": "Forcibly terminates live TCP connections.",
+      "cautions": [
+        "Resets live TCP connections; use only on hosts you manage and during agreed maintenance.",
+        "May be treated as an attack on networks you do not own."
+      ],
+      "explanation": "tcpkill (from dsniff package) sends RST packets to kill TCP connections matching a filter expression. Used to forcibly terminate stuck connections, drop specific client connections, or test application reconnect behavior without restarting services.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tcpkill host 10.0.0.5",
+          "desc": "Kill all TCP connections to/from 10.0.0.5"
+        },
+        {
+          "cmd": "tcpkill port 8080",
+          "desc": "Kill all connections on port 8080"
+        },
+        {
+          "cmd": "tcpkill host 10.0.0.5 and port 5432",
+          "desc": "Kill DB connections from specific host"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ss -tnp state established '( dport = :<port> )'",
+          "why": "List the connections you intend to drop first."
+        }
+      ],
+      "suggestions": [
+        "ss advanced",
+        "fuser",
+        "tcpdump advanced"
+      ],
+      "pro_tip": "Before using tcpkill in production, verify with `ss -tnp` that you're targeting the right connections — tcpkill uses the same pcap filter syntax as tcpdump, so test the filter with tcpdump first."
+    },
+    {
+      "name": "ip route",
+      "summary": "Manage and display the kernel routing table.",
+      "risk": "high",
+      "risk_reason": "Incorrect routes can break network connectivity.",
+      "cautions": [
+        "Replacing or deleting the default route over SSH cuts you off.",
+        "Check with `ip route get <dest>` before and after.",
+        "Routes added with `ip route add` are not persistent."
+      ],
+      "explanation": "ip route manages the kernel IP routing table. Used for adding static routes, debugging routing decisions, and configuring policy-based routing. Changes are temporary (lost on reboot) unless written to network config files.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ip route show",
+          "desc": "Display the full routing table"
+        },
+        {
+          "cmd": "ip route get 8.8.8.8",
+          "desc": "Show which route/interface reaches a destination"
+        },
+        {
+          "cmd": "ip route add 10.10.0.0/16 via 192.168.1.1",
+          "desc": "Add static route"
+        },
+        {
+          "cmd": "ip route del 10.10.0.0/16",
+          "desc": "Remove a static route"
+        },
+        {
+          "cmd": "ip route add default via 192.168.1.1",
+          "desc": "Set default gateway"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ip route show > /root/routes.backup",
+          "why": "Save the routing table."
+        },
+        {
+          "cmd": "ip route get <dest>",
+          "why": "See which route is used."
+        }
+      ],
+      "suggestions": [
+        "ip",
+        "traceroute",
+        "ping"
+      ],
+      "pro_tip": "Use `ip route get <dest>` to instantly verify which gateway will be used for any destination — the most reliable way to debug routing issues without reading the full routing table.",
+      "low_when": [
+        "\\b(show|get)\\b"
+      ],
+      "low_unless": [
+        "add|del|flush|replace|change"
+      ]
+    },
+    {
+      "name": "ipset",
+      "summary": "Manage IP sets for efficient firewall rule matching.",
+      "risk": "high",
+      "risk_reason": "Sets used in firewall rules affect live traffic filtering.",
+      "cautions": [
+        "Sets referenced by firewall rules change live traffic filtering when modified.",
+        "`ipset flush` empties a set at once (everything is allowed or blocked depending on the rule); `destroy` fails while referenced.",
+        "Persist with `ipset save > file` and restore at boot."
+      ],
+      "explanation": "ipset creates named sets of IP addresses, networks, or ports that iptables/nftables rules can reference. Instead of hundreds of individual iptables rules, one ipset contains thousands of IPs and one rule matches the entire set — dramatically faster packet processing.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ipset create blocklist hash:ip",
+          "desc": "Create a set of blocked IPs"
+        },
+        {
+          "cmd": "ipset add blocklist 203.0.113.5",
+          "desc": "Add an IP to the blocklist set"
+        },
+        {
+          "cmd": "iptables -I INPUT -m set --match-set blocklist src -j DROP",
+          "desc": "Drop all traffic from IPs in the set"
+        },
+        {
+          "cmd": "ipset list blocklist",
+          "desc": "Show all entries in a set"
+        },
+        {
+          "cmd": "ipset save > /etc/ipset.conf && ipset restore < /etc/ipset.conf",
+          "desc": "Save and restore sets across reboots"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ipset save > /root/ipset.backup",
+          "why": "Back up the sets."
+        }
+      ],
+      "suggestions": [
+        "iptables",
+        "nftables",
+        "firewalld"
+      ],
+      "pro_tip": "Use `ipset` with `hash:net` type for CIDR blocks — combine with country IP lists (like MaxMind) in a cron job to auto-block entire country ranges without thousands of iptables rules.",
+      "low_when": [
+        "\\b(list|test|save)\\b"
+      ],
+      "low_unless": [
+        "flush|destroy|add|del|restore|create|swap"
+      ]
+    },
+    {
+      "name": "conntrack",
+      "summary": "View and manage netfilter connection tracking table.",
+      "risk": "medium",
+      "risk_reason": "Deleting connection entries drops existing sessions.",
+      "cautions": [
+        "Deleting entries (-D, -F) drops existing sessions — NAT’d connections break.",
+        "Use filters to target only the entries you need."
+      ],
+      "explanation": "conntrack tools interact with the netfilter connection tracking subsystem — the table that tracks established connections for stateful firewalling. Used to monitor active connections, debug firewall issues, and force-expire stuck connection entries.",
+      "flags": [
+        {
+          "flag": "-L",
+          "long": "--dump",
+          "desc": "List all tracked connections"
+        },
+        {
+          "flag": "-D",
+          "long": "--delete",
+          "desc": "Delete matching connections"
+        },
+        {
+          "flag": "-E",
+          "long": "--event",
+          "desc": "Stream connection events in real time"
+        },
+        {
+          "flag": "-s",
+          "long": "--source",
+          "desc": "Filter by source address"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "conntrack -L | wc -l",
+          "desc": "Count current tracked connections"
+        },
+        {
+          "cmd": "conntrack -L | grep 10.0.0.5",
+          "desc": "Show connections from/to specific IP"
+        },
+        {
+          "cmd": "conntrack -E",
+          "desc": "Stream real-time connection events"
+        },
+        {
+          "cmd": "conntrack -D -s 10.0.0.5",
+          "desc": "Drop all tracked connections from an IP"
+        },
+        {
+          "cmd": "cat /proc/sys/net/netfilter/nf_conntrack_count",
+          "desc": "Current connection count vs maximum"
+        }
+      ],
+      "suggestions": [
+        "ss advanced",
+        "iptables",
+        "nftables"
+      ],
+      "pro_tip": "Watch `cat /proc/sys/net/netfilter/nf_conntrack_count` vs `nf_conntrack_max` — when count approaches max, new connections are silently dropped. Increase `sysctl net.netfilter.nf_conntrack_max` to fix.",
+      "low_when": [
+        "\\s-(L|C)\\b|--list|--count|-S\\b"
+      ],
+      "low_unless": [
+        "\\s-(D|F|U|I)\\b"
+      ]
+    },
+    {
+      "name": "nc advanced",
+      "kind": "topic",
+      "parent": "nc",
+      "summary": "Netcat for port scanning, banner grabbing, and file transfer.",
+      "risk": "medium",
+      "risk_reason": "Can create listeners or generate network traffic.",
+      "cautions": [
+        "Exposing listeners or relaying traffic can bypass firewall policy.",
+        "Use only for diagnostics on hosts you control."
+      ],
+      "explanation": "Beyond basic connectivity testing, netcat handles file transfers between hosts, banner grabbing to identify services, port range scanning, and UDP testing. It's often the only tool available on minimal installs for quick network diagnostics.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nc -zv 10.0.0.1 22 80 443 8080 2>&1 | grep -i succeeded",
+          "desc": "Test multiple specific ports at once"
+        },
+        {
+          "cmd": "echo | nc -w 2 10.0.0.1 25 2>&1",
+          "desc": "Grab SMTP banner to identify mail server version"
+        },
+        {
+          "cmd": "nc -l 9999 > received_file.tar.gz & nc 10.0.0.2 9999 < file.tar.gz",
+          "desc": "Transfer file between hosts (no ssh)"
+        },
+        {
+          "cmd": "nc -u -l 514",
+          "desc": "Listen for UDP syslog messages"
+        },
+        {
+          "cmd": "for port in 22 80 443 3306 5432 6379 8080 8443; do nc -zw1 10.0.0.1 $port && echo \"$port OPEN\" || echo \"$port CLOSED\"; done",
+          "desc": "Quick port check for critical service ports"
+        }
+      ],
+      "suggestions": [
+        "ss advanced",
+        "curl advanced",
+        "tcpdump advanced"
+      ],
+      "pro_tip": "Use nc for lightweight file transfer when scp isn't available: `nc -l 9999 | tar xz` on receiver, `tar cz files/ | nc host 9999` on sender — no auth overhead, just raw speed."
+    },
+    {
+      "name": "host",
+      "summary": "Simple DNS lookup",
+      "risk": "low",
+      "risk_reason": "Read-only DNS query.",
+      "explanation": "Resolves names to addresses and back. See the flags and examples below, and run `man host` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "host example.com",
+          "desc": "Forward lookup"
+        },
+        {
+          "cmd": "host 8.8.8.8",
+          "desc": "Reverse lookup"
+        }
+      ],
+      "suggestions": [
+        "dig",
+        "nslookup"
+      ]
+    },
+    {
+      "name": "nslookup",
+      "summary": "Query DNS servers",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Interactive or one-shot DNS lookups; dig is preferred for scripts.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nslookup example.com 8.8.8.8",
+          "desc": "Query a specific resolver"
+        }
+      ],
+      "suggestions": [
+        "dig",
+        "host"
+      ]
+    },
+    {
+      "name": "mtr",
+      "summary": "Combined ping and traceroute",
+      "risk": "low",
+      "risk_reason": "Sends many probes; some networks treat that as scanning.",
+      "explanation": "Continuously traces a path and reports per-hop loss and latency.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Report mode"
+        },
+        {
+          "flag": "-w",
+          "desc": "Wide report"
+        },
+        {
+          "flag": "-c",
+          "desc": "Probe count"
+        },
+        {
+          "flag": "-n",
+          "desc": "No DNS"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "mtr -rwn -c 20 example.com",
+          "desc": "Report with 20 probes"
+        }
+      ],
+      "suggestions": [
+        "traceroute",
+        "ping"
+      ]
+    },
+    {
+      "name": "ifconfig",
+      "summary": "Legacy network interface tool",
+      "risk": "high",
+      "risk_reason": "Changing interface settings can drop connectivity.",
+      "cautions": [
+        "`ifconfig <if> down` over SSH ends your session.",
+        "Changes are not persistent."
+      ],
+      "explanation": "Shows/configures interfaces (superseded by ip).",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ifconfig",
+          "desc": "Show interfaces"
+        },
+        {
+          "cmd": "ifconfig eth0 down",
+          "desc": "Disable an interface (dangerous remotely)"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ip -br a",
+          "why": "Use ip for viewing"
+        },
+        {
+          "cmd": "(sleep 120 && ifconfig <if> up) &",
+          "why": "Safety net before changing interfaces"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ],
+      "low_when": [
+        "^\\s*(-a)?\\s*$|^\\s*\\w+\\s*$"
+      ],
+      "low_unless": [
+        "up|down|netmask|add|del"
+      ]
+    },
+    {
+      "name": "arp",
+      "summary": "Show/manipulate the ARP cache",
+      "risk": "low",
+      "risk_reason": "Read-only unless modifying entries.",
+      "explanation": "Shows IP-to-MAC mappings; `ip neigh` replaces it.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "arp -an",
+          "desc": "Show ARP cache"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ]
+    },
+    {
+      "name": "telnet",
+      "summary": "Connect to TCP ports",
+      "risk": "medium",
+      "risk_reason": "Unencrypted protocol; credentials are sent in clear text.",
+      "cautions": [
+        "Never use telnet for real login sessions — everything is plaintext.",
+        "Use nc -zv or curl telnet:// for port tests."
+      ],
+      "explanation": "Used today mainly to test whether a TCP port is open.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "telnet example.com 25",
+          "desc": "Test an SMTP port"
+        }
+      ],
+      "suggestions": [
+        "nc",
+        "ssh"
+      ]
+    },
+    {
+      "name": "socat",
+      "summary": "Multipurpose socket relay",
+      "risk": "high",
+      "risk_reason": "Can expose local services or open remote shells.",
+      "cautions": [
+        "Listeners bind to all interfaces by default — add bind=127.0.0.1.",
+        "EXEC: addresses can run commands for any connecting client.",
+        "Relays can bypass firewall policy."
+      ],
+      "explanation": "Connects two data streams: sockets, files, pipes and TLS endpoints.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "socat TCP-LISTEN:8080,fork TCP:backend:80",
+          "desc": "Simple TCP proxy"
+        },
+        {
+          "cmd": "socat - TCP:host:port",
+          "desc": "Interactive connection"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "socat TCP-LISTEN:8080,bind=127.0.0.1,fork TCP:backend:80",
+          "why": "Bind to localhost only"
+        }
+      ],
+      "suggestions": [
+        "nc",
+        "ssh"
+      ]
+    },
+    {
+      "name": "ncat",
+      "summary": "Nmap’s netcat",
+      "risk": "high",
+      "risk_reason": "Listeners and -e/-c options can expose shells.",
+      "cautions": [
+        "Use --allow/--deny and bind addresses.",
+        "Never use -e on public interfaces."
+      ],
+      "explanation": "Netcat with TLS and access-control support.",
+      "flags": [
+        {
+          "flag": "--ssl",
+          "long": "--ssl",
+          "desc": "TLS"
+        },
+        {
+          "flag": "--allow",
+          "long": "--allow",
+          "desc": "Restrict clients"
+        },
+        {
+          "flag": "-e",
+          "desc": "Execute a command on connect",
+          "caution": "Remote shell exposure."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "ncat --ssl -lvp 4444",
+          "desc": "TLS listener"
+        }
+      ],
+      "suggestions": [
+        "nc",
+        "socat"
+      ]
+    },
+    {
+      "name": "iftop",
+      "summary": "Live bandwidth per connection",
+      "risk": "low",
+      "risk_reason": "Needs root; read-only.",
+      "explanation": "Top-like view of network usage. See the flags and examples below, and run `man iftop` for the full reference.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Interface"
+        },
+        {
+          "flag": "-n",
+          "desc": "No DNS"
+        },
+        {
+          "flag": "-P",
+          "desc": "Show ports"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iftop -nP -i eth0",
+          "desc": "Bandwidth by connection"
+        }
+      ],
+      "suggestions": [
+        "nethogs",
+        "ss"
+      ]
+    },
+    {
+      "name": "nethogs",
+      "summary": "Bandwidth per process",
+      "risk": "low",
+      "risk_reason": "Needs root; read-only.",
+      "explanation": "Groups network usage by process. See the flags and examples below, and run `man nethogs` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nethogs eth0",
+          "desc": "Per-process bandwidth"
+        }
+      ],
+      "suggestions": [
+        "iftop",
+        "ss"
+      ]
+    },
+    {
+      "name": "vnstat",
+      "summary": "Network traffic statistics",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Keeps long-term interface traffic statistics.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "vnstat -d",
+          "desc": "Daily usage"
+        }
+      ],
+      "suggestions": [
+        "iftop"
+      ]
+    },
+    {
+      "name": "iperf3",
+      "summary": "Network throughput tester",
+      "risk": "medium",
+      "risk_reason": "Generates heavy traffic that can saturate links.",
+      "cautions": [
+        "Saturating links on production paths causes outages — test off-peak and use -b to cap bandwidth.",
+        "The server port is open to anyone who can reach it."
+      ],
+      "explanation": "Measures bandwidth between a server and a client.",
+      "flags": [
+        {
+          "flag": "-s",
+          "desc": "Server mode"
+        },
+        {
+          "flag": "-c",
+          "desc": "Client mode"
+        },
+        {
+          "flag": "-t",
+          "desc": "Duration"
+        },
+        {
+          "flag": "-P",
+          "desc": "Parallel streams"
+        },
+        {
+          "flag": "-R",
+          "desc": "Reverse direction"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iperf3 -s",
+          "desc": "Start the server"
+        },
+        {
+          "cmd": "iperf3 -c host -t 10",
+          "desc": "10-second test"
+        }
+      ],
+      "suggestions": [
+        "ping",
+        "mtr"
+      ]
+    },
+    {
+      "name": "nmcli",
+      "summary": "NetworkManager command line",
+      "risk": "high",
+      "risk_reason": "Changing connections can drop your network session.",
+      "cautions": [
+        "Modifying/activating the connection you are using over SSH may cut you off.",
+        "Test with a timeout: nmcli con up <name> ; sleep; rollback via at/cron."
+      ],
+      "explanation": "Manages connections, devices and Wi-Fi in NetworkManager.",
+      "flags": [
+        {
+          "flag": "device status",
+          "desc": "Device overview"
+        },
+        {
+          "flag": "connection show",
+          "desc": "List connections"
+        },
+        {
+          "flag": "connection modify",
+          "desc": "Edit a connection"
+        },
+        {
+          "flag": "connection up",
+          "desc": "Activate a connection"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "nmcli device status",
+          "desc": "Overview"
+        },
+        {
+          "cmd": "nmcli con mod eth0 ipv4.addresses 10.0.0.5/24",
+          "desc": "Change an address"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "nmcli connection show",
+          "why": "Review first"
+        },
+        {
+          "cmd": "nmcli connection show <name> > conn.bak",
+          "why": "Save settings"
+        }
+      ],
+      "suggestions": [
+        "ip",
+        "nmtui"
+      ],
+      "low_when": [
+        "\\b(show|status|device status|general|-t)\\b"
+      ],
+      "low_unless": [
+        "\\b(modify|mod|up|down|add|delete|del)\\b"
+      ]
+    },
+    {
+      "name": "resolvectl",
+      "summary": "systemd-resolved control",
+      "risk": "low",
+      "risk_reason": "Mostly read-only; flush/dns changes affect name resolution.",
+      "cautions": [
+        "Changing DNS servers can break name resolution for the host."
+      ],
+      "explanation": "Shows DNS configuration and cache. See the flags and examples below, and run `man resolvectl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "resolvectl status",
+          "desc": "DNS servers per link"
+        },
+        {
+          "cmd": "resolvectl query example.com",
+          "desc": "Resolve via resolved"
+        },
+        {
+          "cmd": "resolvectl flush-caches",
+          "desc": "Clear DNS cache"
+        }
+      ],
+      "suggestions": [
+        "dig"
+      ]
+    },
+    {
+      "name": "openvpn",
+      "summary": "OpenVPN client/server",
+      "risk": "high",
+      "risk_reason": "Alters routing and DNS; can capture all traffic.",
+      "cautions": [
+        "Config files may include scripts (up/down) that run as root — only use trusted configs.",
+        "Full-tunnel VPNs redirect all traffic; check routes after connecting."
+      ],
+      "explanation": "Establishes VPN tunnels using a config file.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "openvpn --config client.ovpn",
+          "desc": "Connect"
+        }
+      ],
+      "suggestions": [
+        "ip",
+        "wg"
+      ]
+    },
+    {
+      "name": "wg",
+      "summary": "WireGuard management",
+      "risk": "high",
+      "risk_reason": "Changes VPN routing and keys.",
+      "cautions": [
+        "AllowedIPs = 0.0.0.0/0 routes all traffic; keep an escape route for SSH.",
+        "Private keys must be protected (chmod 600)."
+      ],
+      "explanation": "Shows and configures WireGuard interfaces.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "wg show",
+          "desc": "Peers and handshakes"
+        },
+        {
+          "cmd": "wg-quick up wg0",
+          "desc": "Bring an interface up"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ],
+      "low_when": [
+        "\\bshow\\b|\\bshowconf\\b"
+      ]
+    },
+    {
+      "name": "sftp",
+      "summary": "Interactive secure file transfer",
+      "risk": "medium",
+      "risk_reason": "Can overwrite and delete remote files.",
+      "cautions": [
+        "put/rm in an interactive session act on production immediately.",
+        "Use chroot jails/restricted accounts for external partners."
+      ],
+      "explanation": "FTP-like file transfer over SSH. See the flags and examples below, and run `man sftp` for the full reference.",
+      "flags": [
+        {
+          "flag": "-P",
+          "desc": "Port"
+        },
+        {
+          "flag": "-r",
+          "desc": "Recursive"
+        },
+        {
+          "flag": "-b",
+          "desc": "Batch file"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sftp user@host",
+          "desc": "Interactive session"
+        },
+        {
+          "cmd": "sftp -P 2222 user@host",
+          "desc": "Different port"
+        }
+      ],
+      "suggestions": [
+        "scp",
+        "rsync",
+        "ssh"
+      ]
+    },
+    {
+      "name": "aria2c",
+      "summary": "Multi-connection downloader",
+      "risk": "low",
+      "risk_reason": "Downloads files; may saturate bandwidth.",
+      "cautions": [
+        "Verify checksums for downloaded software."
+      ],
+      "explanation": "Downloads via HTTP, FTP and BitTorrent with parallel segments.",
+      "flags": [
+        {
+          "flag": "-x",
+          "desc": "Connections per server"
+        },
+        {
+          "flag": "-s",
+          "desc": "Split segments"
+        },
+        {
+          "flag": "-d",
+          "desc": "Download directory"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "aria2c -x 8 https://example.com/big.iso",
+          "desc": "Download using 8 connections"
+        }
+      ],
+      "suggestions": [
+        "wget",
+        "curl"
+      ]
+    },
+    {
+      "name": "httpie",
+      "match": [
+        "http",
+        "https",
+        "httpie"
+      ],
+      "summary": "HTTP client (http / https)",
+      "risk": "medium",
+      "risk_reason": "Can issue state-changing requests.",
+      "cautions": [
+        "POST/PUT/DELETE change remote state — verify the URL (prod vs staging)."
+      ],
+      "explanation": "Human-friendly curl alternative. See the flags and examples below, and run `man httpie` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "http GET example.com",
+          "desc": "GET request"
+        },
+        {
+          "cmd": "http POST api.example.com/items name=x",
+          "desc": "POST JSON"
+        }
+      ],
+      "suggestions": [
+        "curl"
+      ]
+    },
+    {
+      "name": "ssh-agent",
+      "summary": "Hold SSH keys in memory",
+      "risk": "low",
+      "risk_reason": "Keeps decrypted keys available to anything that can reach the socket.",
+      "cautions": [
+        "Forwarded agent sockets can be abused by root on the remote host."
+      ],
+      "explanation": "Background agent for private keys. See the flags and examples below, and run `man ssh-agent` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "eval \"$(ssh-agent -s)\"",
+          "desc": "Start an agent"
+        }
+      ],
+      "suggestions": [
+        "ssh-add",
+        "ssh"
+      ]
+    },
+    {
+      "name": "sshd",
+      "summary": "OpenSSH server daemon",
+      "risk": "high",
+      "risk_reason": "Mistakes in sshd_config can lock you out.",
+      "cautions": [
+        "Always run sshd -t before reload; keep a second session open.",
+        "PermitRootLogin yes and PasswordAuthentication yes increase attack surface."
+      ],
+      "explanation": "Daemon accepting SSH connections; -t validates configuration.",
+      "flags": [
+        {
+          "flag": "-t",
+          "desc": "Test configuration"
+        },
+        {
+          "flag": "-T",
+          "desc": "Dump effective config"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "sshd -t",
+          "desc": "Validate before reload"
+        },
+        {
+          "cmd": "sshd -T | grep -i permitroot",
+          "desc": "Show effective setting"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "sshd -t && systemctl reload sshd",
+          "why": "Validate, then reload (not restart)"
+        }
+      ],
+      "suggestions": [
+        "ssh",
+        "systemctl"
+      ],
+      "low_when": [
+        "\\s-(t|T)\\b"
+      ]
+    },
+    {
+      "name": "tc",
+      "summary": "Traffic control (shaping)",
+      "risk": "high",
+      "risk_reason": "Can add latency, drop packets or cut connectivity.",
+      "cautions": [
+        "Applying netem on the interface you use for SSH slows or breaks your own session.",
+        "Settings vanish on reboot; remove test rules when finished."
+      ],
+      "explanation": "Configures queueing disciplines, e.g. netem for latency/loss simulation.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "tc qdisc show",
+          "desc": "Show qdiscs"
+        },
+        {
+          "cmd": "tc qdisc add dev eth0 root netem delay 100ms",
+          "desc": "Add 100ms delay (test only)"
+        },
+        {
+          "cmd": "tc qdisc del dev eth0 root",
+          "desc": "Remove shaping"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "tc qdisc del dev <if> root",
+          "why": "Undo shaping"
+        },
+        {
+          "cmd": "tc qdisc show dev <if>",
+          "why": "Check current state"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ],
+      "low_when": [
+        "\\bshow\\b|\\bls\\b"
+      ],
+      "low_unless": [
+        "add|del|change|replace"
+      ]
+    },
+    {
+      "name": "bridge",
+      "summary": "Bridge and VLAN management",
+      "risk": "high",
+      "risk_reason": "Can break L2 connectivity.",
+      "cautions": [
+        "Changing bridge/VLAN settings on live hosts disconnects VMs and containers."
+      ],
+      "explanation": "iproute2 tool to show/manage bridge forwarding tables.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "bridge link show",
+          "desc": "Bridge ports"
+        },
+        {
+          "cmd": "bridge fdb show",
+          "desc": "Forwarding DB"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ],
+      "low_when": [
+        "\\bshow\\b"
+      ],
+      "low_unless": [
+        "add|del|set"
+      ]
+    },
+    {
+      "name": "ip-netns",
+      "kind": "topic",
+      "match": [
+        "ip netns"
+      ],
+      "parent": "ip",
+      "summary": "Network namespaces",
+      "risk": "medium",
+      "risk_reason": "Creating/deleting namespaces affects containers using them.",
+      "cautions": [
+        "Deleting a namespace used by a container breaks its networking."
+      ],
+      "explanation": "Manage Linux network namespaces with `ip netns`.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ip netns list",
+          "desc": "List namespaces"
+        },
+        {
+          "cmd": "ip netns exec ns1 ss -tnp",
+          "desc": "Run a command inside"
+        }
+      ],
+      "suggestions": [
+        "nsenter",
+        "ip"
+      ]
+    },
+    {
+      "name": "whois",
+      "match": [
+        "whois"
+      ],
+      "summary": "Domain registration lookup",
+      "risk": "low",
+      "risk_reason": "Network lookup.",
+      "explanation": "Queries WHOIS servers. See the flags and examples below, and run `man whois` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "whois example.com",
+          "desc": "Registration data"
+        }
+      ],
+      "suggestions": [
+        "dig"
+      ]
+    },
+    {
+      "name": "ipcalc",
+      "match": [
+        "ipcalc"
+      ],
+      "summary": "Calculate subnets",
+      "risk": "low",
+      "risk_reason": "No side effects.",
+      "explanation": "Computes network, mask and broadcast addresses.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ipcalc 192.168.1.10/24",
+          "desc": "Subnet details"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ]
+    },
+    {
+      "name": "arping",
+      "match": [
+        "arping"
+      ],
+      "summary": "ARP ping",
+      "risk": "low",
+      "risk_reason": "Sends ARP packets on the LAN.",
+      "explanation": "Test L2 reachability or detect duplicate IPs.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "arping -c 3 -I eth0 192.168.1.1",
+          "desc": "Probe"
+        }
+      ],
+      "suggestions": [
+        "ping",
+        "ip"
+      ]
+    },
+    {
+      "name": "route",
+      "match": [
+        "route"
+      ],
+      "summary": "Legacy routing table tool",
+      "risk": "high",
+      "risk_reason": "Route changes can cut connectivity.",
+      "cautions": [
+        "Deleting the default route over SSH ends your session."
+      ],
+      "explanation": "Shows/modifies routes (use ip route). See the flags and examples below, and run `man route` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "route -n",
+          "desc": "Show routes"
+        }
+      ],
+      "suggestions": [
+        "ip route"
+      ],
+      "low_when": [
+        "^\\s*(-n)?\\s*$"
+      ],
+      "low_unless": [
+        "add|del"
+      ]
+    },
+    {
+      "name": "netplan",
+      "match": [
+        "netplan"
+      ],
+      "summary": "Ubuntu network configuration",
+      "risk": "high",
+      "risk_reason": "netplan apply can drop connectivity.",
+      "cautions": [
+        "Use `netplan try` rather than `apply` on remote hosts.",
+        "Indentation errors break networking."
+      ],
+      "explanation": "YAML-based network configuration. See the flags and examples below, and run `man netplan` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "netplan try",
+          "desc": "Apply with automatic rollback"
+        },
+        {
+          "cmd": "netplan get",
+          "desc": "Show config"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "netplan try",
+          "why": "Rolls back automatically unless confirmed"
+        },
+        {
+          "cmd": "netplan generate",
+          "why": "Validate"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ],
+      "low_when": [
+        "\\b(get|status|ip leases)\\b|generate"
+      ],
+      "low_unless": [
+        "apply|set"
+      ]
+    },
+    {
+      "name": "dhclient",
+      "match": [
+        "dhclient"
+      ],
+      "summary": "DHCP client",
+      "risk": "high",
+      "risk_reason": "Releasing a lease drops the address.",
+      "cautions": [
+        "Don’t run -r over SSH."
+      ],
+      "explanation": "Obtains IP addresses via DHCP. See the flags and examples below, and run `man dhclient` for the full reference.",
+      "flags": [
+        {
+          "flag": "-r",
+          "desc": "Release lease",
+          "caution": "Drops connectivity."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "dhclient -v eth0",
+          "desc": "Renew"
+        }
+      ],
+      "suggestions": [
+        "ip"
+      ]
+    },
+    {
+      "name": "lftp",
+      "match": [
+        "lftp"
+      ],
+      "summary": "Advanced FTP/SFTP client",
+      "risk": "medium",
+      "risk_reason": "Mirror with --delete removes files.",
+      "cautions": [
+        "--delete removes destination files."
+      ],
+      "explanation": "Scriptable file transfer. See the flags and examples below, and run `man lftp` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lftp -e \"mirror -R --dry-run ./site /www\" sftp://host",
+          "desc": "Preview a mirror"
+        }
+      ],
+      "suggestions": [
+        "rsync"
+      ]
+    },
+    {
+      "name": "ss-filter",
+      "kind": "topic",
+      "match": [
+        "ss state",
+        "ss -o"
+      ],
+      "parent": "ss",
+      "summary": "Socket filters",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "State and port filters for ss. See the flags and examples below, and run `man ss-filter` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ss -tn state established '( dport = :443 )'",
+          "desc": "Established connections to 443"
+        }
+      ],
+      "suggestions": [
+        "ss"
+      ]
+    },
+    {
+      "name": "lsof -i",
+      "match": [
+        "lsof -i"
+      ],
+      "summary": "Who uses which network port",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Maps processes to sockets. See the flags and examples below, and run `man lsof` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "lsof -i :8080",
+          "desc": "Process on port 8080"
+        },
+        {
+          "cmd": "lsof -iTCP -sTCP:LISTEN -P -n",
+          "desc": "All listeners"
+        }
+      ],
+      "suggestions": [
+        "ss",
+        "lsof"
+      ]
+    },
+    {
+      "name": "iptables-save",
+      "match": [
+        "iptables-save"
+      ],
+      "summary": "Dump iptables rules",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Prints current rules in restorable format — use to back up before changes.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "iptables-save > /root/iptables.backup",
+          "desc": "Back up rules"
+        }
+      ],
+      "suggestions": [
+        "iptables",
+        "iptables-restore"
+      ]
+    },
+    {
+      "name": "iptables-restore",
+      "match": [
+        "iptables-restore"
+      ],
+      "summary": "Load iptables rules from a file",
+      "risk": "high",
+      "risk_reason": "Replaces the active ruleset; a bad file can lock you out.",
+      "cautions": [
+        "Always --test first; keep a second SSH session and an `at` rollback.",
+        "Without -n existing rules are flushed."
+      ],
+      "explanation": "Atomically loads rules produced by iptables-save.",
+      "flags": [
+        {
+          "flag": "-t",
+          "long": "--test",
+          "desc": "Parse only, do not commit"
+        },
+        {
+          "flag": "-n",
+          "desc": "Do not flush existing rules"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iptables-restore --test < rules.v4",
+          "desc": "Syntax check"
+        },
+        {
+          "cmd": "iptables-restore < /root/iptables.backup",
+          "desc": "Roll back"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "iptables-restore --test < <file>",
+          "why": "Validate first"
+        },
+        {
+          "cmd": "iptables-save > /root/iptables.before",
+          "why": "Save current rules"
+        }
+      ],
+      "suggestions": [
+        "iptables-save",
+        "iptables"
+      ]
+    },
+    {
+      "name": "ip6tables",
+      "match": [
+        "ip6tables"
+      ],
+      "summary": "IPv6 firewall rules",
+      "risk": "high",
+      "risk_reason": "Wrong rules drop IPv6 traffic or your SSH session.",
+      "cautions": [
+        "Forgetting IPv6 leaves services exposed even if IPv4 is locked down.",
+        "Same lockout risks as iptables."
+      ],
+      "explanation": "IPv6 counterpart of iptables. See the flags and examples below, and run `man ip6tables` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ip6tables -L -n -v",
+          "desc": "List rules"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "ip6tables-save > /root/ip6tables.backup",
+          "why": "Back up first"
+        }
+      ],
+      "suggestions": [
+        "iptables"
+      ],
+      "low_when": [
+        "\\s-(L|S)\\b"
+      ],
+      "low_unless": [
+        "\\s-(F|X|D|A|I|R|P)\\b"
+      ]
+    },
+    {
+      "name": "nft",
+      "match": [
+        "nft"
+      ],
+      "summary": "nftables command",
+      "risk": "high",
+      "risk_reason": "Flushing or replacing rulesets can lock you out and break container NAT.",
+      "cautions": [
+        "`nft flush ruleset` removes everything, including rules created by Docker/Kubernetes.",
+        "Test with -c, keep a rollback timer."
+      ],
+      "explanation": "Configure the nftables firewall. See the flags and examples below, and run `man nft` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nft list ruleset",
+          "desc": "Show rules"
+        },
+        {
+          "cmd": "nft -c -f /etc/nftables.conf",
+          "desc": "Check syntax"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "nft -c -f <file>",
+          "why": "Check without applying"
+        },
+        {
+          "cmd": "nft list ruleset > nft.backup",
+          "why": "Back up"
+        }
+      ],
+      "suggestions": [
+        "nftables",
+        "iptables"
+      ],
+      "low_when": [
+        "\\blist\\b|\\s-c\\b"
+      ],
+      "low_unless": [
+        "flush|delete|add|insert|replace|-f\\b"
+      ]
+    }
+  ]
+}

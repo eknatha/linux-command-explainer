@@ -1,0 +1,677 @@
+{
+  "category": "observability",
+  "commands": [
+    {
+      "name": "strace",
+      "summary": "Trace system calls and signals made by a process.",
+      "risk": "low",
+      "risk_reason": "Can slow traced process significantly; read-only observation.",
+      "cautions": [
+        "Attaching to a live process can slow it 2–50× and cause timeouts in production — time-box it and use -c for summaries.",
+        "Output may contain secrets (read/write buffers, environment)."
+      ],
+      "explanation": "strace intercepts and logs every system call (open, read, write, socket, etc.) made by a process. The go-to tool for debugging 'permission denied' errors, missing files, and mysterious failures — shows exactly what the kernel sees.",
+      "flags": [
+        {
+          "flag": "-p",
+          "long": "--attach",
+          "desc": "Attach to an already-running process by PID"
+        },
+        {
+          "flag": "-e",
+          "long": "--expr",
+          "desc": "Filter to specific system calls"
+        },
+        {
+          "flag": "-f",
+          "long": "--follow-forks",
+          "desc": "Follow child processes"
+        },
+        {
+          "flag": "-o",
+          "long": "--output",
+          "desc": "Write output to file instead of stderr"
+        },
+        {
+          "flag": "-c",
+          "long": "--summary",
+          "desc": "Print summary statistics only"
+        },
+        {
+          "flag": "-t",
+          "long": "--timestamp",
+          "desc": "Prefix each line with timestamp"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "strace -p $(pgrep nginx) -e trace=network",
+          "desc": "Trace network calls of running nginx"
+        },
+        {
+          "cmd": "strace -f -e openat ls /tmp 2>&1 | grep ENOENT",
+          "desc": "Find missing files a command tries to open"
+        },
+        {
+          "cmd": "strace -c -p 1234",
+          "desc": "Get syscall frequency summary for PID 1234"
+        },
+        {
+          "cmd": "strace -o /tmp/trace.txt myapp",
+          "desc": "Run app and log all syscalls to file"
+        }
+      ],
+      "suggestions": [
+        "lsof",
+        "ps",
+        "dmesg"
+      ],
+      "pro_tip": "Use `strace -e trace=openat,read,write` to narrow output — full strace output is overwhelming; filtering to file I/O syscalls finds 80% of 'permission denied' bugs fast."
+    },
+    {
+      "name": "iotop",
+      "summary": "Interactive real-time display of disk I/O per process.",
+      "risk": "low",
+      "risk_reason": "Read-only monitor; requires root or CAP_NET_ADMIN.",
+      "cautions": [
+        "Needs root and adds some overhead; -a/-o views are enough for most checks."
+      ],
+      "explanation": "iotop shows disk read/write rates per process in real time, similar to top for disk I/O. Invaluable for identifying which process is generating excessive disk activity that affects performance.",
+      "flags": [
+        {
+          "flag": "-o",
+          "long": "--only",
+          "desc": "Show only processes doing I/O"
+        },
+        {
+          "flag": "-b",
+          "long": "--batch",
+          "desc": "Non-interactive batch mode"
+        },
+        {
+          "flag": "-n",
+          "long": "--iter",
+          "desc": "Number of iterations"
+        },
+        {
+          "flag": "-d",
+          "long": "--delay",
+          "desc": "Delay between iterations in seconds"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "iotop -o",
+          "desc": "Show only processes actively doing I/O"
+        },
+        {
+          "cmd": "iotop -b -n 3 -o",
+          "desc": "Three batch snapshots of active I/O"
+        },
+        {
+          "cmd": "iotop -b -n 1 -o | head -20",
+          "desc": "Quick top-I/O-processes snapshot for scripting"
+        }
+      ],
+      "suggestions": [
+        "iostat",
+        "vmstat",
+        "dmesg"
+      ],
+      "pro_tip": "Run `iotop -o` when a system is slow and top shows high I/O wait — iotop immediately reveals which process is the I/O culprit without guessing."
+    },
+    {
+      "name": "perf",
+      "summary": "Linux performance analysis and profiling tool.",
+      "risk": "low",
+      "risk_reason": "Profiling adds overhead; kernel tracing requires root.",
+      "cautions": [
+        "Sampling at high frequency adds overhead on production hosts; keep runs short.",
+        "Recorded data can include process names, arguments and memory addresses — treat perf.data as sensitive."
+      ],
+      "explanation": "perf is the Linux performance profiling tool, using hardware counters and kernel tracepoints. It records CPU samples, tracks cache misses, counts system calls, and generates flame graphs. Essential for diagnosing performance bottlenecks at the CPU/kernel level.",
+      "flags": [
+        {
+          "flag": "top",
+          "desc": "Real-time performance counter display"
+        },
+        {
+          "flag": "stat",
+          "desc": "Run command and print performance statistics"
+        },
+        {
+          "flag": "record",
+          "desc": "Record performance data to perf.data"
+        },
+        {
+          "flag": "report",
+          "desc": "Analyze recorded perf.data"
+        },
+        {
+          "flag": "script",
+          "desc": "Format perf.data for flame graph generation"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "perf top",
+          "desc": "Live CPU usage by function (like top for CPU functions)"
+        },
+        {
+          "cmd": "perf stat -p 1234",
+          "desc": "Count hardware events for a running process"
+        },
+        {
+          "cmd": "perf record -g -p 1234 sleep 30",
+          "desc": "Record 30 seconds of call stacks for a process"
+        },
+        {
+          "cmd": "perf report --stdio",
+          "desc": "Display top CPU-consuming functions from recording"
+        },
+        {
+          "cmd": "perf stat -e cache-misses,cache-references myprogram",
+          "desc": "Measure cache miss rate"
+        }
+      ],
+      "suggestions": [
+        "strace",
+        "vmstat",
+        "iotop"
+      ],
+      "pro_tip": "Combine `perf record -g` with FlameGraph scripts (`perf script | stackcollapse-perf.pl | flamegraph.pl > flame.svg`) to generate visual CPU flame graphs — the most powerful way to find hot code paths."
+    },
+    {
+      "name": "bpftrace",
+      "summary": "Dynamic tracing of Linux kernel and userspace using eBPF.",
+      "risk": "medium",
+      "risk_reason": "Incorrect programs can panic the kernel; requires root.",
+      "cautions": [
+        "Needs root; a bad program or very frequent probes can degrade production performance.",
+        "Limit the runtime (interval:s:10 { exit(); }) and avoid tracing hot paths."
+      ],
+      "explanation": "bpftrace is a high-level tracing language for eBPF (extended Berkeley Packet Filter). It instruments kernel events, tracepoints, uprobes, and kprobes without kernel modules or reboots. Enables tracing any function call in the kernel or any userspace process.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "bpftrace -e 'kprobe:do_sys_open { printf(\"%s %s\\n\", comm, str(arg1)); }'",
+          "desc": "Trace every file opened, with process name"
+        },
+        {
+          "cmd": "bpftrace -e 'tracepoint:syscalls:sys_enter_execve { printf(\"%s\\n\", str(args->filename)); }'",
+          "desc": "Trace every process execution"
+        },
+        {
+          "cmd": "bpftrace -e 'kretprobe:tcp_connect { @[comm] = count(); } END { print(@); }'",
+          "desc": "Count TCP connections by process"
+        },
+        {
+          "cmd": "bpftrace -l 'tracepoint:syscalls:*'",
+          "desc": "List all available syscall tracepoints"
+        }
+      ],
+      "suggestions": [
+        "strace",
+        "perf",
+        "dmesg"
+      ],
+      "pro_tip": "Use bpftrace before strace in production — strace uses ptrace (process-attach, ~3x slower), while bpftrace uses eBPF (in-kernel, negligible overhead). Safe to run on live production."
+    },
+    {
+      "name": "ltrace",
+      "match": [
+        "ltrace"
+      ],
+      "summary": "Trace library calls",
+      "risk": "medium",
+      "risk_reason": "Slows the traced process.",
+      "cautions": [
+        "Attaching to production processes adds overhead; may expose data."
+      ],
+      "explanation": "Like strace but for library calls. See the flags and examples below, and run `man ltrace` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "ltrace -c ls",
+          "desc": "Count calls"
+        }
+      ],
+      "suggestions": [
+        "strace"
+      ]
+    },
+    {
+      "name": "btop",
+      "match": [
+        "btop"
+      ],
+      "summary": "Resource monitor",
+      "risk": "low",
+      "risk_reason": "Read-only (can signal processes).",
+      "explanation": "Modern top/htop alternative. See the flags and examples below, and run `man btop` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "btop",
+          "desc": "Start"
+        }
+      ],
+      "suggestions": [
+        "htop",
+        "top"
+      ]
+    },
+    {
+      "name": "glances",
+      "match": [
+        "glances"
+      ],
+      "summary": "System monitor",
+      "risk": "low",
+      "risk_reason": "Read-only; web mode exposes metrics.",
+      "cautions": [
+        "`-w` serves metrics on a port without auth by default."
+      ],
+      "explanation": "Cross-platform monitor with web UI. See the flags and examples below, and run `man glances` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "glances",
+          "desc": "Terminal"
+        },
+        {
+          "cmd": "glances -w",
+          "desc": "Web server mode (bind carefully)"
+        }
+      ],
+      "suggestions": [
+        "htop"
+      ]
+    },
+    {
+      "name": "nmon",
+      "match": [
+        "nmon"
+      ],
+      "summary": "Performance monitor",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Interactive system performance screen. See the flags and examples below, and run `man nmon` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nmon",
+          "desc": "Start"
+        }
+      ],
+      "suggestions": [
+        "htop"
+      ]
+    },
+    {
+      "name": "atop",
+      "match": [
+        "atop"
+      ],
+      "summary": "Advanced system monitor",
+      "risk": "low",
+      "risk_reason": "Writes logs continuously when run as a service.",
+      "explanation": "Process and resource monitor with history.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "atop -r /var/log/atop/atop_20250101",
+          "desc": "Replay a day"
+        }
+      ],
+      "suggestions": [
+        "sar"
+      ]
+    },
+    {
+      "name": "bpftool",
+      "match": [
+        "bpftool"
+      ],
+      "summary": "Inspect eBPF programs",
+      "risk": "high",
+      "risk_reason": "Can load/unload kernel programs.",
+      "cautions": [
+        "Loading/unloading BPF programs affects networking and security tooling."
+      ],
+      "explanation": "Show or manipulate BPF programs and maps.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "bpftool prog show",
+          "desc": "Programs"
+        }
+      ],
+      "suggestions": [
+        "bpftrace"
+      ],
+      "low_when": [
+        "show|list|dump|version"
+      ],
+      "low_unless": [
+        "load|attach|detach|pin|unpin"
+      ]
+    },
+    {
+      "name": "trace-cmd",
+      "match": [
+        "trace-cmd"
+      ],
+      "summary": "Ftrace front-end",
+      "risk": "medium",
+      "risk_reason": "Kernel tracing adds overhead.",
+      "cautions": [
+        "Use short runs; traces can be large."
+      ],
+      "explanation": "Records function traces. See the flags and examples below, and run `man trace-cmd` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "trace-cmd record -e sched ls",
+          "desc": "Trace scheduler"
+        }
+      ],
+      "suggestions": [
+        "perf"
+      ]
+    },
+    {
+      "name": "tshark",
+      "match": [
+        "tshark"
+      ],
+      "summary": "Packet analyzer (CLI Wireshark)",
+      "risk": "medium",
+      "risk_reason": "Captures sensitive traffic.",
+      "cautions": [
+        "Captures contain credentials/PII — limit, encrypt and delete.",
+        "Capturing needs privileges; avoid running as root."
+      ],
+      "explanation": "Captures and decodes packets. See the flags and examples below, and run `man tshark` for the full reference.",
+      "flags": [
+        {
+          "flag": "-i",
+          "desc": "Interface"
+        },
+        {
+          "flag": "-f",
+          "desc": "Capture filter"
+        },
+        {
+          "flag": "-Y",
+          "desc": "Display filter"
+        },
+        {
+          "flag": "-w",
+          "desc": "Write pcap"
+        },
+        {
+          "flag": "-c",
+          "desc": "Packet count"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "tshark -i eth0 -f \"port 53\" -c 20",
+          "desc": "DNS capture"
+        }
+      ],
+      "suggestions": [
+        "tcpdump"
+      ]
+    },
+    {
+      "name": "promtool",
+      "match": [
+        "promtool"
+      ],
+      "summary": "Prometheus tool",
+      "risk": "low",
+      "risk_reason": "Mostly read-only.",
+      "explanation": "Check configs and rules; query Prometheus.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "promtool check config prometheus.yml",
+          "desc": "Validate"
+        },
+        {
+          "cmd": "promtool check rules rules.yml",
+          "desc": "Rules"
+        }
+      ],
+      "suggestions": [
+        "curl"
+      ]
+    },
+    {
+      "name": "grafana-cli",
+      "match": [
+        "grafana-cli"
+      ],
+      "summary": "Grafana admin CLI",
+      "risk": "medium",
+      "risk_reason": "Resetting passwords/plugins affects access.",
+      "cautions": [
+        "admin reset-admin-password changes the admin credentials."
+      ],
+      "explanation": "Manage plugins and admin user. See the flags and examples below, and run `man grafana-cli` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "grafana-cli plugins ls",
+          "desc": "Plugins"
+        }
+      ],
+      "suggestions": [
+        "systemctl"
+      ]
+    },
+    {
+      "name": "journald",
+      "kind": "topic",
+      "match": [
+        "journald",
+        "journalctl --vacuum-size",
+        "journalctl --vacuum-time"
+      ],
+      "summary": "journald control",
+      "risk": "medium",
+      "risk_reason": "Vacuuming deletes logs.",
+      "cautions": [
+        "Vacuum is permanent — forensic evidence may be lost."
+      ],
+      "explanation": "journalctl --vacuum-* and storage settings.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "journalctl --disk-usage",
+          "desc": "Usage"
+        },
+        {
+          "cmd": "journalctl --vacuum-time=7d",
+          "desc": "Delete older logs"
+        }
+      ],
+      "suggestions": [
+        "journalctl"
+      ]
+    },
+    {
+      "name": "valgrind",
+      "match": [
+        "valgrind"
+      ],
+      "summary": "Memory error detector",
+      "risk": "low",
+      "risk_reason": "Slows programs 10-50x.",
+      "explanation": "Detects memory leaks and invalid accesses.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "valgrind --leak-check=full ./app",
+          "desc": "Check leaks"
+        }
+      ],
+      "suggestions": [
+        "gdb",
+        "strace"
+      ]
+    },
+    {
+      "name": "gdb",
+      "match": [
+        "gdb"
+      ],
+      "summary": "GNU debugger",
+      "risk": "high",
+      "risk_reason": "Attaching stops processes and may crash them.",
+      "cautions": [
+        "Attaching to production processes pauses them; core dumps contain secrets.",
+        "Prefer reading core dumps over live attach."
+      ],
+      "explanation": "Debugs programs and core files. See the flags and examples below, and run `man gdb` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gdb -p 1234",
+          "desc": "Attach to a process"
+        },
+        {
+          "cmd": "gdb ./app core",
+          "desc": "Inspect a core dump"
+        }
+      ],
+      "suggestions": [
+        "strace"
+      ]
+    },
+    {
+      "name": "objdump",
+      "match": [
+        "objdump"
+      ],
+      "summary": "Disassemble binaries",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Displays object file info. See the flags and examples below, and run `man objdump` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "objdump -d ./a.out | head",
+          "desc": "Disassembly"
+        }
+      ],
+      "suggestions": [
+        "readelf"
+      ]
+    },
+    {
+      "name": "readelf",
+      "match": [
+        "readelf"
+      ],
+      "summary": "Display ELF info",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Safe alternative to ldd for dependencies.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "readelf -d /bin/ls | grep NEEDED",
+          "desc": "Libraries needed"
+        }
+      ],
+      "suggestions": [
+        "ldd"
+      ]
+    },
+    {
+      "name": "nm",
+      "match": [
+        "nm"
+      ],
+      "summary": "List symbols",
+      "risk": "low",
+      "risk_reason": "Read-only.",
+      "explanation": "Lists symbols from object files. See the flags and examples below, and run `man nm` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "nm -D /lib/x86_64-linux-gnu/libc.so.6 | head",
+          "desc": "Dynamic symbols"
+        }
+      ],
+      "suggestions": [
+        "objdump"
+      ]
+    },
+    {
+      "name": "coredumpctl",
+      "match": [
+        "coredumpctl"
+      ],
+      "summary": "Access core dumps",
+      "risk": "low",
+      "risk_reason": "Dumps may contain secrets.",
+      "cautions": [
+        "Core files can include passwords and keys."
+      ],
+      "explanation": "Lists and inspects systemd coredumps. See the flags and examples below, and run `man coredumpctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "coredumpctl list",
+          "desc": "Recent crashes"
+        },
+        {
+          "cmd": "coredumpctl info",
+          "desc": "Details"
+        }
+      ],
+      "suggestions": [
+        "gdb"
+      ]
+    },
+    {
+      "name": "cat /proc",
+      "kind": "topic",
+      "match": [
+        "/proc",
+        "proc"
+      ],
+      "summary": "The /proc filesystem",
+      "risk": "low",
+      "risk_reason": "Read-only (some files reveal sensitive process info).",
+      "cautions": [
+        "/proc/<pid>/environ and cmdline may contain secrets.",
+        "Writing to /proc/sys or /proc/sysrq-trigger changes the running kernel."
+      ],
+      "explanation": "Kernel and process information: /proc/cpuinfo, /proc/meminfo, /proc/<pid>/status.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "cat /proc/meminfo | head",
+          "desc": "Memory"
+        },
+        {
+          "cmd": "cat /proc/1234/status",
+          "desc": "Process status"
+        },
+        {
+          "cmd": "ls -l /proc/1234/fd",
+          "desc": "Open files"
+        }
+      ],
+      "suggestions": [
+        "ps",
+        "lsof"
+      ]
+    }
+  ]
+}

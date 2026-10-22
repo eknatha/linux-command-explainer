@@ -1,0 +1,1272 @@
+{
+  "category": "cloud",
+  "commands": [
+    {
+      "name": "aws",
+      "match": [
+        "aws"
+      ],
+      "summary": "AWS command line",
+      "risk": "high",
+      "risk_reason": "Acts on real cloud resources; the wrong profile/region affects the wrong account.",
+      "cautions": [
+        "Always check account + region before changes (sts get-caller-identity).",
+        "Credentials in environment variables or ~/.aws/credentials grant everything the user can do — use SSO / short-lived roles.",
+        "Use --dry-run (EC2) and `aws s3 ... --dryrun` wherever available."
+      ],
+      "explanation": "Entry point for AWS services. Check the account with `aws sts get-caller-identity`.",
+      "flags": [
+        {
+          "flag": "--profile",
+          "long": "--profile",
+          "desc": "Credentials profile"
+        },
+        {
+          "flag": "--region",
+          "long": "--region",
+          "desc": "Region"
+        },
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Validate (EC2 only)"
+        },
+        {
+          "flag": "--query",
+          "long": "--query",
+          "desc": "JMESPath filter"
+        },
+        {
+          "flag": "--output",
+          "long": "--output",
+          "desc": "json|table|text"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "aws sts get-caller-identity",
+          "desc": "Who am I?"
+        },
+        {
+          "cmd": "aws ec2 describe-instances --output table",
+          "desc": "List instances"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws sts get-caller-identity",
+          "why": "Confirm the account first"
+        },
+        {
+          "cmd": "aws configure list",
+          "why": "Check profile/region"
+        }
+      ],
+      "suggestions": [
+        "aws s3",
+        "aws ec2"
+      ],
+      "low_when": [
+        "\\b(describe|list|get|ls|sts get-caller-identity|help|configure list)\\b"
+      ],
+      "low_unless": [
+        "delete|terminate|remove|rm|put|create|run|update|modify|detach|deregister|--force"
+      ]
+    },
+    {
+      "name": "aws s3",
+      "match": [
+        "aws s3"
+      ],
+      "summary": "S3 object storage commands",
+      "risk": "high",
+      "risk_reason": "rm/sync --delete/rb remove objects irreversibly (unless versioning).",
+      "cautions": [
+        "Use --dryrun first for sync/rm/mv.",
+        "sync --delete mirrors deletions — pointing the wrong way erases the destination.",
+        "Public ACLs/policies expose data: keep Block Public Access on.",
+        "Enable versioning + MFA delete for critical buckets."
+      ],
+      "explanation": "High-level S3 commands: ls, cp, mv, rm, sync, rb.",
+      "flags": [
+        {
+          "flag": "ls",
+          "desc": "List"
+        },
+        {
+          "flag": "cp",
+          "desc": "Copy"
+        },
+        {
+          "flag": "sync",
+          "desc": "Synchronise folders"
+        },
+        {
+          "flag": "rm --recursive",
+          "desc": "Delete many objects",
+          "caution": "Irreversible without versioning."
+        },
+        {
+          "flag": "--dryrun",
+          "long": "--dryrun",
+          "desc": "Show what would happen"
+        },
+        {
+          "flag": "--delete",
+          "long": "--delete",
+          "desc": "Remove destination objects not in source",
+          "caution": "Can wipe a bucket."
+        },
+        {
+          "flag": "rb --force",
+          "desc": "Remove a bucket and contents",
+          "caution": "Permanent."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "aws s3 ls s3://my-bucket --recursive --human-readable --summarize",
+          "desc": "Size of a bucket"
+        },
+        {
+          "cmd": "aws s3 sync ./site s3://my-bucket --dryrun",
+          "desc": "Preview a sync"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws s3 sync <src> <dst> --dryrun",
+          "why": "Preview"
+        },
+        {
+          "cmd": "aws s3api get-bucket-versioning --bucket <b>",
+          "why": "Check versioning"
+        }
+      ],
+      "suggestions": [
+        "aws",
+        "aws s3api"
+      ],
+      "low_when": [
+        "\\bls\\b|--dryrun"
+      ],
+      "low_unless": [
+        "\\b(rm|rb|mv|sync|cp)\\b(?!.*--dryrun)"
+      ]
+    },
+    {
+      "name": "aws s3api",
+      "match": [
+        "aws s3api"
+      ],
+      "summary": "Low-level S3 API",
+      "risk": "high",
+      "risk_reason": "Direct policy/ACL/object-version operations.",
+      "cautions": [
+        "put-bucket-policy / put-bucket-acl can make data public.",
+        "delete-objects with versions removes history permanently."
+      ],
+      "explanation": "Exposes every S3 API call: bucket policies, versioning, lifecycle.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws s3api get-bucket-policy --bucket b",
+          "desc": "Show policy"
+        },
+        {
+          "cmd": "aws s3api list-object-versions --bucket b",
+          "desc": "Versions"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws s3api get-bucket-policy --bucket <b> > policy.bak",
+          "why": "Back up the policy first"
+        }
+      ],
+      "suggestions": [
+        "aws s3"
+      ],
+      "low_when": [
+        "\\b(get|list|head)-"
+      ],
+      "low_unless": [
+        "\\b(put|delete)-"
+      ]
+    },
+    {
+      "name": "aws ec2",
+      "match": [
+        "aws ec2"
+      ],
+      "summary": "EC2 instances and networking",
+      "risk": "high",
+      "risk_reason": "terminate-instances deletes servers and their root disks.",
+      "cautions": [
+        "terminate-instances cannot be undone — enable termination protection on critical hosts.",
+        "Opening 0.0.0.0/0 on SSH/RDP/DB ports is a common breach path.",
+        "Stopping instances loses ephemeral (instance-store) data and may change public IPs."
+      ],
+      "explanation": "Manage instances, volumes, security groups and AMIs.",
+      "flags": [
+        {
+          "flag": "describe-instances",
+          "desc": "List instances"
+        },
+        {
+          "flag": "stop-instances",
+          "desc": "Stop"
+        },
+        {
+          "flag": "terminate-instances",
+          "desc": "Delete",
+          "caution": "Irreversible; root EBS volumes are deleted by default."
+        },
+        {
+          "flag": "authorize-security-group-ingress",
+          "desc": "Open a port",
+          "caution": "0.0.0.0/0 exposes the service to the Internet."
+        },
+        {
+          "flag": "--dry-run",
+          "long": "--dry-run",
+          "desc": "Check permissions without acting"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "aws ec2 describe-instances --filters Name=tag:Env,Values=prod",
+          "desc": "Prod instances"
+        },
+        {
+          "cmd": "aws ec2 stop-instances --instance-ids i-123 --dry-run",
+          "desc": "Dry run"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws ec2 <action> --dry-run",
+          "why": "Validate permissions without acting"
+        },
+        {
+          "cmd": "aws ec2 create-snapshot --volume-id <vol>",
+          "why": "Snapshot before destructive changes"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "\\bdescribe-"
+      ],
+      "low_unless": [
+        "terminate|stop|reboot|delete|authorize|revoke|run-instances|modify"
+      ]
+    },
+    {
+      "name": "aws iam",
+      "match": [
+        "aws iam"
+      ],
+      "summary": "IAM identities and policies",
+      "risk": "high",
+      "risk_reason": "Wrong policies grant admin access or lock everyone out.",
+      "cautions": [
+        "Policies with Action:\"*\" / Resource:\"*\" grant full access.",
+        "Deleting or detaching a role can break running workloads.",
+        "Access keys: rotate regularly; never commit them."
+      ],
+      "explanation": "Manage users, roles and policies. See the flags and examples below, and run `man aws` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws iam list-users",
+          "desc": "List users"
+        },
+        {
+          "cmd": "aws iam get-account-authorization-details",
+          "desc": "Full dump"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws iam simulate-principal-policy --policy-source-arn <arn> --action-names <a>",
+          "why": "Simulate before attaching"
+        },
+        {
+          "cmd": "aws iam get-policy-version …",
+          "why": "Review current policy"
+        }
+      ],
+      "suggestions": [
+        "aws sts"
+      ],
+      "low_when": [
+        "\\b(list|get)-"
+      ],
+      "low_unless": [
+        "create|delete|attach|detach|put|update|add|remove"
+      ]
+    },
+    {
+      "name": "aws sts",
+      "match": [
+        "aws sts"
+      ],
+      "summary": "Security Token Service",
+      "risk": "low",
+      "risk_reason": "Read-only identity checks.",
+      "cautions": [
+        "Temporary credentials printed to the terminal can leak — pipe into variables."
+      ],
+      "explanation": "get-caller-identity shows the account/user you act as; assume-role returns temporary credentials.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws sts get-caller-identity",
+          "desc": "Who am I?"
+        },
+        {
+          "cmd": "aws sts assume-role --role-arn arn --role-session-name x",
+          "desc": "Temporary credentials"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ]
+    },
+    {
+      "name": "aws eks",
+      "match": [
+        "aws eks"
+      ],
+      "summary": "EKS clusters",
+      "risk": "high",
+      "risk_reason": "Updating/deleting clusters or node groups affects workloads.",
+      "cautions": [
+        "update-kubeconfig changes your current kubectl context.",
+        "delete-cluster/delete-nodegroup remove workloads."
+      ],
+      "explanation": "Manage Kubernetes control planes on AWS.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws eks list-clusters",
+          "desc": "List"
+        },
+        {
+          "cmd": "aws eks update-kubeconfig --name prod",
+          "desc": "Add kube context"
+        }
+      ],
+      "suggestions": [
+        "kubectl config"
+      ],
+      "low_when": [
+        "list-|describe-"
+      ],
+      "low_unless": [
+        "delete|update-cluster|update-nodegroup"
+      ]
+    },
+    {
+      "name": "aws rds",
+      "match": [
+        "aws rds"
+      ],
+      "summary": "RDS databases",
+      "risk": "high",
+      "risk_reason": "Deleting instances/snapshots loses data; modifications can reboot.",
+      "cautions": [
+        "delete-db-instance without a final snapshot is unrecoverable.",
+        "--apply-immediately can restart the database."
+      ],
+      "explanation": "Manage managed databases. See the flags and examples below, and run `man aws` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws rds describe-db-instances",
+          "desc": "List"
+        },
+        {
+          "cmd": "aws rds create-db-snapshot --db-instance-identifier db --db-snapshot-identifier s1",
+          "desc": "Snapshot"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws rds create-db-snapshot …",
+          "why": "Snapshot first"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "describe-|list-"
+      ],
+      "low_unless": [
+        "delete|modify|reboot|restore"
+      ]
+    },
+    {
+      "name": "aws lambda",
+      "match": [
+        "aws lambda"
+      ],
+      "summary": "Lambda functions",
+      "risk": "medium",
+      "risk_reason": "Updating or deleting functions affects production endpoints.",
+      "cautions": [
+        "Invoking runs code with its IAM role; side effects are real."
+      ],
+      "explanation": "Manage serverless functions. See the flags and examples below, and run `man aws` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws lambda list-functions",
+          "desc": "List"
+        },
+        {
+          "cmd": "aws lambda invoke --function-name f out.json",
+          "desc": "Invoke"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "list-|get-"
+      ],
+      "low_unless": [
+        "delete|update|invoke|put"
+      ]
+    },
+    {
+      "name": "aws cloudformation",
+      "match": [
+        "aws cloudformation"
+      ],
+      "summary": "CloudFormation stacks",
+      "risk": "high",
+      "risk_reason": "Deleting a stack deletes its resources.",
+      "cautions": [
+        "Use change sets to review updates.",
+        "Enable termination protection on production stacks."
+      ],
+      "explanation": "Create, update and delete stacks. See the flags and examples below, and run `man aws` for the full reference.",
+      "flags": [
+        {
+          "flag": "create-change-set",
+          "desc": "Preview changes"
+        },
+        {
+          "flag": "deploy",
+          "desc": "Create/update"
+        },
+        {
+          "flag": "delete-stack",
+          "desc": "Delete",
+          "caution": "Deletes all stack resources."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "aws cloudformation deploy --template-file t.yml --stack-name app --no-execute-changeset",
+          "desc": "Preview"
+        },
+        {
+          "cmd": "aws cloudformation describe-stacks",
+          "desc": "List"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws cloudformation deploy … --no-execute-changeset",
+          "why": "Create a change set only"
+        }
+      ],
+      "suggestions": [
+        "terraform plan"
+      ],
+      "low_when": [
+        "describe-|list-|validate"
+      ],
+      "low_unless": [
+        "delete|deploy|update|create"
+      ]
+    },
+    {
+      "name": "aws logs",
+      "match": [
+        "aws logs"
+      ],
+      "summary": "CloudWatch Logs",
+      "risk": "low",
+      "risk_reason": "Read-only unless deleting log groups.",
+      "cautions": [
+        "Deleting a log group removes history permanently."
+      ],
+      "explanation": "Query and tail logs. See the flags and examples below, and run `man aws` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws logs tail /aws/lambda/fn --follow",
+          "desc": "Tail a log group"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "tail|describe|filter|get|start-query"
+      ],
+      "low_unless": [
+        "delete|put-retention"
+      ]
+    },
+    {
+      "name": "aws ssm",
+      "match": [
+        "aws ssm"
+      ],
+      "summary": "Systems Manager",
+      "risk": "high",
+      "risk_reason": "Run Command executes code on instances.",
+      "cautions": [
+        "--with-decryption prints secrets.",
+        "send-command can run arbitrary commands on many instances."
+      ],
+      "explanation": "Parameters, sessions and remote commands.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws ssm start-session --target i-123",
+          "desc": "Shell without SSH"
+        },
+        {
+          "cmd": "aws ssm get-parameter --name /app/db --with-decryption",
+          "desc": "Read a secret"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "describe|list|get-parameter(?!s?.*--with-decryption)"
+      ],
+      "low_unless": [
+        "send-command|start-session|put-parameter|delete"
+      ]
+    },
+    {
+      "name": "aws route53",
+      "match": [
+        "aws route53"
+      ],
+      "summary": "DNS records",
+      "risk": "high",
+      "risk_reason": "Wrong DNS changes cause outages.",
+      "cautions": [
+        "Lower TTLs before migrations and back up the zone first (list-resource-record-sets)."
+      ],
+      "explanation": "Manage hosted zones and records. See the flags and examples below, and run `man aws` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "aws route53 list-hosted-zones",
+          "desc": "Zones"
+        },
+        {
+          "cmd": "aws route53 change-resource-record-sets",
+          "desc": "Change records"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "aws route53 list-resource-record-sets --hosted-zone-id <id> > zone.bak.json",
+          "why": "Back up the zone"
+        }
+      ],
+      "suggestions": [
+        "dig"
+      ],
+      "low_when": [
+        "list-|get-"
+      ],
+      "low_unless": [
+        "change|delete|create"
+      ]
+    },
+    {
+      "name": "az",
+      "match": [
+        "az"
+      ],
+      "summary": "Azure command line",
+      "risk": "high",
+      "risk_reason": "Acts on real Azure resources in the current subscription.",
+      "cautions": [
+        "Check the subscription before every change (az account show).",
+        "`az group delete` removes all resources in the group.",
+        "Service principal secrets must not be committed."
+      ],
+      "explanation": "Manage Azure from the terminal. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [
+        {
+          "flag": "account show",
+          "desc": "Current subscription"
+        },
+        {
+          "flag": "account set --subscription",
+          "desc": "Switch subscription"
+        },
+        {
+          "flag": "group delete",
+          "desc": "Delete a resource group",
+          "caution": "Deletes everything inside."
+        },
+        {
+          "flag": "--output table",
+          "desc": "Readable output"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "az account show -o table",
+          "desc": "Where am I?"
+        },
+        {
+          "cmd": "az vm list -o table",
+          "desc": "VMs"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "az account show -o table",
+          "why": "Confirm the subscription"
+        },
+        {
+          "cmd": "az group show -n <rg>",
+          "why": "Inspect before deleting"
+        }
+      ],
+      "suggestions": [
+        "az group",
+        "az vm"
+      ],
+      "low_when": [
+        "\\b(list|show|ls|account show|version|-h)\\b"
+      ],
+      "low_unless": [
+        "delete|create|update|set|stop|deallocate|remove|start|restart|add"
+      ]
+    },
+    {
+      "name": "az group",
+      "match": [
+        "az group"
+      ],
+      "summary": "Resource groups",
+      "risk": "high",
+      "risk_reason": "Deleting a group deletes all resources in it.",
+      "cautions": [
+        "--yes skips confirmation.",
+        "Use resource locks on production groups (az lock create)."
+      ],
+      "explanation": "Create/list/delete resource groups. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az group list -o table",
+          "desc": "List"
+        },
+        {
+          "cmd": "az group delete -n rg --yes",
+          "desc": "Delete"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "az resource list -g <rg> -o table",
+          "why": "See what is inside"
+        },
+        {
+          "cmd": "az lock create --name nodelete --lock-type CanNotDelete -g <rg>",
+          "why": "Add a delete lock"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list|show|exists"
+      ],
+      "low_unless": [
+        "delete|update|create"
+      ]
+    },
+    {
+      "name": "az vm",
+      "match": [
+        "az vm"
+      ],
+      "summary": "Virtual machines",
+      "risk": "high",
+      "risk_reason": "Deleting/deallocating VMs affects services and disks.",
+      "cautions": [
+        "Deallocate may change dynamic public IPs.",
+        "delete removes VM; disks/NICs may remain or be deleted."
+      ],
+      "explanation": "Manage VMs. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az vm list -d -o table",
+          "desc": "VMs with power state"
+        },
+        {
+          "cmd": "az vm deallocate -g rg -n vm",
+          "desc": "Stop and release compute"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list|show|get-instance-view"
+      ],
+      "low_unless": [
+        "delete|deallocate|stop|restart|resize|create|run-command"
+      ]
+    },
+    {
+      "name": "az aks",
+      "match": [
+        "az aks"
+      ],
+      "summary": "AKS clusters",
+      "risk": "high",
+      "risk_reason": "Upgrades/deletes affect workloads.",
+      "cautions": [
+        "get-credentials changes your kubectl context (use --context / --file).",
+        "Upgrade one minor version at a time."
+      ],
+      "explanation": "Manage Azure Kubernetes Service. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az aks get-credentials -g rg -n cluster",
+          "desc": "Add kube context"
+        },
+        {
+          "cmd": "az aks list -o table",
+          "desc": "List"
+        }
+      ],
+      "suggestions": [
+        "kubectl config"
+      ],
+      "low_when": [
+        "list|show|get-credentials|get-versions"
+      ],
+      "low_unless": [
+        "delete|upgrade|scale|stop|update"
+      ]
+    },
+    {
+      "name": "az storage",
+      "match": [
+        "az storage"
+      ],
+      "summary": "Storage accounts and blobs",
+      "risk": "high",
+      "risk_reason": "Blob deletes and public access settings.",
+      "cautions": [
+        "Public access on containers exposes data.",
+        "Soft delete should be on for production accounts."
+      ],
+      "explanation": "Manage storage accounts/containers. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az storage blob list --account-name a -c c -o table",
+          "desc": "List blobs"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list|show|exists"
+      ],
+      "low_unless": [
+        "delete|upload|set|update|remove"
+      ]
+    },
+    {
+      "name": "az network",
+      "match": [
+        "az network"
+      ],
+      "summary": "Networking (NSGs, VNets…)",
+      "risk": "high",
+      "risk_reason": "Opening NSG rules exposes services.",
+      "cautions": [
+        "Source * on ports 22/3389/DB ports is risky."
+      ],
+      "explanation": "Manage VNets, NSGs, load balancers. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az network nsg rule list -g rg --nsg-name n -o table",
+          "desc": "NSG rules"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list|show"
+      ],
+      "low_unless": [
+        "create|delete|update"
+      ]
+    },
+    {
+      "name": "az keyvault",
+      "match": [
+        "az keyvault"
+      ],
+      "summary": "Key Vault secrets",
+      "risk": "high",
+      "risk_reason": "Reads/deletes secrets and keys.",
+      "cautions": [
+        "`secret show` prints the secret value.",
+        "Purge protection prevents accidental permanent deletion — keep it enabled."
+      ],
+      "explanation": "Manage secrets, keys, certificates. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az keyvault secret list --vault-name v -o table",
+          "desc": "Names only"
+        },
+        {
+          "cmd": "az keyvault secret show --name n --vault-name v",
+          "desc": "Reads the secret value"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list\\b"
+      ],
+      "low_unless": [
+        "show|delete|purge|set|recover"
+      ]
+    },
+    {
+      "name": "az role",
+      "match": [
+        "az role"
+      ],
+      "summary": "RBAC role assignments",
+      "risk": "high",
+      "risk_reason": "Assignments grant access to subscriptions.",
+      "cautions": [
+        "Owner/Contributor at subscription scope is very broad."
+      ],
+      "explanation": "Manage role definitions and assignments.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az role assignment list --assignee user -o table",
+          "desc": "Assignments"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list|show"
+      ],
+      "low_unless": [
+        "create|delete"
+      ]
+    },
+    {
+      "name": "az webapp",
+      "match": [
+        "az webapp"
+      ],
+      "summary": "App Service",
+      "risk": "medium",
+      "risk_reason": "Restart/delete affects live sites.",
+      "cautions": [
+        "Restart drops active requests; use deployment slots for swaps."
+      ],
+      "explanation": "Manage web apps. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az webapp list -o table",
+          "desc": "List"
+        },
+        {
+          "cmd": "az webapp restart -g rg -n app",
+          "desc": "Restart"
+        }
+      ],
+      "suggestions": [
+        "az"
+      ],
+      "low_when": [
+        "list|show|log tail"
+      ],
+      "low_unless": [
+        "delete|restart|stop|deploy|config"
+      ]
+    },
+    {
+      "name": "az acr",
+      "match": [
+        "az acr"
+      ],
+      "summary": "Container registry",
+      "risk": "medium",
+      "risk_reason": "Deleting images breaks deployments.",
+      "cautions": [
+        "Deleting tags used by running deployments causes ImagePullBackOff."
+      ],
+      "explanation": "Manage Azure Container Registry. See the flags and examples below, and run `man az` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "az acr login -n reg",
+          "desc": "Login"
+        },
+        {
+          "cmd": "az acr repository list -n reg",
+          "desc": "Repositories"
+        }
+      ],
+      "suggestions": [
+        "docker push"
+      ],
+      "low_when": [
+        "list|show|login"
+      ],
+      "low_unless": [
+        "delete|import|purge"
+      ]
+    },
+    {
+      "name": "gcloud",
+      "match": [
+        "gcloud"
+      ],
+      "summary": "Google Cloud CLI",
+      "risk": "high",
+      "risk_reason": "Acts on real GCP resources in the active project.",
+      "cautions": [
+        "Check `gcloud config list` before changes; the active project decides the target.",
+        "--quiet disables confirmation prompts.",
+        "Use service accounts with least privilege."
+      ],
+      "explanation": "Manage GCP from the terminal. See the flags and examples below, and run `man gcloud` for the full reference.",
+      "flags": [
+        {
+          "flag": "config list",
+          "desc": "Active account/project"
+        },
+        {
+          "flag": "config set project",
+          "desc": "Switch project"
+        },
+        {
+          "flag": "--project",
+          "long": "--project",
+          "desc": "Per-command project"
+        },
+        {
+          "flag": "--quiet",
+          "long": "--quiet",
+          "desc": "Skip prompts",
+          "caution": "Deletes without confirmation."
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "gcloud config list",
+          "desc": "Where am I?"
+        },
+        {
+          "cmd": "gcloud compute instances list",
+          "desc": "VMs"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "gcloud config list",
+          "why": "Confirm project/account"
+        },
+        {
+          "cmd": "gcloud projects describe <id>",
+          "why": "Inspect the project"
+        }
+      ],
+      "suggestions": [
+        "gcloud compute",
+        "gcloud container"
+      ],
+      "low_when": [
+        "\\b(list|describe|config list|info|version|auth list)\\b"
+      ],
+      "low_unless": [
+        "delete|create|update|stop|reset|remove|resize|--quiet"
+      ]
+    },
+    {
+      "name": "gcloud compute",
+      "match": [
+        "gcloud compute"
+      ],
+      "summary": "Compute Engine",
+      "risk": "high",
+      "risk_reason": "Deleting/stopping instances and firewall rules affects availability and security.",
+      "cautions": [
+        "Firewall rules with 0.0.0.0/0 expose services.",
+        "Deleting instances can delete boot disks (auto-delete)."
+      ],
+      "explanation": "VMs, disks, firewalls, networks. See the flags and examples below, and run `man gcloud` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gcloud compute instances list",
+          "desc": "VMs"
+        },
+        {
+          "cmd": "gcloud compute firewall-rules list",
+          "desc": "Firewall rules"
+        }
+      ],
+      "suggestions": [
+        "gcloud"
+      ],
+      "low_when": [
+        "list|describe"
+      ],
+      "low_unless": [
+        "delete|stop|reset|create|resize|add-|remove-"
+      ]
+    },
+    {
+      "name": "gcloud container",
+      "match": [
+        "gcloud container"
+      ],
+      "summary": "GKE clusters",
+      "risk": "high",
+      "risk_reason": "Cluster/node-pool changes affect workloads.",
+      "cautions": [
+        "get-credentials changes your kubectl context.",
+        "Upgrades/deletes affect running workloads."
+      ],
+      "explanation": "Manage GKE. See the flags and examples below, and run `man gcloud` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gcloud container clusters get-credentials prod --region r",
+          "desc": "Add kube context"
+        }
+      ],
+      "suggestions": [
+        "kubectl config"
+      ],
+      "low_when": [
+        "list|describe|get-credentials"
+      ],
+      "low_unless": [
+        "delete|upgrade|resize|update|create"
+      ]
+    },
+    {
+      "name": "gsutil",
+      "match": [
+        "gsutil"
+      ],
+      "summary": "Cloud Storage tool",
+      "risk": "high",
+      "risk_reason": "rm -r and rsync -d delete objects.",
+      "cautions": [
+        "Use -n for rsync previews.",
+        "Enable object versioning / retention policies."
+      ],
+      "explanation": "Legacy GCS CLI (gcloud storage is the successor).",
+      "flags": [
+        {
+          "flag": "rsync -d",
+          "desc": "Mirror with deletes",
+          "caution": "Removes destination extras."
+        },
+        {
+          "flag": "rm -r",
+          "desc": "Delete recursively",
+          "caution": "Permanent without versioning."
+        },
+        {
+          "flag": "-m",
+          "desc": "Parallel"
+        }
+      ],
+      "examples": [
+        {
+          "cmd": "gsutil ls -L gs://b",
+          "desc": "List with details"
+        },
+        {
+          "cmd": "gsutil -m rsync -n -r ./dir gs://b",
+          "desc": "Dry run (-n)"
+        }
+      ],
+      "suggestions": [
+        "gcloud"
+      ],
+      "low_when": [
+        "\\bls\\b|\\bcat\\b|\\bdu\\b|-n\\b"
+      ],
+      "low_unless": [
+        "\\b(rm|rsync|mv)\\b(?!.*-n)"
+      ]
+    },
+    {
+      "name": "gcloud iam",
+      "match": [
+        "gcloud iam"
+      ],
+      "summary": "IAM policies",
+      "risk": "high",
+      "risk_reason": "Role bindings grant access across the project.",
+      "cautions": [
+        "roles/owner and roles/editor are very broad.",
+        "Service account keys are long-lived secrets — prefer workload identity."
+      ],
+      "explanation": "Manage service accounts and bindings. See the flags and examples below, and run `man gcloud` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gcloud projects get-iam-policy my-proj",
+          "desc": "Current bindings"
+        }
+      ],
+      "safer": [
+        {
+          "cmd": "gcloud projects get-iam-policy <p> > iam.bak.json",
+          "why": "Back up the policy first"
+        }
+      ],
+      "suggestions": [
+        "gcloud"
+      ],
+      "low_when": [
+        "get-iam-policy|list|describe"
+      ],
+      "low_unless": [
+        "add-iam-policy-binding|remove|create|delete|set-iam-policy|keys create"
+      ]
+    },
+    {
+      "name": "gcloud sql",
+      "match": [
+        "gcloud sql"
+      ],
+      "summary": "Cloud SQL",
+      "risk": "high",
+      "risk_reason": "Deleting instances loses data.",
+      "cautions": [
+        "Take on-demand backups before changes; instance patching restarts the database."
+      ],
+      "explanation": "Manage managed databases. See the flags and examples below, and run `man gcloud` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "gcloud sql instances list",
+          "desc": "List"
+        },
+        {
+          "cmd": "gcloud sql backups create --instance i",
+          "desc": "Backup"
+        }
+      ],
+      "suggestions": [
+        "gcloud"
+      ],
+      "low_when": [
+        "list|describe"
+      ],
+      "low_unless": [
+        "delete|patch|restart|import|export|failover"
+      ]
+    },
+    {
+      "name": "doctl",
+      "match": [
+        "doctl"
+      ],
+      "summary": "DigitalOcean CLI",
+      "risk": "high",
+      "risk_reason": "Acts on real droplets/resources.",
+      "cautions": [
+        "Delete commands are immediate (--force skips confirmation)."
+      ],
+      "explanation": "Manage DigitalOcean resources. See the flags and examples below, and run `man doctl` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "doctl compute droplet list",
+          "desc": "Droplets"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "list|get"
+      ],
+      "low_unless": [
+        "delete|create|power|resize"
+      ]
+    },
+    {
+      "name": "oci",
+      "match": [
+        "oci"
+      ],
+      "summary": "Oracle Cloud CLI",
+      "risk": "high",
+      "risk_reason": "Acts on real OCI resources.",
+      "cautions": [
+        "Check the profile/tenancy first."
+      ],
+      "explanation": "Manage Oracle Cloud. See the flags and examples below, and run `man oci` for the full reference.",
+      "flags": [],
+      "examples": [
+        {
+          "cmd": "oci iam region list",
+          "desc": "Regions"
+        }
+      ],
+      "suggestions": [
+        "aws"
+      ],
+      "low_when": [
+        "list|get"
+      ],
+      "low_unless": [
+        "delete|terminate|create|update"
+      ]
+    }
+  ]
+}

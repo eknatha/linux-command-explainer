@@ -1,0 +1,140 @@
+{
+  "intents": [
+    {
+      "id": "list-disks",
+      "title": "List disks and partitions",
+      "match": [
+        [
+          "list",
+          "show",
+          "view"
+        ],
+        [
+          "disk",
+          "disks",
+          "partition",
+          "partitions",
+          "block",
+          "drives"
+        ]
+      ],
+      "say": [
+        "list disks and partitions"
+      ],
+      "slots": {},
+      "cmd": "lsblk -f",
+      "notes": "",
+      "alts": [],
+      "category": "storage"
+    },
+    {
+      "id": "mount-disk",
+      "title": "Mount a disk",
+      "match": [
+        [
+          "mount",
+          "attach"
+        ],
+        [
+          "disk",
+          "drive",
+          "partition",
+          "usb",
+          "device"
+        ]
+      ],
+      "say": [
+        "mount a disk"
+      ],
+      "slots": {
+        "name": {
+          "from": "name",
+          "default": "sdb1",
+          "label": "device"
+        }
+      },
+      "cmd": "lsblk -f && mount /dev/{name} /mnt",
+      "notes": "Check the device with lsblk first; mounting over a non-empty directory hides its contents.",
+      "alts": [],
+      "category": "storage"
+    },
+    {
+      "id": "swap-status",
+      "title": "Show swap usage",
+      "match": [
+        [
+          "show",
+          "check",
+          "list"
+        ],
+        [
+          "swap"
+        ]
+      ],
+      "say": [
+        "show swap usage"
+      ],
+      "slots": {},
+      "cmd": "swapon --show && free -h",
+      "notes": "",
+      "alts": [],
+      "category": "storage"
+    },
+    {
+      "id": "inode-usage",
+      "title": "Check inode usage",
+      "match": [
+        [
+          "inode",
+          "inodes"
+        ],
+        [
+          "usage",
+          "check",
+          "full",
+          "out of",
+          "no space"
+        ]
+      ],
+      "say": [
+        "check inode usage"
+      ],
+      "slots": {},
+      "cmd": "df -i",
+      "notes": "",
+      "alts": [],
+      "category": "storage"
+    },
+    {
+      "id": "disk-full-why",
+      "title": "Why is the disk full",
+      "match": [
+        [
+          "disk",
+          "filesystem",
+          "space"
+        ],
+        [
+          "full",
+          "100%",
+          "no space",
+          "out of space",
+          "filling"
+        ]
+      ],
+      "say": [
+        "why is the disk full"
+      ],
+      "slots": {},
+      "cmd": "df -h && du -xh / --max-depth=2 2>/dev/null | sort -rh | head -20",
+      "notes": "Also check deleted-but-open files: lsof +L1.",
+      "alts": [
+        {
+          "cmd": "lsof +L1",
+          "desc": "Deleted files still held open by processes"
+        }
+      ],
+      "category": "storage"
+    }
+  ]
+}

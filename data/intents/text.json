@@ -1,0 +1,322 @@
+{
+  "intents": [
+    {
+      "id": "grep-errors",
+      "title": "Find errors in a log",
+      "match": [
+        [
+          "find",
+          "search",
+          "show",
+          "grep",
+          "get"
+        ],
+        [
+          "error",
+          "errors",
+          "exception",
+          "failed",
+          "fail"
+        ]
+      ],
+      "say": [
+        "find errors in a log"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "/var/log/syslog",
+          "label": "log file"
+        }
+      },
+      "cmd": "grep -i -E \"error|exception|fail\" {file} | tail -50",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "journalctl -p err -b --no-pager | tail -50",
+          "desc": "systemd errors since boot"
+        }
+      ],
+      "category": "text"
+    },
+    {
+      "id": "count-unique",
+      "title": "Count unique values",
+      "match": [
+        [
+          "count",
+          "unique",
+          "duplicate",
+          "duplicates",
+          "frequency"
+        ],
+        [
+          "unique",
+          "duplicates",
+          "occurrences",
+          "most common",
+          "frequent"
+        ]
+      ],
+      "say": [
+        "count unique values"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "file.txt",
+          "label": "file"
+        }
+      },
+      "cmd": "sort {file} | uniq -c | sort -rn | head -20",
+      "notes": "",
+      "alts": [],
+      "category": "text"
+    },
+    {
+      "id": "column-extract",
+      "title": "Print one column",
+      "match": [
+        [
+          "print",
+          "extract",
+          "show",
+          "get",
+          "cut"
+        ],
+        [
+          "column",
+          "field",
+          "columns"
+        ]
+      ],
+      "say": [
+        "print one column"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "file.txt",
+          "label": "file"
+        }
+      },
+      "cmd": "awk '{print $1}' {file}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "cut -d',' -f1 {file}",
+          "desc": "For CSV/delimited files"
+        }
+      ],
+      "category": "text"
+    },
+    {
+      "id": "replace-text",
+      "title": "Replace text in files",
+      "match": [
+        [
+          "replace",
+          "substitute",
+          "change",
+          "sed"
+        ],
+        [
+          "text",
+          "string",
+          "word",
+          "in file",
+          "files"
+        ]
+      ],
+      "say": [
+        "replace text in files"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "file.txt",
+          "label": "file"
+        }
+      },
+      "cmd": "sed -n 's/old/new/gp' {file}   # preview; use -i.bak to edit in place",
+      "notes": "Run without -i first; -i.bak keeps a backup copy.",
+      "alts": [],
+      "category": "text"
+    },
+    {
+      "id": "json-pretty",
+      "title": "Pretty-print or query JSON",
+      "match": [
+        [
+          "json"
+        ],
+        [
+          "pretty",
+          "format",
+          "parse",
+          "query",
+          "extract",
+          "jq",
+          "print"
+        ]
+      ],
+      "say": [
+        "pretty-print or query json"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "data.json",
+          "label": "json file"
+        }
+      },
+      "cmd": "jq '.' {file}",
+      "notes": "",
+      "alts": [
+        {
+          "cmd": "jq -r '.items[].name' {file}",
+          "desc": "Extract a field from each item"
+        }
+      ],
+      "category": "text"
+    },
+    {
+      "id": "compare-files",
+      "title": "Compare two files",
+      "match": [
+        [
+          "compare",
+          "diff",
+          "difference",
+          "differences"
+        ],
+        [
+          "file",
+          "files",
+          "two"
+        ]
+      ],
+      "say": [
+        "compare two files"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "a.conf",
+          "label": "file"
+        }
+      },
+      "cmd": "diff -u {file} {file}.new",
+      "notes": "",
+      "alts": [],
+      "category": "text"
+    },
+    {
+      "id": "top-ips-log",
+      "title": "Top IPs in a web log",
+      "match": [
+        [
+          "top",
+          "most",
+          "frequent",
+          "busiest"
+        ],
+        [
+          "ip",
+          "ips",
+          "clients",
+          "visitors",
+          "requests"
+        ]
+      ],
+      "say": [
+        "top ips in a web log"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "/var/log/nginx/access.log",
+          "label": "access log"
+        },
+        "lines": {
+          "from": "lines",
+          "default": "10",
+          "label": "rows"
+        }
+      },
+      "cmd": "awk '{print $1}' {file} | sort | uniq -c | sort -rn | head -{lines}",
+      "notes": "",
+      "alts": [],
+      "category": "text"
+    },
+    {
+      "id": "base64",
+      "title": "Base64 encode/decode",
+      "match": [
+        [
+          "base64",
+          "encode",
+          "decode"
+        ],
+        [
+          "base64",
+          "string",
+          "encode",
+          "decode"
+        ]
+      ],
+      "say": [
+        "base64 encode/decode"
+      ],
+      "slots": {
+        "text": {
+          "from": "text",
+          "default": "hello",
+          "label": "text"
+        }
+      },
+      "cmd": "echo -n \"{text}\" | base64",
+      "notes": "Base64 is not encryption.",
+      "alts": [
+        {
+          "cmd": "echo \"aGVsbG8=\" | base64 -d",
+          "desc": "Decode"
+        }
+      ],
+      "category": "text"
+    },
+    {
+      "id": "checksum",
+      "title": "Checksum a file",
+      "match": [
+        [
+          "checksum",
+          "hash",
+          "sha256",
+          "md5",
+          "verify"
+        ],
+        [
+          "file",
+          "integrity",
+          "checksum",
+          "hash"
+        ]
+      ],
+      "say": [
+        "checksum a file"
+      ],
+      "slots": {
+        "file": {
+          "from": "file",
+          "default": "file.iso",
+          "label": "file"
+        }
+      },
+      "cmd": "sha256sum {file}",
+      "notes": "",
+      "alts": [],
+      "category": "text"
+    }
+  ]
+}
